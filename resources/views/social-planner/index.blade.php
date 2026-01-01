@@ -410,10 +410,10 @@
             isScheduling: false,
 
             connectedAccounts: {
-                linkedin: false,
-                twitter: false,
-                facebook: false,
-                instagram: false
+                linkedin: window.socialPlannerConfig?.linkedin?.connected || false,
+                twitter: window.socialPlannerConfig?.twitter?.connected || false,
+                facebook: window.socialPlannerConfig?.facebook?.connected || false,
+                instagram: window.socialPlannerConfig?.instagram?.connected || false
             },
 
             socialConfig: window.socialPlannerConfig || {},

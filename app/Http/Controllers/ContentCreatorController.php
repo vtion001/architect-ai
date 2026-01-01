@@ -116,7 +116,14 @@ class ContentCreatorController extends Controller
 
     public function show(Content $content)
     {
-        return view('content-creator.show', compact('content'));
+        $path = storage_path('app/social_tokens.json');
+        $isFacebookConnected = false;
+        if (file_exists($path)) {
+            $tokens = json_decode(file_get_contents($path), true);
+            $isFacebookConnected = !empty($tokens['facebook']);
+        }
+        
+        return view('content-creator.show', compact('content', 'isFacebookConnected'));
     }
 
     public function getSuggestions(Request $request)
@@ -243,18 +250,23 @@ class ContentCreatorController extends Controller
             'final_text' => 'required|string',
             'image_url' => 'nullable|url',
             'platforms' => 'required|array|min:1',
-            'scheduled_at' => 'required|date',
+            'scheduled_at' => 'required|string', // Allow 'now' string or date
             'facebook_page_id' => 'nullable|string',
             'facebook_page_token' => 'nullable|string',
         ]);
 
+        // Resolve 'now' to actual timestamp
+        $scheduledAt = $validated['scheduled_at'] === 'now' ? now()->toDateTimeString() : $validated['scheduled_at'];
+        
         $parentDrag = Content::find($validated['content_id']);
         $results = [];
+
+        $isImmediate = $validated['scheduled_at'] === 'now';
 
         foreach ($validated['platforms'] as $platform) {
             $options = [
                 'platform' => $platform,
-                'scheduled_at' => $validated['scheduled_at'],
+                'scheduled_at' => $scheduledAt,
                 'image_url' => $validated['image_url'],
                 'original_content_id' => $validated['content_id']
             ];
@@ -266,7 +278,7 @@ class ContentCreatorController extends Controller
             }
 
             $contentRecord = Content::create([
-                'title' => 'Scheduled ' . ucfirst($platform) . ' - ' . Str::limit($parentDrag->topic, 20),
+                'title' => ($isImmediate ? 'Published ' : 'Scheduled ') . ucfirst($platform) . ' - ' . Str::limit($parentDrag->topic, 20),
                 'topic' => $parentDrag->topic,
                 'type' => 'social-post', 
                 'context' => $parentDrag->context,
@@ -275,17 +287,22 @@ class ContentCreatorController extends Controller
                 'options' => $options
             ]);
 
-            // If scheduled time is substantially "now" (within 2 mins), post immediately for demo purposes
-            // Or if user specifically requested this to be "setup end to end", immediate feedback is good.
-            if ($platform === 'facebook' && $options['page_id'] && $options['page_token']) {
-                $scheduledTime = \Carbon\Carbon::parse($validated['scheduled_at']);
-                if ($scheduledTime->diffInMinutes(now()) < 5 || $scheduledTime->isPast()) {
+            // If scheduled at 'now', or time is past, attempt immediate post
+            if ($isImmediate || \Carbon\Carbon::parse($scheduledAt)->isPast()) {
+                if ($platform === 'facebook' && !empty($options['page_id']) && !empty($options['page_token'])) {
                     $fbResult = $this->postToFacebook($contentRecord);
                     $results['facebook'] = $fbResult;
+                    
                     if ($fbResult['success']) {
-                        $contentRecord->update(['status' => 'published', 'result' => $validated['final_text'] . "\n\n[Posted to FB ID: {$fbResult['id']}]"]);
+                        $contentRecord->update([
+                            'status' => 'published', 
+                            'result' => $validated['final_text'] . "\n\n[Posted to Facebook: " . ($fbResult['id'] ?? 'Success') . "]"
+                        ]);
                     } else {
-                        $contentRecord->update(['status' => 'failed', 'result' => $validated['final_text'] . "\n\n[FB Error: {$fbResult['error']}]"]);
+                        $contentRecord->update([
+                            'status' => 'failed', 
+                            'result' => $validated['final_text'] . "\n\n[Facebook Error: " . ($fbResult['error'] ?? 'Unknown Error') . "]"
+                        ]);
                     }
                 }
             }
@@ -293,17 +310,22 @@ class ContentCreatorController extends Controller
 
         return response()->json([
             'success' => true,
-            'message' => 'Content scheduled.',
-            'debug_results' => $results
+            'message' => $isImmediate ? 'Successfully published!' : 'Content scheduled successfully.',
+            'results' => $results
         ]);
     }
 
     private function postToFacebook(Content $content)
     {
         $options = $content->options;
-        $pageId = $options['page_id'];
-        $token = $options['page_token'];
-        $message = $content->result;
+        $pageId = $options['page_id'] ?? null;
+        $token = $options['page_token'] ?? null;
+
+        if (!$pageId || !$token) {
+            return ['success' => false, 'error' => 'Missing Page ID or Access Token'];
+        }
+
+        $message = $this->cleanMarkdownForSocial($content->result);
         $imageUrl = $options['image_url'] ?? null;
 
         try {
@@ -380,5 +402,22 @@ class ContentCreatorController extends Controller
         }
 
         return response()->json(['success' => false, 'message' => 'Image generation failed. Please try again.'], 500);
+    }
+    private function cleanMarkdownForSocial(string $text): string
+    {
+        // Remove bold/italic markers
+        $text = str_replace(['**', '*', '__', '_'], '', $text);
+        
+        // Remove markdown headers (e.g., # Header or ## Header)
+        $text = preg_replace('/^#+\s+/m', '', $text);
+        
+        // Remove code block markers
+        $text = str_replace('```', '', $text);
+        $text = preg_replace('/`(.+?)`/', '$1', $text);
+        
+        // Remove trailing or leading whitespace
+        $text = trim($text);
+        
+        return $text;
     }
 }

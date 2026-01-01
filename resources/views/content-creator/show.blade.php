@@ -97,17 +97,28 @@
                         scheduleDate: new Date().toISOString().slice(0, 16),
                         facebookPages: [],
                         selectedFacebookPage: null,
+                        isFacebookConnected: {{ $isFacebookConnected ? 'true' : 'false' }},
                         isFetchingPages: false,
                         showPageModal: false,
+                        postNow: true,
                         rawContent: window.contentData_{{ $content->id }}_{{ $index }}.raw,
                         htmlContent: window.contentData_{{ $content->id }}_{{ $index }}.html,
 
                         fetchFacebookPages() {
+                            if (!this.isFacebookConnected) {
+                                alert('Please connect your Facebook account in the Social Planner first.');
+                                return;
+                            }
                             this.isFetchingPages = true;
                             this.showPageModal = true;
                             fetch('/social-planner/facebook-pages')
                                 .then(res => res.json())
-                                .then(data => { this.facebookPages = data.pages; })
+                                .then(data => { 
+                                    this.facebookPages = data.pages || []; 
+                                    if (this.facebookPages.length === 0) {
+                                        alert('No Facebook pages found. Please ensure you have granted page permissions.');
+                                    }
+                                })
                                 .catch(err => {
                                     console.error(err);
                                     alert('Failed to fetch Facebook pages.');
@@ -253,7 +264,7 @@
                                     final_text: this.rawContent,
                                     image_url: this.imageUrl,
                                     platforms: this.selectedPlatforms,
-                                    scheduled_at: this.scheduleDate,
+                                    scheduled_at: this.postNow ? 'now' : this.scheduleDate,
                                     facebook_page_id: fbPageId,
                                     facebook_page_token: fbPageToken
                                 })
@@ -261,8 +272,14 @@
                             .then(res => res.json())
                             .then(data => {
                                 if (data.success) {
-                                    alert('Scheduled to Social Planner!');
+                                    let msg = data.message;
+                                    if (data.results && data.results.facebook && !data.results.facebook.success) {
+                                        msg += "\n\nNote: Facebook post failed: " + data.results.facebook.error;
+                                    }
+                                    alert(msg);
                                     window.location.href = '{{ route('social-planner.index') }}';
+                                } else {
+                                    alert('Publishing failed: ' + (data.message || 'Unknown error'));
                                 }
                             })
                             .finally(() => { this.isPublishing = false; this.showPublishModal = false; });
@@ -396,11 +413,16 @@
                             <div class="w-8 h-8 rounded bg-sky-400 flex items-center justify-center text-white">Tw</div>
                             <span class="text-sm font-medium">Twitter</span>
                         </label>
-                         <div class="relative">
-                             <label class="flex items-center gap-3 p-3 rounded-lg border border-border bg-muted/20 cursor-pointer hover:bg-muted/40 transition-colors w-full" :class="{'border-blue-700 bg-blue-700/10': selectedPlatforms.includes('facebook')}">
-                                <input type="checkbox" value="facebook" x-model="selectedPlatforms" class="hidden">
+                         <div class="relative" :class="!isFacebookConnected && 'opacity-60 cursor-not-allowed'">
+                             <label class="flex items-center gap-3 p-3 rounded-lg border border-border bg-muted/20 cursor-pointer hover:bg-muted/40 transition-colors w-full" 
+                                    :class="{'border-blue-700 bg-blue-700/10': selectedPlatforms.includes('facebook')}"
+                                    @click="if(!isFacebookConnected) { alert('Connect Facebook in Social Planner first'); return false; }">
+                                <input type="checkbox" value="facebook" x-model="selectedPlatforms" class="hidden" :disabled="!isFacebookConnected">
                                 <div class="w-8 h-8 rounded bg-blue-700 flex items-center justify-center text-white">Fb</div>
-                                <span class="text-sm font-medium">Facebook</span>
+                                <div class="flex flex-col">
+                                    <span class="text-sm font-medium">Facebook</span>
+                                    <span x-show="!isFacebookConnected" class="text-[9px] text-red-500 font-bold uppercase tracking-tighter">Not Connected</span>
+                                </div>
                             </label>
                             <!-- Facebook Gear Button -->
                              <button @click.stop="fetchFacebookPages" class="absolute right-2 top-1/2 -translate-y-1/2 p-2 hover:bg-blue-200/20 rounded-full transition-colors z-10" title="Select Page">
@@ -420,9 +442,21 @@
                         </label>
                     </div>
 
-                    <div class="space-y-1">
-                        <label class="text-[10px] font-bold uppercase text-muted-foreground">Schedule For</label>
-                        <input type="datetime-local" x-model="scheduleDate" class="w-full bg-muted/30 border border-border rounded-lg text-sm px-3 py-2">
+                    <div class="space-y-2 py-1">
+                        <div class="flex items-center justify-between">
+                            <label class="text-[10px] font-bold uppercase text-muted-foreground">Timing</label>
+                            <label class="flex items-center gap-2 cursor-pointer">
+                                <span class="text-[10px] font-bold uppercase transition-colors" :class="postNow ? 'text-primary' : 'text-muted-foreground'">Post Now</span>
+                                <div class="relative w-8 h-4 bg-muted rounded-full transition-colors" :class="postNow && 'bg-primary/20'">
+                                    <input type="checkbox" x-model="postNow" class="sr-only">
+                                    <div class="absolute top-0.5 left-0.5 w-3 h-3 bg-white rounded-full transition-transform shadow-sm" :class="postNow && 'translate-x-4 bg-primary'"></div>
+                                </div>
+                            </label>
+                        </div>
+                        
+                        <div x-show="!postNow" x-transition>
+                             <input type="datetime-local" x-model="scheduleDate" class="w-full bg-muted/30 border border-border rounded-lg text-sm px-3 py-2 focus:ring-1 focus:ring-primary focus:border-primary outline-none transition-all">
+                        </div>
                     </div>
 
                     <div class="flex gap-2 pt-2">

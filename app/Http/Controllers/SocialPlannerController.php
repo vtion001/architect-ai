@@ -19,22 +19,35 @@ class SocialPlannerController extends Controller
             ->latest()
             ->get();
 
+        $baseUrl = rtrim(config('app.url'), '/');
+        
+        // Load connected status from our "database" (the JSON file)
+        $path = storage_path('app/social_tokens.json');
+        $tokens = [];
+        if (file_exists($path)) {
+            $tokens = json_decode(file_get_contents($path), true);
+        }
+
         $socialConfig = [
             'facebook' => [
                 'clientId' => config('services.facebook.client_id'),
-                'redirectUri' => config('services.facebook.redirect'),
+                'redirectUri' => config('services.facebook.redirect') ?: $baseUrl . "/social/callback/facebook",
+                'connected' => isset($tokens['facebook']) && !empty($tokens['facebook']),
             ],
             'instagram' => [
                 'clientId' => config('services.instagram.client_id'),
-                'redirectUri' => config('services.instagram.redirect'),
+                'redirectUri' => config('services.instagram.redirect') ?: $baseUrl . "/social/callback/instagram",
+                'connected' => isset($tokens['instagram']) && !empty($tokens['instagram']),
             ],
             'linkedin' => [
                 'clientId' => config('services.linkedin.client_id'),
-                'redirectUri' => config('services.linkedin.redirect'),
+                'redirectUri' => config('services.linkedin.redirect') ?: $baseUrl . "/social/callback/linkedin",
+                'connected' => isset($tokens['linkedin']) && !empty($tokens['linkedin']),
             ],
             'twitter' => [
                 'clientId' => config('services.twitter.client_id'),
-                'redirectUri' => config('services.twitter.redirect'),
+                'redirectUri' => config('services.twitter.redirect') ?: $baseUrl . "/social/callback/twitter",
+                'connected' => isset($tokens['twitter']) && !empty($tokens['twitter']),
             ],
         ];
 
@@ -89,26 +102,24 @@ class SocialPlannerController extends Controller
         if (!$code) {
             return response()->json(['error' => 'No code provided'], 400);
         }
-
-        // Exchange code for access token
         $clientId = config("services.$platform.client_id");
         $clientSecret = config("services.$platform.client_secret");
-        $redirectUri = config("services.$platform.redirect") ?? url("/social/callback/$platform");
 
-        $tokenUrl = '';
-        if ($platform === 'facebook') {
-            $tokenUrl = "https://graph.facebook.com/v18.0/oauth/access_token?client_id=$clientId&redirect_uri=$redirectUri&client_secret=$clientSecret&code=$code";
-        } elseif ($platform === 'instagram') {
-             // Basic Display
-             $tokenUrl = "https://api.instagram.com/oauth/access_token"; // POST required
-        }
+        // Use APP_URL to ensure consistency (especially with ngrok/https)
+        $baseUrl = rtrim(config('app.url'), '/');
+        $redirectUri = config("services.$platform.redirect") ?: $baseUrl . "/social/callback/$platform";
 
         try {
             if ($platform === 'facebook') {
-                $response = \Illuminate\Support\Facades\Http::get($tokenUrl);
+                $response = \Illuminate\Support\Facades\Http::get("https://graph.facebook.com/v18.0/oauth/access_token", [
+                    'client_id' => $clientId,
+                    'redirect_uri' => $redirectUri,
+                    'client_secret' => $clientSecret,
+                    'code' => $code
+                ]);
             } else {
                 // Post for others if needed
-                $response = \Illuminate\Support\Facades\Http::asForm()->post($tokenUrl, [
+                $response = \Illuminate\Support\Facades\Http::asForm()->post("https://graph.facebook.com/v18.0/oauth/access_token", [
                     'client_id' => $clientId,
                     'client_secret' => $clientSecret,
                     'grant_type' => 'authorization_code',

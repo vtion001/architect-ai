@@ -750,87 +750,60 @@
                     </h3>
                 </div>
                 
-                <div class="bg-muted/10 p-4 min-h-[400px]">
-                    <div class="space-y-4">
+                <div class="bg-muted/5 p-4 min-h-[400px]">
+                    <div class="flex flex-col gap-2">
                         <?php $__empty_1 = true; $__currentLoopData = $recentContents; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $item): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); $__empty_1 = false; ?>
-                        <div class="bg-card border border-border rounded-xl shadow-sm hover:shadow-md transition-all duration-200 group relative">
-                             <!-- Clickable Area Overlay -->
-                            <a href="<?php echo e(route('content-creator.show', $item)); ?>" class="absolute inset-0 z-10 block rounded-xl focus:ring-2 focus:ring-primary focus:outline-none"></a>
+                            <?php
+                                $statusColors = [
+                                    'published' => 'text-green-700 bg-green-50/80 border-green-200',
+                                    'draft' => 'text-amber-700 bg-amber-50/80 border-amber-200',
+                                    'generating' => 'text-blue-700 bg-blue-50/80 border-blue-200',
+                                    'failed' => 'text-red-700 bg-red-50/80 border-red-200',
+                                    'scheduled' => 'text-purple-700 bg-purple-50/80 border-purple-200'
+                                ];
+                                $statusColor = $statusColors[$item->status] ?? 'text-slate-700 bg-slate-50 border-slate-200';
+                                
+                                $typeIcons = [
+                                    'social-post' => 'share-2',
+                                    'blog-post' => 'book-open',
+                                    'video' => 'video',
+                                    'email' => 'mail'
+                                ];
+                                $icon = $typeIcons[$item->type] ?? 'file-text';
+                            ?>
                             
-                            <!-- Post Header -->
-                            <div class="p-4 flex items-center justify-between">
-                                <div class="flex items-center gap-3">
-                                    <!-- Avatar -->
-                                    <div class="w-10 h-10 rounded-full bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center border border-primary/10 shadow-inner">
-                                        <i data-lucide="bot" class="w-5 h-5 text-primary"></i>
-                                    </div>
-                                    <div>
-                                        <h4 class="text-sm font-bold text-foreground leading-tight">Architect AI</h4>
-                                        <div class="flex items-center gap-1.5 text-[10px] text-muted-foreground font-medium">
-                                            <span><?php echo e($item->created_at->diffForHumans()); ?></span>
-                                            <span class="text-muted-foreground/50">•</span>
-                                            <i data-lucide="globe" class="w-3 h-3 opacity-70"></i>
-                                        </div>
+                            <a href="<?php echo e(route('content-creator.show', $item)); ?>" 
+                               class="group flex items-center gap-3 p-3 rounded-xl border border-border bg-card hover:bg-white hover:shadow-md hover:border-primary/30 transition-all duration-200">
+                                
+                                <!-- Icon / Indicator -->
+                                <div class="w-10 h-10 rounded-lg bg-muted/50 border border-border flex items-center justify-center shrink-0 group-hover:bg-primary/5 group-hover:border-primary/10 transition-colors">
+                                    <i data-lucide="<?php echo e($icon); ?>" class="w-5 h-5 text-muted-foreground group-hover:text-primary transition-colors"></i>
+                                </div>
+
+                                <!-- Info -->
+                                <div class="flex-1 min-w-0">
+                                    <h4 class="text-xs font-bold text-foreground truncate group-hover:text-primary transition-colors"><?php echo e($item->title); ?></h4>
+                                    <div class="flex items-center gap-2 mt-1">
+                                        <span class="text-[9px] font-black uppercase tracking-widest text-muted-foreground"><?php echo e($item->created_at->diffForHumans()); ?></span>
+                                        <span class="text-muted-foreground/30 text-[10px]">•</span>
+                                        <span class="text-[9px] font-bold uppercase tracking-widest <?php echo e($statusColor); ?> px-1.5 py-0.5 rounded-md border">
+                                            <?php echo e($item->status); ?>
+
+                                        </span>
                                     </div>
                                 </div>
-                                <button class="relative z-20 p-2 text-muted-foreground hover:bg-muted rounded-full transition-colors">
-                                    <i data-lucide="more-horizontal" class="w-5 h-5"></i>
-                                </button>
-                            </div>
-        
-                            <!-- Post Content -->
-                            <div class="px-4 pb-3">
-                                <p class="text-sm text-foreground leading-relaxed line-clamp-3 mb-3 font-medium">
-                                    <?php echo e($item->title); ?>
 
-                                </p>
-        
-                                <!-- Badges -->
-                                <?php
-                                    $statusColors = [
-                                        'published' => 'text-green-700 bg-green-50/80 border-green-200',
-                                        'draft' => 'text-amber-700 bg-amber-50/80 border-amber-200',
-                                        'generating' => 'text-blue-700 bg-blue-50/80 border-blue-200',
-                                        'failed' => 'text-red-700 bg-red-50/80 border-red-200'
-                                    ];
-                                    $statusColor = $statusColors[$item->status] ?? 'text-slate-700 bg-slate-50 border-slate-200';
-                                ?>
-                                <div class="flex flex-wrap gap-2">
-                                     <span class="inline-flex items-center rounded-full border px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider shadow-sm <?php echo e($statusColor); ?>">
-                                        <?php echo e(ucfirst($item->status)); ?>
-
-                                    </span>
-                                     <span class="inline-flex items-center rounded-full border border-border bg-muted/30 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-muted-foreground shadow-sm">
-                                        <?php echo e(ucwords(str_replace('-', ' ', $item->type))); ?>
-
-                                    </span>
+                                <!-- Chevron -->
+                                <div class="shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
+                                    <i data-lucide="chevron-right" class="w-4 h-4 text-primary"></i>
                                 </div>
-                            </div>
-        
-                            <!-- Post Footer (Fake Actions) -->
-                            <div class="px-2 py-1 border-t border-border flex items-center justify-between bg-muted/5">
-                                 <div class="flex items-center gap-1 w-full relative z-20">
-                                    <button class="flex-1 flex items-center justify-center gap-2 py-2 rounded-lg hover:bg-muted/50 transition-colors group/btn">
-                                        <i data-lucide="thumbs-up" class="w-4 h-4 text-muted-foreground group-hover/btn:text-blue-500 transition-colors"></i>
-                                        <span class="text-xs font-semibold text-muted-foreground group-hover/btn:text-blue-500 transition-colors">Like</span>
-                                    </button>
-                                    <button class="flex-1 flex items-center justify-center gap-2 py-2 rounded-lg hover:bg-muted/50 transition-colors group/btn">
-                                        <i data-lucide="message-circle" class="w-4 h-4 text-muted-foreground group-hover/btn:text-primary transition-colors"></i>
-                                        <span class="text-xs font-semibold text-muted-foreground group-hover/btn:text-primary transition-colors">Comment</span>
-                                    </button>
-                                    <button class="flex-1 flex items-center justify-center gap-2 py-2 rounded-lg hover:bg-muted/50 transition-colors group/btn">
-                                        <i data-lucide="share-2" class="w-4 h-4 text-muted-foreground group-hover/btn:text-green-500 transition-colors"></i>
-                                        <span class="text-xs font-semibold text-muted-foreground group-hover/btn:text-green-500 transition-colors">Share</span>
-                                    </button>
-                                 </div>
-                            </div>
-                        </div>
+                            </a>
                         <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); if ($__empty_1): ?>
-                        <!-- Empty State -->
-                        <div class="text-center py-12 text-muted-foreground opacity-50 bg-card/50 rounded-xl border border-border border-dashed">
-                            <i data-lucide="rss" class="w-10 h-10 mx-auto mb-3"></i>
-                            <p class="text-sm font-medium">Activity feed is empty.</p>
-                        </div>
+                            <!-- Empty State -->
+                            <div class="text-center py-12 text-muted-foreground opacity-50 bg-card/50 rounded-xl border border-border border-dashed">
+                                <i data-lucide="rss" class="w-10 h-10 mx-auto mb-3"></i>
+                                <p class="text-sm font-medium">Activity feed is empty.</p>
+                            </div>
                         <?php endif; ?>
                     </div>
                 </div>
