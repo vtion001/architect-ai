@@ -24,6 +24,8 @@ Route::get('/research-engine', [ResearchEngineController::class, 'index'])->name
 Route::post('/research-engine/start', [ResearchEngineController::class, 'store'])->name('research-engine.start');
 Route::get('/research-engine/{research}', [ResearchEngineController::class, 'show'])->name('research-engine.show');
 Route::get('/content-creator', [ContentCreatorController::class, 'index'])->name('content-creator.index');
+Route::post('/content-creator/generate', [ContentCreatorController::class, 'store'])->name('content-creator.generate');
+Route::get('/content-creator/{content}', [ContentCreatorController::class, 'show'])->name('content-creator.show');
 Route::get('/social-planner', [SocialPlannerController::class, 'index'])->name('social-planner.index');
 Route::get('/knowledge-base', [KnowledgeBaseController::class, 'index'])->name('knowledge-base.index');
 Route::get('/documents', [DocumentsController::class, 'index'])->name('documents.index');
