@@ -56,9 +56,8 @@
         <p class="text-muted-foreground">Generate high-quality content powered by your knowledge base</p>
     </div>
 
-    <!-- How to Use Section -->
-    <div class="mb-8 rounded-xl border border-primary/20 bg-primary/5 p-6 border-l-4 border-l-primary">
-        <div class="flex gap-4">
+    <div class="mb-8 rounded-xl border border-primary/20 bg-primary/5 p-6 border-l-4 border-l-primary flex flex-col md:flex-row justify-between gap-6">
+        <div class="flex gap-4 flex-1">
             <div class="rounded-full bg-primary/10 p-2 h-fit">
                 <i data-lucide="help-circle" class="w-6 h-6 text-primary"></i>
             </div>
@@ -72,6 +71,22 @@
                     <li>Platform selection happens when posting/scheduling, not during generation</li>
                 </ol>
             </div>
+        </div>
+        
+        <!-- Generator Toggles (Matching User Photo) -->
+        <div class="flex flex-col gap-2 min-w-[200px]">
+            <button class="flex items-center gap-3 px-4 py-3 rounded-lg bg-slate-900 text-white/70 hover:text-white transition-all text-sm font-medium border border-white/5">
+                <i data-lucide="video" class="w-4 h-4"></i>
+                Video Generator
+            </button>
+            <button class="flex items-center gap-3 px-4 py-3 rounded-lg bg-slate-800 text-white shadow-xl shadow-black/20 text-sm font-bold border border-white/10 ring-1 ring-white/20">
+                <i data-lucide="edit-3" class="w-4 h-4"></i>
+                Post Generator
+            </button>
+            <button class="flex items-center gap-3 px-4 py-3 rounded-lg bg-slate-900 text-white/70 hover:text-white transition-all text-sm font-medium border border-white/5">
+                <i data-lucide="book" class="w-4 h-4"></i>
+                Blog Generator
+            </button>
         </div>
     </div>
 
