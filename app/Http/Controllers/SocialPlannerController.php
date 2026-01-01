@@ -15,8 +15,9 @@ class SocialPlannerController extends Controller
     public function index()
     {
         $scheduledPosts = Content::where('type', 'social-post')
-            ->where('status', 'scheduled')
+            ->whereIn('status', ['scheduled', 'published'])
             ->latest()
+            ->limit(20)
             ->get();
 
         $baseUrl = rtrim(config('app.url'), '/');
@@ -33,23 +34,33 @@ class SocialPlannerController extends Controller
                 'clientId' => config('services.facebook.client_id'),
                 'redirectUri' => config('services.facebook.redirect') ?: $baseUrl . "/social/callback/facebook",
                 'connected' => isset($tokens['facebook']) && !empty($tokens['facebook']),
+                'count' => Content::where('type', 'social-post')->where('options->platform', 'facebook')->count(),
             ],
             'instagram' => [
                 'clientId' => config('services.instagram.client_id'),
                 'redirectUri' => config('services.instagram.redirect') ?: $baseUrl . "/social/callback/instagram",
                 'connected' => isset($tokens['instagram']) && !empty($tokens['instagram']),
+                'count' => Content::where('type', 'social-post')->where('options->platform', 'instagram')->count(),
             ],
             'linkedin' => [
                 'clientId' => config('services.linkedin.client_id'),
                 'redirectUri' => config('services.linkedin.redirect') ?: $baseUrl . "/social/callback/linkedin",
                 'connected' => isset($tokens['linkedin']) && !empty($tokens['linkedin']),
+                'count' => Content::where('type', 'social-post')->where('options->platform', 'linkedin')->count(),
             ],
             'twitter' => [
                 'clientId' => config('services.twitter.client_id'),
                 'redirectUri' => config('services.twitter.redirect') ?: $baseUrl . "/social/callback/twitter",
                 'connected' => isset($tokens['twitter']) && !empty($tokens['twitter']),
+                'count' => Content::where('type', 'social-post')->where('options->platform', 'twitter')->count(),
             ],
         ];
+
+        // Calculate total for percentages
+        $totalSocialPosts = Content::where('type', 'social-post')->count() ?: 1;
+        foreach ($socialConfig as $key => $config) {
+            $socialConfig[$key]['percentage'] = number_format(($config['count'] / $totalSocialPosts) * 100, 1);
+        }
 
         return view('social-planner.index', compact('scheduledPosts', 'socialConfig'));
     }

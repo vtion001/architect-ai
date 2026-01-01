@@ -15,7 +15,6 @@
 
     <!-- Platform Stats -->
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-        <!-- ... (Stats cards remain unchanged) ... -->
         <div class="rounded-xl border border-border bg-card text-card-foreground shadow-sm">
             <div class="p-4">
                 <div class="w-10 h-10 bg-blue-500 rounded-lg flex items-center justify-center mb-3">
@@ -23,8 +22,8 @@
                 </div>
                 <h3 class="font-semibold mb-1">LinkedIn</h3>
                 <div class="flex items-center justify-between text-sm">
-                    <span class="text-muted-foreground">0 posts</span>
-                    <span class="text-green-600 font-medium">0.0%</span>
+                    <span class="text-muted-foreground">{{ $socialConfig['linkedin']['count'] ?? 0 }} posts</span>
+                    <span class="text-green-600 font-medium">{{ $socialConfig['linkedin']['percentage'] ?? '0.0' }}%</span>
                 </div>
             </div>
         </div>
@@ -35,8 +34,8 @@
                 </div>
                 <h3 class="font-semibold mb-1">Twitter</h3>
                 <div class="flex items-center justify-between text-sm">
-                    <span class="text-muted-foreground">0 posts</span>
-                    <span class="text-green-600 font-medium">0.0%</span>
+                    <span class="text-muted-foreground">{{ $socialConfig['twitter']['count'] ?? 0 }} posts</span>
+                    <span class="text-green-600 font-medium">{{ $socialConfig['twitter']['percentage'] ?? '0.0' }}%</span>
                 </div>
             </div>
         </div>
@@ -47,8 +46,8 @@
                 </div>
                 <h3 class="font-semibold mb-1">Instagram</h3>
                 <div class="flex items-center justify-between text-sm">
-                    <span class="text-muted-foreground">0 posts</span>
-                    <span class="text-green-600 font-medium">0.0%</span>
+                    <span class="text-muted-foreground">{{ $socialConfig['instagram']['count'] ?? 0 }} posts</span>
+                    <span class="text-green-600 font-medium">{{ $socialConfig['instagram']['percentage'] ?? '0.0' }}%</span>
                 </div>
             </div>
         </div>
@@ -59,8 +58,8 @@
                 </div>
                 <h3 class="font-semibold mb-1">Facebook</h3>
                 <div class="flex items-center justify-between text-sm">
-                    <span class="text-muted-foreground">0 posts</span>
-                    <span class="text-green-600 font-medium">0.0%</span>
+                    <span class="text-muted-foreground">{{ $socialConfig['facebook']['count'] ?? 0 }} posts</span>
+                    <span class="text-green-600 font-medium">{{ $socialConfig['facebook']['percentage'] ?? '0.0' }}%</span>
                 </div>
             </div>
         </div>
@@ -89,9 +88,18 @@
                          <div class="text-muted-foreground p-2 opacity-20"></div>
                     </template>
                     <template x-for="day in daysInMonth">
-                        <div class="p-2 rounded-md hover:bg-muted cursor-pointer" 
-                             :class="{ 'bg-primary text-primary-foreground hover:bg-primary': day === new Date().getDate() && currentDate.getMonth() === new Date().getMonth() }"
-                             x-text="day">
+                        <div class="p-2 rounded-md hover:bg-muted cursor-pointer relative" 
+                             :class="{ 'bg-primary text-primary-foreground hover:bg-primary': day === new Date().getDate() && currentDate.getMonth() === new Date().getMonth() }">
+                             <span x-text="day"></span>
+                             <!-- Dot Indicators -->
+                             <div class="absolute bottom-1 left-1/2 -translate-x-1/2 flex gap-0.5">
+                                <template x-for="post in postsOnDay(day).slice(0, 3)">
+                                    <a :href="post.original_id ? '/content-creator/' + post.original_id : '#'" 
+                                       class="w-1 h-1 rounded-full hover:scale-150 transition-transform" 
+                                       :class="post.status === 'published' ? 'bg-green-500' : 'bg-purple-500'">
+                                    </a>
+                                </template>
+                             </div>
                         </div>
                     </template>
                 </div>
@@ -103,14 +111,18 @@
             </div>
         </div>
 
-        <!-- Scheduled Posts -->
         <div class="rounded-xl border border-border bg-card text-card-foreground shadow-sm lg:col-span-2">
             <div class="flex flex-col space-y-1.5 p-6">
                 <div class="flex items-center justify-between">
-                    <h3 class="text-2xl font-semibold leading-none tracking-tight">Scheduled Posts</h3>
-                    <button class="inline-flex items-center justify-center rounded-md text-xs font-medium border border-input bg-background hover:bg-accent hover:text-accent-foreground h-8 px-3">
-                        View All
-                    </button>
+                    <h2 class="text-2xl font-bold tracking-tight">Post Schedule</h2>
+                    <div class="flex gap-2">
+                        <span class="inline-flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-widest text-muted-foreground px-2 py-1 bg-muted/50 rounded-md border border-border">
+                            <span class="w-1.5 h-1.5 rounded-full bg-purple-500"></span> Scheduled
+                        </span>
+                        <span class="inline-flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-widest text-muted-foreground px-2 py-1 bg-muted/50 rounded-md border border-border">
+                            <span class="w-1.5 h-1.5 rounded-full bg-green-500"></span> Published
+                        </span>
+                    </div>
                 </div>
             </div>
             <div class="p-6 pt-0 max-h-[600px] overflow-y-auto">
@@ -130,7 +142,8 @@
                             $bgColor = $bgColors[$platform] ?? 'bg-gray-500';
                             $initials = substr(ucfirst($platform), 0, 2);
                         @endphp
-                        <div class="flex items-start gap-4 p-4 rounded-lg border border-border bg-muted/20 hover:bg-muted/30 transition-colors group">
+                        <a href="{{ !empty($options['original_content_id']) ? route('content-creator.show', $options['original_content_id']) : '#' }}" 
+                           class="flex items-start gap-4 p-4 rounded-lg border border-border bg-muted/20 hover:bg-white hover:shadow-md hover:border-primary/30 transition-all group">
                             <!-- Icon -->
                             <div class="w-10 h-10 {{ $bgColor }} rounded-lg flex items-center justify-center text-white font-bold shrink-0 shadow-sm">
                                 {{ $initials }}
@@ -139,10 +152,15 @@
                             <!-- Content -->
                             <div class="flex-1 min-w-0">
                                 <div class="flex items-center justify-between mb-1">
-                                    <h4 class="font-semibold text-sm truncate">{{ ucfirst($platform) }} Post</h4>
-                                    <span class="text-xs text-muted-foreground">{{ $date->format('M d, g:i A') }}</span>
+                                    <div class="flex items-center gap-2">
+                                        <h4 class="font-bold text-sm truncate">{{ ucfirst($platform) }} Post</h4>
+                                        <span class="text-[9px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded border {{ $post->status === 'published' ? 'text-green-700 bg-green-50 border-green-200' : 'text-purple-700 bg-purple-50 border-purple-200' }}">
+                                            {{ $post->status }}
+                                        </span>
+                                    </div>
+                                    <span class="text-[10px] font-bold text-muted-foreground uppercase">{{ $date->format('M d, g:i A') }}</span>
                                 </div>
-                                <p class="text-sm text-muted-foreground line-clamp-2 mb-2">{{ $post->result }}</p>
+                                <p class="text-xs text-muted-foreground line-clamp-2 mb-2 leading-relaxed">{{ $post->result }}</p>
                                 
                                 @if(!empty($options['image_url']))
                                     <div class="w-24 h-16 rounded overflow-hidden shadow-sm border border-border">
@@ -150,7 +168,11 @@
                                     </div>
                                 @endif
                             </div>
-                        </div>
+                            <!-- Chevron -->
+                            <div class="shrink-0 opacity-0 group-hover:opacity-100 transition-opacity self-center">
+                                <i data-lucide="chevron-right" class="w-4 h-4 text-primary"></i>
+                            </div>
+                        </a>
                     @empty
                         <div class="flex flex-col items-center justify-center py-12 text-muted-foreground">
                             <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-calendar-x mb-4 opacity-50"><rect width="18" height="18" x="3" y="4" rx="2" ry="2"/><line x1="16" x2="16" y1="2" y2="6"/><line x1="8" x2="8" y1="2" y2="6"/><line x1="3" x2="21" y1="10" y2="10"/><line x1="10" x2="14" y1="14" y2="18"/><line x1="14" x2="10" y1="14" y2="18"/></svg>
@@ -209,23 +231,26 @@
                     </template>
                     
                     <template x-for="day in daysInMonth">
-                        <div class="bg-card p-2 min-h-[120px] relative hover:bg-accent/5 transition-colors group border-t border-l border-border/20">
-                            <span class="text-sm font-medium w-7 h-7 flex items-center justify-center rounded-full" 
+                        <div class="bg-card p-2 h-[140px] flex flex-col relative hover:bg-accent/5 transition-colors group border-t border-l border-border/20">
+                            <span class="text-sm font-medium w-7 h-7 flex items-center justify-center rounded-full shrink-0" 
                                   :class="{ 'bg-primary text-primary-foreground': day === new Date().getDate() && currentDate.getMonth() === new Date().getMonth() }"
                                   x-text="day"></span>
                             
-                            <!-- Sample Mock Post Visual (Demonstration) -->
-                            <div x-show="day === 16" class="mt-2 text-xs">
-                                <div class="bg-card border border-border rounded overflow-hidden shadow-sm group-hover:shadow-md transition-all cursor-pointer">
-                                    <div class="h-16 bg-muted relative">
-                                        <!-- Thumbnail Placeholder -->
-                                        <img src="https://images.unsplash.com/photo-1611162617474-5b21e879e113?w=300&h=150&fit=crop" class="w-full h-full object-cover opacity-80" alt="Post thumbnail">
-                                        <div class="absolute top-1 right-1 w-5 h-5 bg-blue-500 rounded flex items-center justify-center">
-                                             <span class="text-[10px] text-white font-bold">Li</span>
+                            <!-- Dynamic Posts from Alpine -->
+                            <div class="space-y-1 mt-1 overflow-y-auto overflow-x-hidden flex-1 scrollbar-thin scrollbar-thumb-muted-foreground/20 hover:scrollbar-thumb-muted-foreground/30 pr-0.5">
+                                <template x-for="post in postsOnDay(day)">
+                                    <a :href="post.original_id ? '/content-creator/' + post.original_id : '#'"
+                                       class="block p-1.5 rounded border bg-card shadow-sm hover:shadow-md transition-all cursor-pointer group/post overflow-hidden"
+                                       :class="post.status === 'published' ? 'border-green-200 hover:border-green-400' : 'border-purple-200 hover:border-purple-400'">
+                                        <div class="flex items-center justify-between mb-0.5">
+                                            <span class="text-[8px] font-black uppercase tracking-tighter" 
+                                                  :class="post.status === 'published' ? 'text-green-600' : 'text-purple-600'"
+                                                  x-text="post.platform"></span>
+                                            <div class="w-1.5 h-1.5 rounded-full" :class="post.status === 'published' ? 'bg-green-500' : 'bg-purple-500'"></div>
                                         </div>
-                                    </div>
-                                    <div class="p-1 px-2 truncate font-medium">Product Launch</div>
-                                </div>
+                                        <div class="text-[9px] font-bold text-foreground truncate" x-text="post.title"></div>
+                                    </a>
+                                </template>
                             </div>
                         </div>
                     </template>
@@ -394,9 +419,18 @@
 </div>
 <script>
     window.socialPlannerConfig = @js($socialConfig);
+    window.socialPlannerPosts = @js($scheduledPosts);
     
     document.addEventListener('alpine:init', () => {
         Alpine.data('socialPlanner', () => ({
+            posts: (window.socialPlannerPosts || []).map(p => ({
+                id: p.id,
+                title: p.title || 'Untitled Post',
+                status: p.status,
+                platform: p.options?.platform || 'generic',
+                scheduled_at: p.options?.scheduled_at || p.created_at,
+                original_id: p.options?.original_content_id || null
+            })),
             showCalendarModal: false,
             showCreatePostModal: false,
             showConnectModal: false,
@@ -427,6 +461,13 @@
             },
             monthName() {
                 return this.currentDate.toLocaleString('default', { month: 'long' }) + ' ' + this.currentDate.getFullYear();
+            },
+            postsOnDay(day) {
+                const dateStr = `${this.currentDate.getFullYear()}-${String(this.currentDate.getMonth() + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+                return this.posts.filter(p => {
+                    const postDate = p.scheduled_at.split(' ')[0]; // YYYY-MM-DD
+                    return postDate === dateStr;
+                });
             },
             async fetchSuggestions() {
                 if (!this.topic || this.isLoadingSuggestions) return;

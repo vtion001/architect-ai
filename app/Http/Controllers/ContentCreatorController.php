@@ -7,6 +7,7 @@ use App\Services\ContentService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
 class ContentCreatorController extends Controller
@@ -24,7 +25,10 @@ class ContentCreatorController extends Controller
             'published' => Content::where('status', 'published')->count(),
         ];
 
-        $recentContents = Content::latest()->take(10)->get();
+        $recentContents = Content::where(function($q) {
+            $q->whereNull('options->original_content_id')
+              ->orWhere('options', '[]');
+        })->latest()->take(15)->get();
 
         return view('content-creator.index', compact('stats', 'recentContents'));
     }
@@ -294,9 +298,12 @@ class ContentCreatorController extends Controller
                     $results['facebook'] = $fbResult;
                     
                     if ($fbResult['success']) {
+                        $currentOptions = $contentRecord->options;
+                        $currentOptions['platform_post_id'] = $fbResult['id'];
                         $contentRecord->update([
                             'status' => 'published', 
-                            'result' => $validated['final_text'] . "\n\n[Posted to Facebook: " . ($fbResult['id'] ?? 'Success') . "]"
+                            'result' => $validated['final_text'] . "\n\n[Posted to Facebook: " . ($fbResult['id'] ?? 'Success') . "]",
+                            'options' => $currentOptions
                         ]);
                     } else {
                         $contentRecord->update([
@@ -403,6 +410,87 @@ class ContentCreatorController extends Controller
 
         return response()->json(['success' => false, 'message' => 'Image generation failed. Please try again.'], 500);
     }
+    public function saveVisual(Request $request, Content $content)
+    {
+        $validated = $request->validate([
+            'image_url' => 'required|url',
+            'index' => 'required|integer'
+        ]);
+
+        $options = $content->options ?? [];
+        $visuals = $options['visuals'] ?? [];
+        $visuals[$validated['index']] = $validated['image_url'];
+        $options['visuals'] = $visuals;
+
+        $content->update(['options' => $options]);
+
+        return response()->json(['success' => true]);
+    }
+
+    public function destroy(Content $content)
+    {
+        Log::info("Attempting to delete batch for Content ID: " . $content->id);
+
+        return DB::transaction(function () use ($content) {
+            // 1. Find all child social posts (check both string and int just in case)
+            $childPosts = Content::where('options->original_content_id', $content->id)
+                ->orWhere('options->original_content_id', (string)$content->id)
+                ->get();
+
+            Log::info("Found " . $childPosts->count() . " child posts to remove.");
+
+            foreach ($childPosts as $post) {
+                $options = $post->options ?? [];
+                $platform = $options['platform'] ?? null;
+                $postId = $options['platform_post_id'] ?? null;
+
+                // 2. If it's on Facebook and we have a post ID, try to delete it
+                if ($platform === 'facebook' && $postId) {
+                    Log::info("Attempting live removal from Facebook: $postId");
+                    $this->removeFromFacebook($post);
+                }
+
+                // 3. Delete the post record
+                $post->delete();
+            }
+
+            // 4. Delete the parent content (the batch itself)
+            $content->delete();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Batch and associated social posts removed successfully.'
+            ]);
+        });
+    }
+
+    private function removeFromFacebook(Content $content)
+    {
+        $options = $content->options;
+        $postId = $options['platform_post_id'] ?? null;
+        $token = $options['page_token'] ?? null;
+
+        if (!$postId || !$token) {
+            Log::warning("Skipping Facebook removal for post ID: {$content->id} due to missing data.");
+            return;
+        }
+
+        try {
+            // Facebook Delete API: DELETE /{post-id}?access_token={token}
+            $response = Http::delete("https://graph.facebook.com/v18.0/$postId", [
+                'access_token' => $token
+            ]);
+            
+            if ($response->successful()) {
+                Log::info("Successfully deleted Facebook Post: $postId");
+            } else {
+                Log::error("Facebook Delete API Error (ID $postId): " . $response->body());
+            }
+        } catch (\Exception $e) {
+            Log::error("Exception deleting Facebook post $postId: " . $e->getMessage());
+        }
+    }
+
     private function cleanMarkdownForSocial(string $text): string
     {
         // Remove bold/italic markers

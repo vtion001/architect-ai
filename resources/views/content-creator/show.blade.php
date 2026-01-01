@@ -1,7 +1,271 @@
 @extends('layouts.app')
 
 @section('content')
-<div class="p-8 max-w-5xl mx-auto">
+<script>
+    document.addEventListener('alpine:init', () => {
+        // Global state for calculations and constants
+        const config = {
+            deleteUrl: '{{ route("content-creator.destroy", $content->id) }}',
+            redirectUrl: '{{ route("content-creator.index") }}',
+            csrfToken: '{{ csrf_token() }}'
+        };
+
+        // Root Batch Manager component
+        Alpine.data('batchManager', () => ({
+            showDeleteModal: false,
+            isDeleting: false,
+            
+            deleteBatch() {
+                this.isDeleting = true;
+                fetch(config.deleteUrl, {
+                    method: 'DELETE',
+                    headers: {
+                        'X-CSRF-TOKEN': config.csrfToken,
+                        'Accept': 'application/json'
+                    }
+                })
+                .then(res => res.json())
+                .then(data => {
+                    if (data.success) {
+                        window.location.href = config.redirectUrl;
+                    } else {
+                        alert('Delete failed: ' + (data.message || 'Unknown error'));
+                        this.isDeleting = false;
+                        this.showDeleteModal = false;
+                    }
+                })
+                .catch(e => {
+                    console.error(e);
+                    alert('An error occurred during deletion.');
+                    this.isDeleting = false;
+                });
+            }
+        }));
+
+        // Individual Post Card component
+        Alpine.data('postCard', (index, initialRaw, initialHtml) => ({
+            showMediaOptions: false,
+            imageUrl: null,
+            isUploading: false,
+            isGenerating: false,
+            isRegenerating: false,
+            isPublishing: false,
+            isPublished: false,
+            publishResult: null,
+            showPublishModal: false,
+            selectedPlatforms: [],
+            scheduleDate: new Date().toISOString().slice(0, 16),
+            facebookPages: [],
+            selectedFacebookPage: null,
+            isFacebookConnected: {{ $isFacebookConnected ? 'true' : 'false' }},
+            isFetchingPages: false,
+            showPageModal: false,
+            postNow: true,
+            rawContent: initialRaw,
+            htmlContent: initialHtml,
+            
+            init() {
+                const visuals = @js($content->options['visuals'] ?? []);
+                if (visuals && visuals[index]) {
+                    this.imageUrl = visuals[index];
+                }
+                this.$watch('imageUrl', (val) => {
+                    if (val) this.persistVisual(index);
+                });
+            },
+
+            persistVisual(idx) {
+                fetch(`/content-creator/{{ $content->id }}/save-visual`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Accept': 'application/json', 'X-CSRF-TOKEN': '{{ csrf_token() }}' },
+                    body: JSON.stringify({ index: idx, image_url: this.imageUrl })
+                });
+            },
+
+            fetchFacebookPages() {
+                if (!this.isFacebookConnected) {
+                    alert('Please connect your Facebook account in the Social Planner first.');
+                    return;
+                }
+                this.isFetchingPages = true;
+                this.showPageModal = true;
+                fetch('/social-planner/facebook-pages')
+                    .then(res => res.json())
+                    .then(data => { 
+                        this.facebookPages = data.pages || []; 
+                        if (this.facebookPages.length === 0) {
+                            alert('No Facebook pages found. Please ensure you have granted page permissions.');
+                        }
+                    })
+                    .catch(err => {
+                        console.error(err);
+                        alert('Failed to fetch Facebook pages.');
+                        this.showPageModal = false;
+                    })
+                    .finally(() => { this.isFetchingPages = false; });
+            },
+
+            selectPage(page) {
+                this.selectedFacebookPage = page;
+                this.showPageModal = false;
+                if (!this.selectedPlatforms.includes('facebook')) {
+                    this.selectedPlatforms.push('facebook');
+                }
+            },
+
+            triggerUpload() { this.$refs.fileInput.click(); },
+
+            handleUpload(event) {
+                const file = event.target.files[0];
+                if (!file) return;
+                this.isUploading = true;
+                this.compressImage(file, (compressedBlob) => {
+                    const formData = new FormData();
+                    formData.append('file', compressedBlob, file.name);
+                    fetch('/content-creator/upload-media', {
+                        method: 'POST',
+                        body: formData,
+                        headers: { 'X-CSRF-TOKEN': '{{ csrf_token() }}', 'Accept': 'application/json' }
+                    })
+                    .then(async res => {
+                        if (!res.ok) {
+                            if (res.status === 413) throw new Error('File is too large.');
+                            const text = await res.text();
+                            try { return JSON.parse(text); } catch { throw new Error(res.statusText); }
+                        }
+                        return res.json();
+                    })
+                    .then(data => {
+                        if (data.success) {
+                            this.imageUrl = data.url;
+                            this.showMediaOptions = false;
+                        } else { alert(data.message || 'Upload failed'); }
+                    })
+                    .catch(err => { console.error(err); alert(err.message || 'Upload error'); })
+                    .finally(() => { this.isUploading = false; });
+                });
+            },
+
+            compressImage(file, callback) {
+                const reader = new FileReader();
+                reader.readAsDataURL(file);
+                reader.onload = (event) => {
+                    const img = new Image();
+                    img.src = event.target.result;
+                    img.onload = () => {
+                        const canvas = document.createElement('canvas');
+                        const MAX_WIDTH = 1920;
+                        const MAX_HEIGHT = 1920;
+                        let width = img.width;
+                        let height = img.height;
+                        if (width > height) {
+                            if (width > MAX_WIDTH) { height *= MAX_WIDTH / width; width = MAX_WIDTH; }
+                        } else {
+                            if (height > MAX_HEIGHT) { width *= MAX_HEIGHT / height; height = MAX_HEIGHT; }
+                        }
+                        canvas.width = width;
+                        canvas.height = height;
+                        const ctx = canvas.getContext('2d');
+                        ctx.drawImage(img, 0, 0, width, height);
+                        canvas.toBlob((blob) => { callback(blob); }, 'image/jpeg', 0.8);
+                    };
+                };
+            },
+
+            generateImage() {
+                this.isGenerating = true;
+                const prompt = this.rawContent.substring(0, 400);
+                fetch('/content-creator/generate-media', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Accept': 'application/json', 'X-CSRF-TOKEN': '{{ csrf_token() }}' },
+                    body: JSON.stringify({ prompt: prompt })
+                })
+                .then(res => res.json())
+                .then(data => {
+                    if (data.success) { this.imageUrl = data.url; this.showMediaOptions = false; }
+                    else { alert(data.message || 'Generation failed'); }
+                })
+                .catch(err => alert('Generation error'))
+                .finally(() => { this.isGenerating = false; });
+            },
+
+            regenerateText() {
+                this.isRegenerating = true;
+                fetch('/content-creator/regenerate', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Accept': 'application/json', 'X-CSRF-TOKEN': '{{ csrf_token() }}' },
+                    body: JSON.stringify({ content_id: {{ $content->id }}, current_text: this.rawContent })
+                })
+                .then(res => res.json())
+                .then(data => {
+                    if (data.success) {
+                        this.rawContent = data.new_text;
+                        this.htmlContent = this.formatForDisplay(data.new_text);
+                    } else { alert('Failed to redo'); }
+                })
+                .catch(e => console.error(e))
+                .finally(() => { this.isRegenerating = false; });
+            },
+
+            formatForDisplay(text) {
+                let clean = text
+                    .replace(/\*\*/g, '')
+                    .replace(/\*/g, '')
+                    .replace(/^#+\s+/gm, '')
+                    .replace(/`/g, '');
+                return clean.replace(/\n/g, '<br>');
+            },
+
+            openPublishModal() { this.showPublishModal = true; },
+
+            confirmPublish() {
+                if (this.selectedPlatforms.length === 0) {
+                    alert('Please select at least one platform.');
+                    return;
+                }
+                let fbPageId = null;
+                let fbPageToken = null;
+                if (this.selectedPlatforms.includes('facebook')) {
+                    if (this.selectedFacebookPage) {
+                        fbPageId = this.selectedFacebookPage.id;
+                        fbPageToken = this.selectedFacebookPage.access_token;
+                    } else {
+                        if (!confirm('You have selected Facebook but no specific Page. Continue?')) { return; }
+                    }
+                }
+                this.isPublishing = true;
+                fetch('/content-creator/publish', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Accept': 'application/json', 'X-CSRF-TOKEN': '{{ csrf_token() }}' },
+                    body: JSON.stringify({
+                        content_id: {{ $content->id }},
+                        final_text: this.rawContent,
+                        image_url: this.imageUrl,
+                        platforms: this.selectedPlatforms,
+                        scheduled_at: this.postNow ? 'now' : this.scheduleDate,
+                        facebook_page_id: fbPageId,
+                        facebook_page_token: fbPageToken
+                    })
+                })
+                .then(res => res.json())
+                .then(data => {
+                    if (data.success) {
+                        this.isPublished = true;
+                        this.publishResult = data.message;
+                        if (data.results && data.results.facebook && !data.results.facebook.success) {
+                            this.publishResult += "\n\nNote: Facebook post failed: " + data.results.facebook.error;
+                        }
+                    } else {
+                        alert('Publishing failed: ' + (data.message || 'Unknown error'));
+                    }
+                })
+                .finally(() => { this.isPublishing = false; this.showPublishModal = false; });
+            }
+        }));
+    });
+</script>
+
+<div class="p-8 max-w-5xl mx-auto" x-data="batchManager()">
     <div class="mb-6 flex items-center justify-between">
         <div>
             <a href="{{ route('content-creator.index') }}" class="text-sm text-muted-foreground hover:text-foreground flex items-center gap-1 mb-2">
@@ -12,6 +276,10 @@
             <p class="text-muted-foreground mt-1">{{ ucwords(str_replace('-', ' ', $content->type)) }} • {{ $content->created_at->format('M d, Y') }}</p>
         </div>
         <div class="flex gap-2">
+            <button @click="showDeleteModal = true" class="inline-flex items-center justify-center rounded-md text-sm font-medium border border-red-200 bg-red-50 text-red-600 hover:bg-red-100 h-10 px-4 py-2 uppercase tracking-wider font-bold text-xs transition-colors">
+                <i data-lucide="trash-2" class="w-4 h-4 mr-2"></i>
+                Delete Batch
+            </button>
             <button class="inline-flex items-center justify-center rounded-md text-sm font-medium border border-input bg-background hover:bg-accent hover:text-accent-foreground h-10 px-4 py-2 uppercase tracking-wider font-bold text-xs">
                 <i data-lucide="copy" class="w-4 h-4 mr-2"></i>
                 Copy All
@@ -76,219 +344,27 @@
             $cleanText = str_replace(['*', '`'], '', $cleanText); // Remove asterisks and ticks
             $cleanHtml = nl2br(e($cleanText));
         @endphp
-        <script>
-            window.contentData_{{ $content->id }}_{{ $index }} = {
-                raw: {{ Js::from($finalPostContent) }},
-                html: {{ Js::from($cleanHtml) }}
-            };
+        
+        <div x-data="postCard({{ $index }}, {{ Js::from($finalPostContent) }}, {{ Js::from($cleanHtml) }})" 
+             class="w-full bg-card border border-border rounded-xl shadow-md overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-500 relative" 
+             style="animation-delay: {{ $index * 150 }}ms;">
             
-            document.addEventListener('alpine:init', () => {
-                if (!Alpine.store('postCard_{{ $content->id }}_{{ $index }}_registered')) {
-                    Alpine.store('postCard_{{ $content->id }}_{{ $index }}_registered', true);
-                    Alpine.data('postCard_{{ $content->id }}_{{ $index }}', () => ({
-                        showMediaOptions: false,
-                        imageUrl: null,
-                        isUploading: false,
-                        isGenerating: false,
-                        isRegenerating: false,
-                        isPublishing: false,
-                        showPublishModal: false,
-                        selectedPlatforms: [],
-                        scheduleDate: new Date().toISOString().slice(0, 16),
-                        facebookPages: [],
-                        selectedFacebookPage: null,
-                        isFacebookConnected: {{ $isFacebookConnected ? 'true' : 'false' }},
-                        isFetchingPages: false,
-                        showPageModal: false,
-                        postNow: true,
-                        rawContent: window.contentData_{{ $content->id }}_{{ $index }}.raw,
-                        htmlContent: window.contentData_{{ $content->id }}_{{ $index }}.html,
-
-                        fetchFacebookPages() {
-                            if (!this.isFacebookConnected) {
-                                alert('Please connect your Facebook account in the Social Planner first.');
-                                return;
-                            }
-                            this.isFetchingPages = true;
-                            this.showPageModal = true;
-                            fetch('/social-planner/facebook-pages')
-                                .then(res => res.json())
-                                .then(data => { 
-                                    this.facebookPages = data.pages || []; 
-                                    if (this.facebookPages.length === 0) {
-                                        alert('No Facebook pages found. Please ensure you have granted page permissions.');
-                                    }
-                                })
-                                .catch(err => {
-                                    console.error(err);
-                                    alert('Failed to fetch Facebook pages.');
-                                    this.showPageModal = false;
-                                })
-                                .finally(() => { this.isFetchingPages = false; });
-                        },
-
-                        selectPage(page) {
-                            this.selectedFacebookPage = page;
-                            this.showPageModal = false;
-                            if (!this.selectedPlatforms.includes('facebook')) {
-                                this.selectedPlatforms.push('facebook');
-                            }
-                        },
-
-                        triggerUpload() { this.$refs.fileInput.click(); },
-
-                        handleUpload(event) {
-                            const file = event.target.files[0];
-                            if (!file) return;
-                            this.isUploading = true;
-                            this.compressImage(file, (compressedBlob) => {
-                                const formData = new FormData();
-                                formData.append('file', compressedBlob, file.name);
-                                fetch('/content-creator/upload-media', {
-                                    method: 'POST',
-                                    body: formData,
-                                    headers: { 'X-CSRF-TOKEN': '{{ csrf_token() }}', 'Accept': 'application/json' }
-                                })
-                                .then(async res => {
-                                    if (!res.ok) {
-                                        if (res.status === 413) throw new Error('File is too large.');
-                                        const text = await res.text();
-                                        try { return JSON.parse(text); } catch { throw new Error(res.statusText); }
-                                    }
-                                    return res.json();
-                                })
-                                .then(data => {
-                                    if (data.success) {
-                                        this.imageUrl = data.url;
-                                        this.showMediaOptions = false;
-                                    } else { alert(data.message || 'Upload failed'); }
-                                })
-                                .catch(err => { console.error(err); alert(err.message || 'Upload error'); })
-                                .finally(() => { this.isUploading = false; });
-                            });
-                        },
-
-                        compressImage(file, callback) {
-                            const reader = new FileReader();
-                            reader.readAsDataURL(file);
-                            reader.onload = (event) => {
-                                const img = new Image();
-                                img.src = event.target.result;
-                                img.onload = () => {
-                                    const canvas = document.createElement('canvas');
-                                    const MAX_WIDTH = 1920;
-                                    const MAX_HEIGHT = 1920;
-                                    let width = img.width;
-                                    let height = img.height;
-                                    if (width > height) {
-                                        if (width > MAX_WIDTH) { height *= MAX_WIDTH / width; width = MAX_WIDTH; }
-                                    } else {
-                                        if (height > MAX_HEIGHT) { width *= MAX_HEIGHT / height; height = MAX_HEIGHT; }
-                                    }
-                                    canvas.width = width;
-                                    canvas.height = height;
-                                    const ctx = canvas.getContext('2d');
-                                    ctx.drawImage(img, 0, 0, width, height);
-                                    canvas.toBlob((blob) => { callback(blob); }, 'image/jpeg', 0.8);
-                                };
-                            };
-                        },
-
-                        generateImage() {
-                            this.isGenerating = true;
-                            const prompt = this.rawContent.substring(0, 400);
-                            fetch('/content-creator/generate-media', {
-                                method: 'POST',
-                                headers: { 'Content-Type': 'application/json', 'Accept': 'application/json', 'X-CSRF-TOKEN': '{{ csrf_token() }}' },
-                                body: JSON.stringify({ prompt: prompt })
-                            })
-                            .then(res => res.json())
-                            .then(data => {
-                                if (data.success) { this.imageUrl = data.url; this.showMediaOptions = false; }
-                                else { alert(data.message || 'Generation failed'); }
-                            })
-                            .catch(err => alert('Generation error'))
-                            .finally(() => { this.isGenerating = false; });
-                        },
-
-                        regenerateText() {
-                            this.isRegenerating = true;
-                            fetch('/content-creator/regenerate', {
-                                method: 'POST',
-                                headers: { 'Content-Type': 'application/json', 'Accept': 'application/json', 'X-CSRF-TOKEN': '{{ csrf_token() }}' },
-                                body: JSON.stringify({ content_id: {{ $content->id }}, current_text: this.rawContent })
-                            })
-                            .then(res => res.json())
-                            .then(data => {
-                                if (data.success) {
-                                    this.rawContent = data.new_text;
-                                    this.htmlContent = this.formatForDisplay(data.new_text);
-                                } else { alert('Failed to redo'); }
-                            })
-                            .catch(e => console.error(e))
-                            .finally(() => { this.isRegenerating = false; });
-                        },
-
-                        formatForDisplay(text) {
-                            let clean = text
-                                .replace(/\*\*/g, '')
-                                .replace(/\*/g, '')
-                                .replace(/^#+\s+/gm, '')
-                                .replace(/`/g, '');
-                            return clean.replace(/\n/g, '<br>');
-                        },
-
-                        openPublishModal() { this.showPublishModal = true; },
-
-                        confirmPublish() {
-                            if (this.selectedPlatforms.length === 0) {
-                                alert('Please select at least one platform.');
-                                return;
-                            }
-                            let fbPageId = null;
-                            let fbPageToken = null;
-                            if (this.selectedPlatforms.includes('facebook')) {
-                                if (this.selectedFacebookPage) {
-                                    fbPageId = this.selectedFacebookPage.id;
-                                    fbPageToken = this.selectedFacebookPage.access_token;
-                                } else {
-                                    if (!confirm('You have selected Facebook but no specific Page. Continue?')) { return; }
-                                }
-                            }
-                            this.isPublishing = true;
-                            fetch('/content-creator/publish', {
-                                method: 'POST',
-                                headers: { 'Content-Type': 'application/json', 'Accept': 'application/json', 'X-CSRF-TOKEN': '{{ csrf_token() }}' },
-                                body: JSON.stringify({
-                                    content_id: {{ $content->id }},
-                                    final_text: this.rawContent,
-                                    image_url: this.imageUrl,
-                                    platforms: this.selectedPlatforms,
-                                    scheduled_at: this.postNow ? 'now' : this.scheduleDate,
-                                    facebook_page_id: fbPageId,
-                                    facebook_page_token: fbPageToken
-                                })
-                            })
-                            .then(res => res.json())
-                            .then(data => {
-                                if (data.success) {
-                                    let msg = data.message;
-                                    if (data.results && data.results.facebook && !data.results.facebook.success) {
-                                        msg += "\n\nNote: Facebook post failed: " + data.results.facebook.error;
-                                    }
-                                    alert(msg);
-                                    window.location.href = '{{ route('social-planner.index') }}';
-                                } else {
-                                    alert('Publishing failed: ' + (data.message || 'Unknown error'));
-                                }
-                            })
-                            .finally(() => { this.isPublishing = false; this.showPublishModal = false; });
-                        }
-                    }));
-                }
-            });
-        </script>
-        <div x-data="postCard_{{ $content->id }}_{{ $index }}()" class="w-full bg-card border border-border rounded-xl shadow-md overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-500" style="animation-delay: {{ $index * 150 }}ms;">
+            <!-- Success Overlay -->
+            <div x-show="isPublished" x-transition.opacity class="absolute inset-0 z-40 bg-white/90 backdrop-blur-[2px] flex flex-col items-center justify-center p-6 text-center" style="display: none;">
+                <div class="w-16 h-16 rounded-full bg-green-100 flex items-center justify-center mb-4 scale-110">
+                    <i data-lucide="check-circle-2" class="w-10 h-10 text-green-600"></i>
+                </div>
+                <h3 class="text-xl font-bold text-foreground">Done!</h3>
+                <p class="text-sm text-green-700 font-medium mb-6" x-text="publishResult"></p>
+                <div class="flex gap-2">
+                    <button @click="isPublished = false" class="px-4 py-2 text-xs font-bold uppercase tracking-widest text-muted-foreground border border-border rounded-lg hover:bg-muted/50 transition-all">
+                        Edit / Re-publish
+                    </button>
+                    <a href="{{ route('social-planner.index') }}" class="px-4 py-2 text-xs font-bold uppercase tracking-widest bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-all shadow-md">
+                        View in Planner
+                    </a>
+                </div>
+            </div>
             
             <!-- Hidden File Input -->
             <input type="file" x-ref="fileInput" class="hidden" accept="image/*" @change="handleUpload">
@@ -494,10 +570,49 @@
                 </div>
             </div>
         </div>
-            
-
-        </div>
         @endforeach
+    </div>
+
+    <!-- Delete Batch Confirmation Modal -->
+    <div x-show="showDeleteModal"
+         x-init="$watch('showDeleteModal', val => { if(val) $el.style.display = 'flex'; })"
+         class="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
+         x-transition:enter="transition ease-out duration-300"
+         x-transition:enter-start="opacity-0"
+         x-transition:enter-end="opacity-100"
+         x-transition:leave="transition ease-in duration-200"
+         x-transition:leave-start="opacity-100"
+         x-transition:leave-end="opacity-0"
+         style="display: none;">
+        
+        <div @click.away="!isDeleting && (showDeleteModal = false)" 
+             class="bg-card w-full max-w-md rounded-2xl shadow-2xl border border-border p-8 text-center animate-in zoom-in-95 duration-300">
+            
+            <div class="w-20 h-20 rounded-full bg-red-100 flex items-center justify-center mx-auto mb-6">
+                <i data-lucide="alert-triangle" class="w-10 h-10 text-red-600"></i>
+            </div>
+            
+            <h2 class="text-2xl font-bold text-foreground mb-2">Delete Entire Batch?</h2>
+            <p class="text-muted-foreground mb-8 leading-relaxed">
+                This action is <span class="text-red-600 font-bold uppercase tracking-tight">permanent</span>. It will remove the local record and attempt to delete all associated posts from your social media platforms.
+            </p>
+            
+            <div class="flex flex-col gap-3">
+                <button @click="deleteBatch()" 
+                        :disabled="isDeleting"
+                        class="w-full py-4 rounded-xl bg-red-600 text-white font-bold uppercase tracking-wider text-sm hover:bg-red-700 transition-all shadow-lg shadow-red-200 disabled:opacity-50 flex items-center justify-center gap-2">
+                    <template x-if="isDeleting">
+                        <i data-lucide="loader-2" class="w-5 h-5 animate-spin"></i>
+                    </template>
+                    <span x-text="isDeleting ? 'Removing everything...' : 'Yes, Delete Batch'"></span>
+                </button>
+                <button @click="showDeleteModal = false" 
+                        :disabled="isDeleting"
+                        class="w-full py-4 rounded-xl bg-muted text-muted-foreground font-bold uppercase tracking-wider text-sm hover:bg-muted/80 transition-all disabled:opacity-50">
+                    Cancel
+                </button>
+            </div>
+        </div>
     </div>
 </div>
 @endsection

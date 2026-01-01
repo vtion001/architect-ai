@@ -15,6 +15,7 @@
         @vite(['resources/css/app.css', 'resources/js/app.js'])
         <script src="https://unpkg.com/lucide@latest"></script>
         <script src="https://unpkg.com/alpinejs" defer></script>
+        <style>[x-cloak] { display: none !important; }</style>
     </head>
     <body class="font-sans antialiased">
         <div class="flex h-screen bg-background">

@@ -32,6 +32,8 @@ Route::post('/content-creator/upload-media', [ContentCreatorController::class, '
 Route::post('/content-creator/generate-media', [ContentCreatorController::class, 'generateMedia'])->name('content-creator.generate-media');
 Route::post('/content-creator/regenerate', [ContentCreatorController::class, 'regenerate'])->name('content-creator.regenerate');
 Route::post('/content-creator/publish', [ContentCreatorController::class, 'publish'])->name('content-creator.publish');
+Route::post('/content-creator/{content}/save-visual', [ContentCreatorController::class, 'saveVisual'])->name('content-creator.save-visual');
+Route::delete('/content-creator/{content}', [ContentCreatorController::class, 'destroy'])->name('content-creator.destroy');
 Route::get('/content-creator/{content}', [ContentCreatorController::class, 'show'])->name('content-creator.show');
 Route::get('/social-planner', [SocialPlannerController::class, 'index'])->name('social-planner.index');
 Route::post('/social-planner/store', [SocialPlannerController::class, 'store'])->name('social-planner.store');
