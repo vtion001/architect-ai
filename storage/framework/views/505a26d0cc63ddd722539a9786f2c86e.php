@@ -1,12 +1,18 @@
 <?php $__env->startSection('content'); ?>
 <div class="p-8 max-w-7xl mx-auto" x-data="{
     topic: '',
-    type: '',
+    type: 'blog-post',
+    count: 2,
+    tone: 'Default Tone',
+    length: 'Default Length',
     context: '',
+    cta: '',
+    addLineBreaks: true,
+    includeHashtags: false,
     isGenerating: false,
     generateContent() {
-        if (!this.topic || !this.type) {
-            alert('Please fill in both topic and content type.');
+        if (!this.topic) {
+            alert('Please enter a topic.');
             return;
         }
         this.isGenerating = true;
@@ -19,7 +25,13 @@
             body: JSON.stringify({
                 topic: this.topic,
                 type: this.type,
-                context: this.context
+                count: this.count,
+                tone: this.tone,
+                length: this.length,
+                context: this.context,
+                cta: this.cta,
+                addLineBreaks: this.addLineBreaks,
+                includeHashtags: this.includeHashtags
             })
         })
         .then(res => res.json())
@@ -40,6 +52,25 @@
     <div class="mb-8">
         <h1 class="text-3xl font-bold mb-2">Knowledge-Base Driven Content Creator</h1>
         <p class="text-muted-foreground">Generate high-quality content powered by your knowledge base</p>
+    </div>
+
+    <!-- How to Use Section -->
+    <div class="mb-8 rounded-xl border border-primary/20 bg-primary/5 p-6 border-l-4 border-l-primary">
+        <div class="flex gap-4">
+            <div class="rounded-full bg-primary/10 p-2 h-fit">
+                <i data-lucide="help-circle" class="w-6 h-6 text-primary"></i>
+            </div>
+            <div>
+                <h3 class="font-semibold text-lg mb-2">How to Use This Page</h3>
+                <ol class="text-sm text-muted-foreground space-y-2 list-decimal list-inside">
+                    <li>Enter your topic and generate posts using the form below</li>
+                    <li>Review and edit your generated posts on the right</li>
+                    <li>Select posts using checkboxes, then use "Bulk Images" or "Bulk Schedule"</li>
+                    <li>For individual posts, click "Post Now" or "Schedule" to choose platforms</li>
+                    <li>Platform selection happens when posting/scheduling, not during generation</li>
+                </ol>
+            </div>
+        </div>
     </div>
 
     <!-- Stats -->
@@ -96,47 +127,106 @@
 
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <!-- Content Generator -->
-        <div class="rounded-xl border border-border bg-card text-card-foreground shadow-sm lg:col-span-2">
-            <div class="flex flex-col space-y-1.5 p-6">
-                <h3 class="text-2xl font-semibold leading-none tracking-tight flex items-center gap-2">
-                    <i data-lucide="sparkles" class="w-5 h-5"></i>
-                    Generate New Content
-                </h3>
-                <p class="text-sm text-muted-foreground">Create content using AI with your brand voice and knowledge base</p>
+        <div class="rounded-xl border border-border bg-card text-card-foreground shadow-sm lg:col-span-2 overflow-hidden">
+            <div class="bg-muted/50 border-b border-border p-3 text-center">
+                <span class="text-sm font-semibold tracking-wide uppercase">Generate from Topic</span>
             </div>
-            <div class="p-6 pt-0 space-y-4">
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                        <label for="content-topic" class="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">Content Topic</label>
-                        <input x-model="topic" type="text" id="content-topic" placeholder="What do you want to write about?" class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 mt-1.5">
+            
+            <div class="p-8 space-y-8">
+                <div>
+                    <h3 class="text-xl font-bold mb-1">Generate from Topic</h3>
+                    <p class="text-sm text-muted-foreground">Define parameters for bulk text post generation based on a topic or idea.</p>
+                </div>
+
+                <!-- Main Topic -->
+                <div class="space-y-4">
+                    <div class="flex items-center justify-between">
+                        <label class="text-sm font-bold uppercase tracking-tight">Main Topic / Theme</label>
+                        <button class="text-xs text-primary font-medium flex items-center gap-1 hover:underline">
+                            <i data-lucide="lightbulb" class="w-3.5 h-3.5"></i>
+                            Prompt Helper
+                        </button>
                     </div>
-                    <div>
-                        <label for="content-type" class="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">Content Type</label>
-                        <select x-model="type" id="content-type" class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 mt-1.5">
-                            <option value="">Select type</option>
-                            <option value="blog-post">Blog Post</option>
-                            <option value="social-media">Social Media Post</option>
-                            <option value="email">Email Campaign</option>
-                            <option value="case-study">Case Study</option>
-                            <option value="product-description">Product Description</option>
+                    <input x-model="topic" type="text" placeholder="e.g., 'Healthy Summer Recipes'" class="flex h-12 w-full rounded-lg border border-input bg-muted/30 px-4 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary">
+                </div>
+
+                <!-- Parameters Grid -->
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div class="space-y-3">
+                        <label class="text-sm font-bold uppercase tracking-tight">Number of Posts</label>
+                        <input x-model="count" type="number" min="1" class="flex h-12 w-full rounded-lg border border-input bg-muted/30 px-4 py-2 text-sm">
+                    </div>
+                    <div class="space-y-3">
+                        <label class="text-sm font-bold uppercase tracking-tight">Tone (Optional)</label>
+                        <select x-model="tone" class="flex h-12 w-full rounded-lg border border-input bg-muted/30 px-4 py-2 text-sm">
+                            <option>Default Tone</option>
+                            <option>Professional</option>
+                            <option>Casual</option>
+                            <option>Witty</option>
+                            <option>Authoritative</option>
+                        </select>
+                    </div>
+                    <div class="space-y-3">
+                        <label class="text-sm font-bold uppercase tracking-tight">Length (Optional)</label>
+                        <select x-model="length" class="flex h-12 w-full rounded-lg border border-input bg-muted/30 px-4 py-2 text-sm">
+                            <option>Default Length</option>
+                            <option>Short (Small)</option>
+                            <option>Medium (Standard)</option>
+                            <option>Long (Detailed)</option>
                         </select>
                     </div>
                 </div>
 
-                <div>
-                    <label for="additional-context" class="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">Additional Context (Optional)</label>
-                    <textarea x-model="context" id="additional-context" placeholder="Add any specific instructions or context..." rows="3" class="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 mt-1.5"></textarea>
+                <!-- Instructions -->
+                <div class="space-y-3">
+                    <label class="text-sm font-bold uppercase tracking-tight">Additional Instructions for Text (Optional)</label>
+                    <textarea x-model="context" placeholder="e.g., 'Focus on benefits for beginners'" rows="4" class="flex min-h-[100px] w-full rounded-lg border border-input bg-muted/30 px-4 py-3 text-sm"></textarea>
                 </div>
 
-                <button @click="generateContent" :disabled="isGenerating" class="w-full inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground hover:bg-primary/90 h-10 px-4 py-2">
-                    <template x-if="!isGenerating">
-                        <i data-lucide="sparkles" class="w-4 h-4 mr-2"></i>
-                    </template>
-                    <template x-if="isGenerating">
-                        <i data-lucide="loader-2" class="w-4 h-4 mr-2 animate-spin"></i>
-                    </template>
-                    <span x-text="isGenerating ? 'Architecting Content...' : 'Generate Content'"></span>
-                </button>
+                <!-- CTA -->
+                <div class="space-y-3">
+                    <label class="text-sm font-bold uppercase tracking-tight">Call to Action (Optional)</label>
+                    <input x-model="cta" type="text" placeholder="e.g., 'Visit my website: https://example.com' or 'Use code SUMMER20'" class="flex h-12 w-full rounded-lg border border-input bg-muted/30 px-4 py-2 text-sm">
+                </div>
+
+                <!-- Checkboxes -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <label class="flex items-center gap-3 p-4 rounded-xl border border-border bg-muted/10 cursor-pointer hover:bg-muted/20 transition-colors">
+                        <input type="checkbox" x-model="addLineBreaks" class="w-4 h-4 rounded border-input text-primary focus:ring-primary">
+                        <div class="flex items-center gap-1.5">
+                            <span class="text-sm font-medium leading-none">Add line breaks</span>
+                            <i data-lucide="help-circle" class="w-3.5 h-3.5 text-muted-foreground"></i>
+                        </div>
+                    </label>
+                    <label class="flex items-center gap-3 p-4 rounded-xl border border-border bg-muted/10 cursor-pointer hover:bg-muted/20 transition-colors">
+                        <input type="checkbox" x-model="includeHashtags" class="w-4 h-4 rounded border-input text-primary focus:ring-primary">
+                        <div class="flex items-center gap-1.5">
+                            <span class="text-sm font-medium leading-none">Include hashtags</span>
+                            <i data-lucide="help-circle" class="w-3.5 h-3.5 text-muted-foreground"></i>
+                        </div>
+                    </label>
+                </div>
+
+                <div class="text-xs text-muted-foreground mt-4">
+                    Est. Text Generation Cost: <span x-text="count"></span> token(s)
+                </div>
+
+                <div class="pt-6 border-t border-border">
+                    <button @click="generateContent" :disabled="isGenerating" class="w-full inline-flex items-center justify-center rounded-xl text-md font-bold ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground hover:scale-[1.01] active:scale-[0.99] h-14 px-8 py-4 shadow-lg shadow-primary/20">
+                        <template x-if="!isGenerating">
+                            <div class="flex items-center gap-2">
+                                <i data-lucide="sparkles" class="w-5 h-5"></i>
+                                <span>Generate Posts (<span x-text="count"></span> <i data-lucide="gem" class="w-4 h-4 inline-block align-middle ml-1"></i>)</span>
+                            </div>
+                        </template>
+                        <template x-if="isGenerating">
+                            <div class="flex items-center gap-2">
+                                <i data-lucide="loader-2" class="w-5 h-5 animate-spin"></i>
+                                <span>Architecting <span x-text="count"></span> Posts...</span>
+                            </div>
+                        </template>
+                    </button>
+                </div>
             </div>
         </div>
 

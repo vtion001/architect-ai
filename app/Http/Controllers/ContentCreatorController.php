@@ -31,8 +31,16 @@ class ContentCreatorController extends Controller
         $request->validate([
             'topic' => 'required|string|max:255',
             'type' => 'required|string',
+            'count' => 'nullable|integer|min:1',
+            'tone' => 'nullable|string',
+            'length' => 'nullable|string',
             'context' => 'nullable|string',
+            'cta' => 'nullable|string',
+            'addLineBreaks' => 'nullable|boolean',
+            'includeHashtags' => 'nullable|boolean',
         ]);
+
+        $options = $request->only(['count', 'tone', 'length', 'cta', 'addLineBreaks', 'includeHashtags']);
 
         $content = Content::create([
             'title' => $request->topic, // Default title to topic
@@ -40,13 +48,15 @@ class ContentCreatorController extends Controller
             'type' => $request->type,
             'context' => $request->context,
             'status' => 'generating',
+            'options' => $options,
         ]);
 
         try {
             $generatedText = $this->contentService->generateText(
                 $request->topic,
                 $request->type,
-                $request->context
+                $request->context,
+                $options
             );
 
             // Extract a title from the first line or use topic
