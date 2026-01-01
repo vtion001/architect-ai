@@ -1,7 +1,42 @@
 @extends('layouts.app')
 
 @section('content')
-<div class="p-8 max-w-7xl mx-auto">
+<div class="p-8 max-w-7xl mx-auto" x-data="{ 
+    researchTitle: '',
+    researchQuery: '',
+    isResearching: false,
+    startResearch() {
+        if (!this.researchTitle || !this.researchQuery) {
+            alert('Please fill in both title and query.');
+            return;
+        }
+        this.isResearching = true;
+        fetch('{{ route('research-engine.start') }}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': '{{ csrf_token() }}'
+            },
+            body: JSON.stringify({
+                title: this.researchTitle,
+                query: this.researchQuery
+            })
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.success) {
+                window.location.reload();
+            } else {
+                alert('Research failed: ' + (data.message || 'Unknown error'));
+                this.isResearching = false;
+            }
+        })
+        .catch(err => {
+            console.error(err);
+            this.isResearching = false;
+        });
+    }
+}">
     <div class="mb-8">
         <h1 class="text-3xl font-bold mb-2">Deep Research & Report Engine</h1>
         <p class="text-muted-foreground">
@@ -16,7 +51,7 @@
                 <div class="flex items-center justify-between">
                     <div>
                         <p class="text-sm text-muted-foreground">Total Reports</p>
-                        <p class="text-2xl font-bold">847</p>
+                        <p class="text-2xl font-bold">{{ number_format($stats['total_reports']) }}</p>
                     </div>
                     <i data-lucide="file-text" class="w-8 h-8 text-blue-500"></i>
                 </div>
@@ -27,7 +62,7 @@
                 <div class="flex items-center justify-between">
                     <div>
                         <p class="text-sm text-muted-foreground">Active Research</p>
-                        <p class="text-2xl font-bold">12</p>
+                        <p class="text-2xl font-bold">{{ $stats['active_research'] }}</p>
                     </div>
                     <i data-lucide="clock" class="w-8 h-8 text-amber-500"></i>
                 </div>
@@ -38,7 +73,7 @@
                 <div class="flex items-center justify-between">
                     <div>
                         <p class="text-sm text-muted-foreground">Sources Analyzed</p>
-                        <p class="text-2xl font-bold">15.2K</p>
+                        <p class="text-2xl font-bold">{{ number_format($stats['sources_analyzed']) }}</p>
                     </div>
                     <i data-lucide="globe" class="w-8 h-8 text-green-500"></i>
                 </div>
@@ -49,7 +84,7 @@
                 <div class="flex items-center justify-between">
                     <div>
                         <p class="text-sm text-muted-foreground">Success Rate</p>
-                        <p class="text-2xl font-bold">98.5%</p>
+                        <p class="text-2xl font-bold">{{ $stats['success_rate'] }}%</p>
                     </div>
                     <i data-lucide="trending-up" class="w-8 h-8 text-purple-500"></i>
                 </div>
@@ -70,16 +105,30 @@
             <div class="p-6 pt-0 space-y-4">
                 <div>
                     <label for="research-title" class="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">Research Title</label>
-                    <input type="text" id="research-title" placeholder="e.g., AI Trends in Healthcare 2025" class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 mt-1.5" />
+                    <input 
+                        x-model="researchTitle"
+                        type="text" id="research-title" placeholder="e.g., AI Trends in Healthcare 2025" 
+                        class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 mt-1.5" />
                 </div>
                 <div>
                     <label for="research-query" class="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">Research Query</label>
-                    <textarea id="research-query" placeholder="Describe what you want to research in detail..." rows="6" class="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 mt-1.5"></textarea>
+                    <textarea 
+                        x-model="researchQuery"
+                        id="research-query" placeholder="Describe what you want to research in detail..." rows="6" 
+                        class="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 mt-1.5"></textarea>
                 </div>
                 <div class="flex gap-2">
-                    <button class="flex-1 inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground hover:bg-primary/90 h-10 px-4 py-2">
-                        <i data-lucide="search" class="w-4 h-4 mr-2"></i>
-                        Start Research
+                    <button 
+                        @click="startResearch"
+                        :disabled="isResearching"
+                        class="flex-1 inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground hover:bg-primary/90 h-10 px-4 py-2">
+                        <template x-if="!isResearching">
+                            <i data-lucide="search" class="w-4 h-4 mr-2"></i>
+                        </template>
+                        <template x-if="isResearching">
+                            <i data-lucide="loader-2" class="w-4 h-4 mr-2 animate-spin"></i>
+                        </template>
+                        <span x-text="isResearching ? 'Gathering Sources...' : 'Start Research'"></span>
                     </button>
                 </div>
             </div>
@@ -96,65 +145,55 @@
             </div>
             <div class="p-6 pt-0">
                 <div class="space-y-4">
-                    @php
-                    $recentResearches = [
-                        [
-                            'id' => 1,
-                            'title' => "Q4 Market Analysis - Tech Industry",
-                            'status' => "Completed",
-                            'date' => "2025-01-15",
-                            'sources' => 47,
-                            'pages' => 23,
-                        ],
-                        [
-                            'id' => 2,
-                            'title' => "Competitor Analysis - AI SaaS Platforms",
-                            'status' => "In Progress",
-                            'date' => "2025-01-14",
-                            'sources' => 32,
-                            'pages' => 15,
-                        ],
-                        [
-                            'id' => 3,
-                            'title' => "Consumer Behavior Trends 2025",
-                            'status' => "Completed",
-                            'date' => "2025-01-13",
-                            'sources' => 56,
-                            'pages' => 31,
-                        ],
-                    ];
-                    @endphp
-
-                    @foreach($recentResearches as $research)
+                    @forelse($recentResearches as $research)
                     <div class="p-4 border border-border rounded-lg hover:bg-muted/50 transition-colors">
                         <div class="flex items-start justify-between mb-2">
-                            <h3 class="font-semibold text-sm">{{ $research['title'] }}</h3>
+                            <h3 class="font-semibold text-sm">{{ $research->title }}</h3>
                             @php
-                                $statusClass = $research['status'] === "Completed" ? "bg-green-100 text-green-700 hover:bg-green-100" : "bg-amber-100 text-amber-700 hover:bg-amber-100";
+                                $statusClasses = [
+                                    'completed' => 'bg-green-100 text-green-700',
+                                    'researching' => 'bg-amber-100 text-amber-700',
+                                    'failed' => 'bg-red-100 text-red-700',
+                                    'pending' => 'bg-slate-100 text-slate-700'
+                                ];
+                                $currentStatusClass = $statusClasses[$research->status] ?? 'bg-slate-100 text-slate-700';
                             @endphp
-                            <span class="inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 {{ $statusClass }}">
-                                {{ $research['status'] }}
+                            <span class="inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 {{ $currentStatusClass }}">
+                                {{ ucfirst($research->status) }}
                             </span>
                         </div>
                         <div class="flex items-center gap-4 text-xs text-muted-foreground mb-3">
                             <span class="flex items-center gap-1">
                                 <i data-lucide="globe" class="w-3 h-3"></i>
-                                {{ $research['sources'] }} sources
+                                {{ $research->sources_count }} sources
                             </span>
                             <span class="flex items-center gap-1">
                                 <i data-lucide="file-text" class="w-3 h-3"></i>
-                                {{ $research['pages'] }} pages
+                                {{ $research->pages_count }} pages
                             </span>
-                            <span>{{ $research['date'] }}</span>
+                            <span>{{ $research->created_at->format('Y-m-d') }}</span>
                         </div>
-                        @if($research['status'] === "Completed")
-                        <button class="w-full inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-9 px-3">
-                            <i data-lucide="download" class="w-3 h-3 mr-2"></i>
-                            Download Report
-                        </button>
-                        @endif
+                        
+                        <div class="flex gap-2">
+                            <a 
+                                href="{{ route('research-engine.show', $research) }}"
+                                class="flex-1 inline-flex items-center justify-center rounded-md text-sm font-medium border border-input bg-background hover:bg-accent hover:text-accent-foreground h-9 px-3">
+                                <i data-lucide="eye" class="w-3 h-3 mr-2"></i>
+                                View Result
+                            </a>
+                            @if($research->status === "completed")
+                            <button class="inline-flex items-center justify-center rounded-md text-sm font-medium border border-input bg-background hover:bg-accent hover:text-accent-foreground h-9 w-9">
+                                <i data-lucide="download" class="w-3 h-3"></i>
+                            </button>
+                            @endif
+                        </div>
                     </div>
-                    @endforeach
+                    @empty
+                    <div class="text-center py-8 text-muted-foreground">
+                        <i data-lucide="search" class="w-8 h-8 mx-auto mb-2 opacity-20"></i>
+                        <p>No research sessions found.</p>
+                    </div>
+                    @endforelse
                 </div>
             </div>
         </div>

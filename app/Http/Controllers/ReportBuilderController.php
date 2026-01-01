@@ -18,7 +18,7 @@ class ReportBuilderController extends Controller
         protected ReportService $reportService
     ) {}
 
-    public function index(): View
+    public function index(\Illuminate\Http\Request $request): View
     {
         $templateCategories = array_map(fn(ReportTemplate $template) => [
             'id' => $template->value,
@@ -28,7 +28,12 @@ class ReportBuilderController extends Controller
             'variants' => $template->variants(),
         ], ReportTemplate::cases());
 
-        return view('report-builder.index', compact('templateCategories'));
+        $selectedResearch = null;
+        if ($request->has('research_id')) {
+            $selectedResearch = \App\Models\Research::find($request->research_id);
+        }
+
+        return view('report-builder.index', compact('templateCategories', 'selectedResearch'));
     }
 
     public function generate(GenerateReportRequest $request): JsonResponse

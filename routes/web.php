@@ -21,6 +21,8 @@ Route::post('/report-builder/generate', [ReportBuilderController::class, 'genera
 Route::get('/report-builder/preview', [ReportBuilderController::class, 'preview'])->name('report-builder.preview');
 
 Route::get('/research-engine', [ResearchEngineController::class, 'index'])->name('research-engine.index');
+Route::post('/research-engine/start', [ResearchEngineController::class, 'store'])->name('research-engine.start');
+Route::get('/research-engine/{research}', [ResearchEngineController::class, 'show'])->name('research-engine.show');
 Route::get('/content-creator', [ContentCreatorController::class, 'index'])->name('content-creator.index');
 Route::get('/social-planner', [SocialPlannerController::class, 'index'])->name('social-planner.index');
 Route::get('/knowledge-base', [KnowledgeBaseController::class, 'index'])->name('knowledge-base.index');
