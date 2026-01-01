@@ -470,8 +470,11 @@
                 </button>
             </div>
 
-            <!-- Publish Modal (Inside Loop for Isolation) -->
-            <div x-show="showPublishModal" class="absolute inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4" x-transition style="display: none;">
+            <!-- Simple Publish Modal (Fixed to screen for centering) -->
+            <div x-show="showPublishModal" 
+                 x-cloak
+                 class="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4" 
+                 x-transition>
                 <div @click.away="showPublishModal = false" class="bg-card w-full max-w-sm rounded-xl shadow-2xl border border-border p-5 space-y-4">
                     <div class="text-center">
                         <h3 class="text-lg font-bold">Publish to Social Planner</h3>
@@ -573,17 +576,16 @@
         @endforeach
     </div>
 
-    <!-- Delete Batch Confirmation Modal -->
+    <!-- Simple Delete Batch Confirmation Modal -->
     <div x-show="showDeleteModal"
-         x-init="$watch('showDeleteModal', val => { if(val) $el.style.display = 'flex'; })"
+         x-cloak
          class="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
          x-transition:enter="transition ease-out duration-300"
          x-transition:enter-start="opacity-0"
          x-transition:enter-end="opacity-100"
          x-transition:leave="transition ease-in duration-200"
          x-transition:leave-start="opacity-100"
-         x-transition:leave-end="opacity-0"
-         style="display: none;">
+         x-transition:leave-end="opacity-0">
         
         <div @click.away="!isDeleting && (showDeleteModal = false)" 
              class="bg-card w-full max-w-md rounded-2xl shadow-2xl border border-border p-8 text-center animate-in zoom-in-95 duration-300">

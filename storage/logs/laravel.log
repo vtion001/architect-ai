@@ -3180,3 +3180,11 @@ Please retry in 26.873816075s.
 [2026-01-01 20:24:34] local.WARNING: Gemini Suggestions Error (gemini-pro): models/gemini-pro is not found for API version v1beta, or is not supported for generateContent. Call ListModels to see the list of available models and their supported methods.  
 [2026-01-01 20:24:34] local.ERROR: All Gemini models failed. Attempting OpenAI fallback...  
 [2026-01-01 20:28:22] local.INFO: Media uploaded to Cloudinary. URL: https://res.cloudinary.com/dbviya1rj/image/upload/v1767299302/fvpqwhbd3ok5m6jyonni.jpg  
+[2026-01-01 21:35:26] local.INFO: Attempting to delete batch for Content ID: 8  
+[2026-01-01 21:35:26] local.INFO: Found 1 child posts to remove.  
+[2026-01-01 21:35:26] local.INFO: Attempting live removal from Facebook: 122123942990998435  
+[2026-01-01 21:35:30] local.INFO: Successfully deleted Facebook Post: 122123942990998435  
+[2026-01-01 21:35:45] local.INFO: Attempting to delete batch for Content ID: 3  
+[2026-01-01 21:35:45] local.INFO: Found 1 child posts to remove.  
+[2026-01-01 21:35:47] local.INFO: Attempting to delete batch for Content ID: 1  
+[2026-01-01 21:35:47] local.INFO: Found 0 child posts to remove.  
