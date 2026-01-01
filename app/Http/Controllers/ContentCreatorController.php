@@ -39,16 +39,31 @@ class ContentCreatorController extends Controller
             'addLineBreaks' => 'nullable|boolean',
             'includeHashtags' => 'nullable|boolean',
             'generator' => 'nullable|string',
+            
+            // Video Params
             'video_platform' => 'nullable|string',
             'video_hook' => 'nullable|string',
             'video_duration' => 'nullable|string',
+            'video_style' => 'nullable|string',
+            'video_description' => 'nullable|string',
+            'source_image' => 'nullable|string',
+            'ai_model' => 'nullable|string',
+            'resolution' => 'nullable|string',
+            'aspect_ratio' => 'nullable|string',
+            'generation_duration' => 'nullable|string',
+
+            // Blog Params
             'blog_keywords' => 'nullable|string',
             'blog_structure' => 'nullable|string',
+            'is_batch_mode' => 'nullable|boolean',
+            'featured_image_type' => 'nullable|string',
         ]);
 
         $options = $request->only([
             'count', 'tone', 'length', 'cta', 'addLineBreaks', 'includeHashtags',
-            'generator', 'video_platform', 'video_hook', 'video_duration', 'blog_keywords', 'blog_structure'
+            'generator', 'video_platform', 'video_hook', 'video_duration', 'video_style', 
+            'video_description', 'source_image', 'ai_model', 'resolution', 'aspect_ratio', 
+            'generation_duration', 'blog_keywords', 'blog_structure', 'is_batch_mode', 'featured_image_type'
         ]);
 
         $content = Content::create([

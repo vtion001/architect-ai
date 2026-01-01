@@ -16,8 +16,17 @@
     // Blog Specific
     keywords: '',
     structure: 'Standard',
+    isBatchMode: false,
+    featuredImageType: 'ai',
     
     // Video Specific
+    videoStyle: 'UGC',
+    videoDescription: '',
+    sourceImage: '',
+    aiModel: 'Sora 2 BEST',
+    resolution: '1080p',
+    aspectRatio: 'Portrait',
+    videoDuration: '10 seconds (7 tokens)',
     platform: 'reels',
     hookStyle: 'Problem/Solution',
     duration: '60s',
@@ -47,8 +56,21 @@
             video_platform: this.platform,
             video_hook: this.hookStyle,
             video_duration: this.duration,
+            
+            // New Video Params
+            video_style: this.videoStyle,
+            video_description: this.topic || this.videoDescription,
+            source_image: this.sourceImage,
+            ai_model: this.aiModel,
+            resolution: this.resolution,
+            aspect_ratio: this.aspectRatio,
+            generation_duration: this.videoDuration,
+
+            // Blog Params
             blog_keywords: this.keywords,
-            blog_structure: this.structure
+            blog_structure: this.structure,
+            is_batch_mode: this.isBatchMode,
+            featured_image_type: this.featuredImageType,
         };
 
         fetch('{{ route('content-creator.generate') }}', {
@@ -175,32 +197,36 @@
             <div class="p-8 space-y-8">
                 <!-- Post Generator Interface -->
                 <div x-show="generator === 'post'" x-transition:enter="transition ease-out duration-300" x-transition:enter-start="opacity-0 transform -translate-y-2" x-transition:enter-end="opacity-100 transform translate-y-0" class="space-y-8">
-                    <div>
-                        <h3 class="text-xl font-bold mb-1">Architect Single/Bulk Posts</h3>
-                        <p class="text-sm text-muted-foreground">Define parameters for high-engagement text posts powered by your knowledge base.</p>
+                    <!-- Post Header -->
+                    <div class="mb-2">
+                        <div class="flex items-center gap-3 mb-1">
+                            <i data-lucide="edit-3" class="w-6 h-6 text-[#9682d0]"></i>
+                            <h2 class="text-2xl font-black text-foreground">Post Architect</h2>
+                        </div>
+                        <p class="text-sm text-muted-foreground font-medium">Define parameters for high-engagement text posts powered by your knowledge base.</p>
                     </div>
 
                     <!-- Main Topic -->
                     <div class="space-y-4">
                         <div class="flex items-center justify-between">
-                            <label class="text-sm font-bold uppercase tracking-tight">Post Topic / Theme</label>
-                            <button class="text-xs text-primary font-medium flex items-center gap-1 hover:underline">
-                                <i data-lucide="lightbulb" class="w-3.5 h-3.5"></i>
-                                Inspiration
+                            <label class="text-[10px] font-black uppercase tracking-widest text-foreground italic">Post Topic / Theme <span class="text-red-500">*</span></label>
+                            <button class="bg-muted px-3 py-1 rounded border border-border text-[10px] font-bold flex items-center gap-1.5 hover:bg-muted/80">
+                                <i data-lucide="sparkles" class="w-3 h-3 text-[#9682d0]"></i>
+                                GET SUGGESTIONS
                             </button>
                         </div>
-                        <input x-model="topic" type="text" placeholder="e.g., 'Modern Architecture Trends 2026'" class="flex h-12 w-full rounded-lg border border-input bg-muted/30 px-4 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary">
+                        <input x-model="topic" type="text" placeholder="e.g., 'Modern Architecture Trends 2026'" class="w-full h-14 bg-muted/20 border border-border rounded-xl px-5 text-sm font-medium focus:ring-1 focus:ring-[#9682d0]">
                     </div>
 
                     <!-- Parameters Grid -->
                     <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
                         <div class="space-y-3">
-                            <label class="text-sm font-bold uppercase tracking-tight">Quantity</label>
-                            <input x-model="count" type="number" min="1" class="flex h-12 w-full rounded-lg border border-input bg-muted/30 px-4 py-2 text-sm">
+                            <label class="text-[10px] font-black uppercase tracking-widest text-foreground italic">Quantity</label>
+                            <input x-model="count" type="number" min="1" class="w-full h-12 bg-muted/20 border border-border rounded-xl px-4 text-sm font-medium">
                         </div>
                         <div class="space-y-3">
-                            <label class="text-sm font-bold uppercase tracking-tight">Tone</label>
-                            <select x-model="tone" class="flex h-12 w-full rounded-lg border border-input bg-muted/30 px-4 py-2 text-sm">
+                            <label class="text-[10px] font-black uppercase tracking-widest text-foreground italic">Tone</label>
+                            <select x-model="tone" class="w-full h-12 bg-muted/20 border border-border rounded-xl px-4 text-sm font-medium">
                                 <option>Professional</option>
                                 <option>Casual</option>
                                 <option>Provocative</option>
@@ -208,8 +234,8 @@
                             </select>
                         </div>
                         <div class="space-y-3">
-                            <label class="text-sm font-bold uppercase tracking-tight">Format</label>
-                            <select x-model="type" class="flex h-12 w-full rounded-lg border border-input bg-muted/30 px-4 py-2 text-sm">
+                            <label class="text-[10px] font-black uppercase tracking-widest text-foreground italic">Format</label>
+                            <select x-model="type" class="w-full h-12 bg-muted/20 border border-border rounded-xl px-4 text-sm font-medium">
                                 <option value="social-media">Social Media</option>
                                 <option value="email">Direct Email</option>
                                 <option value="ad-copy">Ad Copy</option>
@@ -219,89 +245,314 @@
 
                     <!-- Instructions -->
                     <div class="space-y-3">
-                        <label class="text-sm font-bold uppercase tracking-tight">Mandate / Specific Context</label>
-                        <textarea x-model="context" placeholder="e.g., 'Focus on sustainable materials and eco-friendly designs...'" rows="4" class="flex min-h-[100px] w-full rounded-lg border border-input bg-muted/30 px-4 py-3 text-sm"></textarea>
+                        <label class="text-[10px] font-black uppercase tracking-widest text-foreground italic">Mandate / Specific Context</label>
+                        <textarea x-model="context" placeholder="e.g., 'Focus on sustainable materials and eco-friendly designs...'" rows="4" class="w-full min-h-[120px] bg-muted/20 border border-border rounded-xl px-5 py-4 text-sm font-medium focus:ring-1 focus:ring-[#9682d0]"></textarea>
+                    </div>
+
+                    <!-- Generate Button Area -->
+                    <div class="pt-4">
+                        <button @click="generateContent" class="w-full h-14 bg-[#9682d0] hover:bg-[#8571bd] text-white rounded-xl font-black uppercase tracking-[0.2em] shadow-lg shadow-[#9682d0]/20 hover:scale-[1.01] active:scale-[0.99] transition-all flex items-center justify-center gap-3 text-xs">
+                            <i data-lucide="sparkles" class="w-5 h-5"></i>
+                            Generate & Preview Posts
+                        </button>
+                    </div>
+
+                    <!-- Features List -->
+                    <div class="bg-[#9682d0]/5 border border-[#9682d0]/10 rounded-xl p-6 space-y-4">
+                        <div class="flex items-center gap-2 mb-1">
+                            <i data-lucide="layout" class="w-4 h-4 text-[#9682d0]"></i>
+                            <h4 class="text-[10px] font-black text-[#9682d0] uppercase tracking-wider">AI Post Architect Features:</h4>
+                        </div>
+                        <div class="grid grid-cols-1 gap-1.5">
+                            <template x-for="feature in [
+                                'Multi-platform optimization (X, LinkedIn, Meta)',
+                                'Brand voice synchronization from knowledge base',
+                                'Automated hook generation for high engagement',
+                                'Direct scheduling integration',
+                                'Bulk generation capabilities'
+                            ]">
+                                <div class="flex items-start gap-2.5">
+                                    <i data-lucide="check" class="w-3.5 h-3.5 text-[#9682d0] shrink-0 mt-0.5"></i>
+                                    <p class="text-[10px] font-semibold text-muted-foreground leading-tight" x-text="feature"></p>
+                                </div>
+                            </template>
+                        </div>
                     </div>
                 </div>
 
                 <!-- Video Generator Interface -->
                 <div x-show="generator === 'video'" x-transition:enter="transition ease-out duration-300" x-transition:enter-start="opacity-0 transform -translate-y-2" x-transition:enter-end="opacity-100 transform translate-y-0" class="space-y-8" style="display: none;">
-                    <div>
-                        <h3 class="text-xl font-bold mb-1">Architect Video Scripts</h3>
-                        <p class="text-sm text-muted-foreground">Generate viral-ready scripts with visual hooks and storyboards.</p>
+                    <!-- Secondary Nav Tabs -->
+                    <div class="bg-muted/50 rounded-lg p-1 flex items-center justify-center gap-1 mb-8">
+                        <button class="px-4 py-1.5 rounded-md bg-white shadow-sm text-xs font-bold text-foreground">Generate New Video</button>
+                        <button class="px-4 py-1.5 rounded-md text-xs font-bold text-muted-foreground hover:bg-white/50">Video Queue</button>
+                        <button class="px-4 py-1.5 rounded-md text-xs font-bold text-muted-foreground hover:bg-white/50">Completed</button>
                     </div>
 
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <h3 class="text-2xl font-bold mb-1">Video Generation</h3>
+                            <p class="text-sm text-muted-foreground font-medium">Enter a prompt and configure your video settings</p>
+                        </div>
+                        <span class="bg-[#9682d0]/10 text-[#9682d0] text-xs font-bold px-3 py-1.5 rounded-full border border-[#9682d0]/20">7 tokens per video</span>
+                    </div>
+
+                    <!-- Style Preset -->
                     <div class="space-y-4">
-                        <label class="text-sm font-bold uppercase tracking-tight">Script Topic</label>
-                        <input x-model="topic" type="text" placeholder="e.g., 'Behind the scenes of our new studio'" class="flex h-12 w-full rounded-lg border border-input bg-muted/30 px-4 py-2 text-sm">
+                        <label class="text-sm font-bold uppercase tracking-tight italic">Style Preset <span class="text-muted-foreground ml-1 font-normal opacity-70">(Optional)</span></label>
+                        <div class="grid grid-cols-2 md:grid-cols-5 gap-3">
+                            <template x-for="style in [
+                                { name: 'UGC', id: '1516245834210-c4c142787335' },
+                                { name: 'Cartoon', id: '1578632738980-42445202d089' },
+                                { name: 'Futuristic', id: '1485827404703-89b55fcc595e' },
+                                { name: 'Cinematic', id: '1485846234645-a62644f84728' },
+                                { name: 'Documentary', id: '1526628953301-3e589a6a8b74' },
+                                { name: 'LEGO', id: '1585366119957-e5769bb3f7f3' },
+                                { name: 'Vintage', id: '1524230572899-a752b3835840' },
+                                { name: 'Abstract', id: '1541701494587-cb58502866ab' },
+                                { name: 'Nature', id: '1441974231531-c6227db76b6e' },
+                                { name: 'Urban', id: '1449824913935-59a10b8d2000' }
+                            ]">
+                                <button @click="videoStyle = style.name" :class="videoStyle === style.name ? 'ring-2 ring-[#9682d0] ring-offset-2 scale-[1.02]' : 'opacity-80 hover:opacity-100'" class="relative group aspect-video rounded-lg overflow-hidden border border-border transition-all">
+                                    <img :src="'https://images.unsplash.com/photo-' + style.id + '?q=80&w=300&auto=format&fit=crop'" class="w-full h-full object-cover">
+                                    <div class="absolute inset-x-0 bottom-0 bg-black/60 backdrop-blur-[2px] p-2">
+                                        <p class="text-[9px] font-black text-white text-center uppercase tracking-[0.1em]" x-text="style.name"></p>
+                                    </div>
+                                </button>
+                            </template>
+                        </div>
+                        <p class="text-[10px] text-muted-foreground font-medium opacity-70">Select a style to automatically enhance your video description</p>
                     </div>
 
-                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                        <div class="space-y-3">
-                            <label class="text-sm font-bold uppercase tracking-tight">Platform</label>
-                            <select x-model="platform" class="flex h-12 w-full rounded-lg border border-input bg-muted/30 px-4 py-2 text-sm">
-                                <option value="tiktok">TikTok</option>
-                                <option value="reels">Instagram Reels</option>
-                                <option value="youtube">YouTube Shorts</option>
-                            </select>
-                        </div>
-                        <div class="space-y-3">
-                            <label class="text-sm font-bold uppercase tracking-tight">Hook Style</label>
-                            <select x-model="hookStyle" class="flex h-12 w-full rounded-lg border border-input bg-muted/30 px-4 py-2 text-sm">
-                                <option>Problem/Solution</option>
-                                <option>Curiosity Gap</option>
-                                <option>Direct Fact</option>
-                                <option>Question Hook</option>
-                            </select>
-                        </div>
-                        <div class="space-y-3">
-                            <label class="text-sm font-bold uppercase tracking-tight">Target Length</label>
-                            <select x-model="duration" class="flex h-12 w-full rounded-lg border border-input bg-muted/30 px-4 py-2 text-sm">
-                                <option>15s</option>
-                                <option>30s</option>
-                                <option>60s</option>
-                                <option>90s</option>
-                            </select>
-                        </div>
+                    <!-- Info Box -->
+                    <div class="bg-primary/5 border border-primary/10 rounded-lg p-4 flex gap-3">
+                        <i data-lucide="info" class="w-5 h-5 text-primary shrink-0"></i>
+                        <p class="text-xs text-muted-foreground leading-relaxed">
+                            <span class="font-bold text-primary">Add yourselves or friends to your videos!</span> Tag your Sora 2 Cameo or a friend's Sora 2 Cameo using <span class="bg-primary/20 text-primary px-1 rounded">@cameo</span> handle in your video description to add yourself or a friend into your generated videos.
+                        </p>
                     </div>
 
+                    <!-- Video Description -->
+                    <div class="space-y-4">
+                        <div class="flex items-center justify-between">
+                            <label class="text-sm font-bold uppercase tracking-tight italic">Video Description <span class="text-red-500">*</span></label>
+                            <button class="bg-muted px-3 py-1 rounded border border-border text-[10px] font-bold flex items-center gap-1.5 hover:bg-muted/80">
+                                <i data-lucide="sparkles" class="w-3 h-3"></i>
+                                GET SUGGESTIONS
+                            </button>
+                        </div>
+                        <textarea x-model="topic" placeholder="Describe the video you want to generate..." rows="6" class="flex min-h-[140px] w-full rounded-lg border border-input bg-muted/30 px-4 py-3 text-sm focus:ring-1 focus:ring-primary"></textarea>
+                        <p class="text-[10px] text-muted-foreground text-right italic">0 / 1000 characters</p>
+                    </div>
+
+                    <!-- Source Image -->
                     <div class="space-y-3">
-                        <label class="text-sm font-bold uppercase tracking-tight">Key Visual Elements to Include</label>
-                        <textarea x-model="context" placeholder="Add specific visual cues or props..." rows="4" class="flex min-h-[100px] w-full rounded-lg border border-input bg-muted/30 px-4 py-3 text-sm"></textarea>
+                        <label class="text-sm font-bold uppercase tracking-tight">Source Image <span class="text-muted-foreground ml-1">(Optional)</span></label>
+                        <div class="flex gap-3">
+                            <input x-model="sourceImage" type="text" placeholder="Enter Image URL..." class="flex-1 h-12 rounded-lg border border-input bg-muted/30 px-4 text-sm">
+                            <button class="bg-muted border border-border rounded-lg px-6 h-12 text-sm font-bold flex items-center gap-2 hover:bg-muted/80 transition-colors">
+                                <i data-lucide="upload" class="w-4 h-4"></i>
+                                Upload
+                            </button>
+                        </div>
+                        <p class="text-[10px] text-muted-foreground italic">Coming soon - Image-to-video generation will be available in a future update.</p>
+                    </div>
+
+                    <!-- Settings Grid -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6">
+                        <div class="space-y-3">
+                            <label class="text-sm font-bold uppercase tracking-tight italic">AI Model</label>
+                            <select x-model="aiModel" class="flex h-12 w-full rounded-lg border border-input bg-muted/30 px-4 py-2 text-sm focus:ring-1 focus:ring-primary">
+                                <option>Sora 2 BEST</option>
+                            </select>
+                            <p class="text-[10px] text-muted-foreground italic">Best for highly realistic videos with precise physics</p>
+                        </div>
+                        <div class="space-y-3">
+                            <label class="text-sm font-bold uppercase tracking-tight italic">Duration (7 tokens)</label>
+                            <select x-model="videoDuration" class="flex h-12 w-full rounded-lg border border-input bg-muted/30 px-4 py-2 text-sm">
+                                <option>10 seconds (7 tokens)</option>
+                                <option>15 seconds (10 tokens)</option>
+                            </select>
+                            <p class="text-[10px] text-muted-foreground italic">Range: 10-15s</p>
+                        </div>
+                        <div class="space-y-3">
+                            <label class="text-sm font-bold uppercase tracking-tight italic">Resolution</label>
+                            <select x-model="resolution" class="flex h-12 w-full rounded-lg border border-input bg-muted/30 px-4 py-2 text-sm">
+                                <option>1080p</option>
+                            </select>
+                            <p class="text-[10px] text-muted-foreground italic">Only 1080p supported</p>
+                        </div>
+                        <div class="space-y-3">
+                            <label class="text-sm font-bold uppercase tracking-tight italic">Aspect Ratio</label>
+                            <select x-model="aspectRatio" class="flex h-12 w-full rounded-lg border border-input bg-muted/30 px-4 py-2 text-sm">
+                                <option>Portrait</option>
+                                <option>Square</option>
+                                <option>Widescreen</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Insufficient Tokens Alert (Placeholder) -->
+                    <div class="border border-red-200 bg-red-50 rounded-lg p-4 flex items-center gap-4">
+                        <div class="bg-red-100 p-2 rounded-full">
+                            <i data-lucide="alert-circle" class="w-5 h-5 text-red-500"></i>
+                        </div>
+                        <div>
+                            <p class="text-sm font-bold text-red-700">Insufficient Tokens</p>
+                            <p class="text-xs text-red-600 italic">You need 7 tokens to generate this video, but you only have 0 tokens. <a href="#" class="font-bold underline">Upgrade your plan</a> to get more tokens.</p>
+                        </div>
+                    </div>
+
+                    <!-- Bottom Button -->
+                    <div class="pt-2">
+                        <button @click="generateContent" class="w-full h-14 bg-[#9682d0] hover:bg-[#8571bd] text-white rounded-lg font-black uppercase tracking-widest shadow-lg shadow-[#9682d0]/20 hover:scale-[1.01] active:scale-[0.99] transition-all flex items-center justify-center gap-3">
+                            <i data-lucide="sparkles" class="w-5 h-5"></i>
+                            Generate Video (7 tokens)
+                        </button>
                     </div>
                 </div>
 
                 <!-- Blog Generator Interface -->
-                <div x-show="generator === 'blog'" x-transition:enter="transition ease-out duration-300" x-transition:enter-start="opacity-0 transform -translate-y-2" x-transition:enter-end="opacity-100 transform translate-y-0" class="space-y-8" style="display: none;">
-                    <div>
-                        <h3 class="text-xl font-bold mb-1">Architect Long-Form Blogs</h3>
-                        <p class="text-sm text-muted-foreground">Generate SEO-optimized articles with technical depth and structure.</p>
-                    </div>
-
-                    <div class="space-y-4">
-                        <label class="text-sm font-bold uppercase tracking-tight">Article Title / Main Theme</label>
-                        <input x-model="topic" type="text" placeholder="e.g., 'The Future of Agentic Coding Foundations'" class="flex h-12 w-full rounded-lg border border-input bg-muted/30 px-4 py-2 text-sm">
-                    </div>
-
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div class="space-y-3">
-                            <label class="text-sm font-bold uppercase tracking-tight">Target Keyword</label>
-                            <input x-model="keywords" type="text" placeholder="e.g., 'sustainable architecture'" class="flex h-12 w-full rounded-lg border border-input bg-muted/30 px-4 py-2 text-sm">
+                <div x-show="generator === 'blog'" x-transition:enter="transition ease-out duration-300" x-transition:enter-start="opacity-0 transform -translate-y-2" x-transition:enter-end="opacity-100 transform translate-y-0" class="space-y-6" style="display: none;">
+                    
+                    <!-- Blog Header (Top Level) -->
+                    <div class="mb-2">
+                        <div class="flex items-center gap-3 mb-1">
+                            <i data-lucide="book" class="w-6 h-6 text-[#9682d0]"></i>
+                            <h2 class="text-2xl font-black text-foreground">Blog Generator</h2>
                         </div>
-                        <div class="space-y-3">
-                            <label class="text-sm font-bold uppercase tracking-tight">Article Structure</label>
-                            <select x-model="structure" class="flex h-12 w-full rounded-lg border border-input bg-muted/30 px-4 py-2 text-sm">
-                                <option>Standard Article</option>
-                                <option>Detailed Case Study</option>
-                                <option>How-To Guide</option>
-                                <option>Comparison Analysis</option>
-                            </select>
+                        <p class="text-sm text-muted-foreground font-medium">Generate SEO-optimized blog posts and publish them directly to your WordPress site</p>
+                    </div>
+
+                    <!-- WordPress Notice -->
+                    <div class="bg-muted/30 border border-border rounded-lg p-4 flex gap-4 items-center">
+                        <div class="bg-card w-10 h-10 rounded-lg border border-border flex items-center justify-center shrink-0">
+                            <i data-lucide="info" class="w-5 h-5 text-[#9682d0]"></i>
+                        </div>
+                        <div class="text-xs">
+                            <p class="font-bold text-foreground mb-0.5">WordPress Not Connected</p>
+                            <p class="text-muted-foreground italic">Please connect your WordPress account in <a href="#" class="text-[#9682d0] font-bold underline">Social Connections</a> to post blogs.</p>
                         </div>
                     </div>
 
-                    <div class="space-y-3">
-                        <label class="text-sm font-bold uppercase tracking-tight">Outline Mandate</label>
-                        <textarea x-model="context" placeholder="e.g., 'Include a section on carbon footprint and one on recycled steel...'" rows="4" class="flex min-h-[100px] w-full rounded-lg border border-input bg-muted/30 px-4 py-3 text-sm"></textarea>
+                    <!-- Token Notice -->
+                    <div class="bg-muted/30 border border-border rounded-lg p-4 flex gap-4 items-center">
+                        <div class="bg-white/50 w-10 h-10 rounded-lg border border-border flex items-center justify-center shrink-0">
+                            <i data-lucide="info" class="w-5 h-5 text-[#9682d0]"></i>
+                        </div>
+                        <div class="text-xs">
+                            <p class="font-bold text-foreground mb-0.5">Token Cost</p>
+                            <p class="text-muted-foreground italic">Each blog generation costs 20 tokens. You currently have 0 tokens.</p>
+                        </div>
+                    </div>
+
+                    <!-- Main Form Container -->
+                    <div class="border border-border rounded-2xl bg-muted/5 p-8 space-y-8 relative overflow-hidden">
+                        <div class="space-y-1">
+                            <div class="flex items-center gap-2">
+                                <i data-lucide="book-open" class="w-5 h-5 text-[#9682d0]"></i>
+                                <h3 class="text-xl font-black text-foreground">Blog Post Generator</h3>
+                            </div>
+                            <p class="text-xs text-muted-foreground font-medium">Generate SEO-optimized blog posts with Google Trends insights</p>
+                        </div>
+
+                        <!-- Mode Selector Tabs -->
+                        <div class="bg-muted/50 rounded-lg p-1 flex gap-1 border border-border/50">
+                            <button @click="isBatchMode = false" :class="!isBatchMode ? 'bg-white shadow-sm text-foreground' : 'text-muted-foreground hover:bg-white/50'" class="flex-1 py-1.5 rounded-md text-[10px] font-black uppercase tracking-wider transition-all">Single Blog</button>
+                            <button @click="isBatchMode = true" :class="isBatchMode ? 'bg-white shadow-sm text-foreground' : 'text-muted-foreground hover:bg-white/50'" class="flex-1 py-1.5 rounded-md text-[10px] font-black uppercase tracking-wider transition-all">Batch Generate</button>
+                        </div>
+
+                        <!-- Suggestions Box -->
+                        <div class="bg-[#9682d0]/5 border border-[#9682d0]/20 rounded-xl p-6 space-y-4">
+                            <div class="flex items-center gap-2 mb-2">
+                                <i data-lucide="sparkles" class="w-4 h-4 text-[#9682d0]"></i>
+                                <h4 class="text-xs font-black text-[#9682d0] uppercase tracking-wider">Suggested Blog Topics</h4>
+                            </div>
+                            <div class="flex gap-2">
+                                <input type="text" placeholder="Enter keyword for blog topic suggestions (e.g., 'home improvement', 'fitness')" class="flex-1 h-12 rounded-lg border border-[#9682d0]/20 bg-white/50 px-4 text-xs italic focus:ring-1 focus:ring-[#9682d0]">
+                                <button class="h-12 px-6 rounded-lg bg-white border border-[#9682d0]/30 text-[#9682d0] text-[10px] font-black uppercase tracking-widest flex items-center gap-2 hover:bg-[#9682d0]/5">
+                                    <i data-lucide="search" class="w-3.5 h-3.5"></i>
+                                    Get Suggestions
+                                </button>
+                            </div>
+                            <p class="text-[10px] text-muted-foreground font-medium italic opacity-70">Enter a keyword to get AI-generated blog topic suggestions related to your search. Leave blank to see general trending topics.</p>
+                            <div class="text-center py-4 text-[10px] text-muted-foreground italic border-t border-[#9682d0]/10">
+                                Enter a keyword to get AI-generated suggestions or enter a topic manually below.
+                            </div>
+                        </div>
+
+                        <!-- Input Fields -->
+                        <div class="space-y-6">
+                            <div class="space-y-3">
+                                <label class="text-[10px] font-black uppercase tracking-widest text-foreground italic flex items-center gap-1">
+                                    Blog Topic <span class="text-red-500">*</span>
+                                </label>
+                                <input x-model="topic" type="text" placeholder="e.g., How to Create Viral Social Media Content with AI" class="w-full h-14 bg-muted/20 border border-border rounded-xl px-5 text-sm font-medium focus:ring-1 focus:ring-[#9682d0]">
+                                <p class="text-[10px] text-muted-foreground font-medium italic">Enter the main topic or title for your blog post, or select from suggestions above</p>
+                            </div>
+
+                            <div class="space-y-3">
+                                <label class="text-[10px] font-black uppercase tracking-widest text-foreground italic">
+                                    SEO Keywords (comma-separated)
+                                </label>
+                                <input x-model="keywords" type="text" placeholder="e.g., AI content creation, social media marketing, viral posts" class="w-full h-14 bg-muted/20 border border-border rounded-xl px-5 text-sm font-medium focus:ring-1 focus:ring-[#9682d0]">
+                                <p class="text-[10px] text-muted-foreground font-medium italic">Optional: Add keywords you want to rank for (comma-separated)</p>
+                            </div>
+                        </div>
+
+                        <!-- Featured Image Selection -->
+                        <div class="bg-muted/10 border border-border rounded-xl p-6 space-y-4">
+                            <h4 class="text-[10px] font-black uppercase tracking-widest text-foreground">Featured Image</h4>
+                            <div class="flex gap-12">
+                                <label class="flex items-center gap-3 cursor-pointer group">
+                                    <input type="radio" value="ai" x-model="featuredImageType" class="w-4 h-4 text-[#9682d0] focus:ring-[#9682d0] border-border">
+                                    <div class="flex items-center gap-2">
+                                        <i data-lucide="wand-2" class="w-4 h-4 text-muted-foreground group-hover:text-[#9682d0]"></i>
+                                        <span class="text-xs font-black uppercase tracking-tight text-foreground">AI Generated</span>
+                                    </div>
+                                </label>
+                                <label class="flex items-center gap-3 cursor-pointer group">
+                                    <input type="radio" value="manual" x-model="featuredImageType" class="w-4 h-4 text-[#9682d0] focus:ring-[#9682d0] border-border">
+                                    <div class="flex items-center gap-2">
+                                        <i data-lucide="upload" class="w-4 h-4 text-muted-foreground group-hover:text-[#9682d0]"></i>
+                                        <span class="text-xs font-black uppercase tracking-tight text-foreground">Upload My Own</span>
+                                    </div>
+                                </label>
+                            </div>
+                            <p class="text-[10px] text-muted-foreground font-medium italic opacity-70">An AI-generated featured image will be created automatically based on your blog topic.</p>
+                        </div>
+
+                        <!-- Generate Button Area -->
+                        <div class="pt-4">
+                            <button @click="generateContent" class="w-full h-14 bg-[#9682d0] hover:bg-[#8571bd] text-white rounded-xl font-black uppercase tracking-[0.2em] shadow-lg shadow-[#9682d0]/20 hover:scale-[1.01] active:scale-[0.99] transition-all flex items-center justify-center gap-3 text-xs">
+                                <i data-lucide="sparkles" class="w-5 h-5"></i>
+                                Generate & Preview Blog Post
+                            </button>
+                        </div>
+
+                        <!-- Technical Specs List -->
+                        <div class="bg-[#9682d0]/5 border border-[#9682d0]/10 rounded-xl p-6 space-y-4">
+                            <div class="flex items-center gap-2 mb-1">
+                                <i data-lucide="layout" class="w-4 h-4 text-[#9682d0]"></i>
+                                <h4 class="text-[10px] font-black text-[#9682d0] uppercase tracking-wider">AI Blog Generation Features:</h4>
+                            </div>
+                            <div class="grid grid-cols-1 gap-1.5">
+                                <template x-for="feature in [
+                                    'SEO-optimized content with proper keyword integration',
+                                    'Comprehensive, valuable content (1500-2000 words)',
+                                    'Proper heading structure for SEO',
+                                    'Meta titles and descriptions included',
+                                    'Direct posting to WordPress',
+                                    'Google Trends integration for trending topics',
+                                    'Batch generation for multiple posts at once'
+                                ]">
+                                    <div class="flex items-start gap-2.5">
+                                        <i data-lucide="check" class="w-3.5 h-3.5 text-[#9682d0] shrink-0 mt-0.5"></i>
+                                        <p class="text-[10px] font-semibold text-muted-foreground leading-tight" x-text="feature"></p>
+                                    </div>
+                                </template>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
@@ -351,39 +602,139 @@
             </div>
         </div>
 
-        <!-- Recent Content -->
-        <div class="rounded-xl border border-border bg-card text-card-foreground shadow-sm">
-            <div class="flex flex-col space-y-1.5 p-6">
-                <h3 class="text-2xl font-semibold leading-none tracking-tight">Recent Content</h3>
-            </div>
-            <div class="p-6 pt-0">
-                <div class="space-y-4">
-                    @forelse($recentContents as $item)
-                    <a href="{{ route('content-creator.show', $item) }}" class="block p-3 border border-border rounded-lg hover:bg-muted/50">
-                        <h3 class="font-semibold text-sm mb-2">{{ $item->title }}</h3>
-                        <div class="flex items-center justify-between text-xs text-muted-foreground mb-2">
-                            <span>{{ ucwords(str_replace('-', ' ', $item->type)) }}</span>
-                            <span>{{ $item->word_count }} words</span>
+        <!-- Sidebar: Context Aware Content -->
+        <div class="space-y-6">
+            <!-- Normal Mode: Recent Content -->
+            <div x-show="generator !== 'video'" class="rounded-xl border border-border bg-card text-card-foreground shadow-sm">
+                <div class="flex flex-col space-y-1.5 p-6 border-b border-border/50">
+                    <h3 class="text-2xl font-semibold leading-none tracking-tight">Recent Content</h3>
+                </div>
+                <div class="p-6 pt-0 mt-4">
+                    <div class="space-y-4">
+                        @forelse($recentContents as $item)
+                        <a href="{{ route('content-creator.show', $item) }}" class="block p-3 border border-border rounded-lg hover:bg-muted/50 transition-all">
+                            <h3 class="font-semibold text-sm mb-2 line-clamp-1">{{ $item->title }}</h3>
+                            <div class="flex items-center justify-between text-[10px] text-muted-foreground mb-2 uppercase font-bold tracking-tight">
+                                <span>{{ ucwords(str_replace('-', ' ', $item->type)) }}</span>
+                                <span>{{ $item->word_count }} words</span>
+                            </div>
+                            @php
+                                $statusClasses = [
+                                    'published' => 'bg-green-100 text-green-700 border-green-200',
+                                    'draft' => 'bg-amber-100 text-amber-700 border-amber-200',
+                                    'generating' => 'bg-blue-100 text-blue-700 border-blue-200',
+                                    'failed' => 'bg-red-100 text-red-700 border-red-200'
+                                ];
+                                $currentStatusClass = $statusClasses[$item->status] ?? 'bg-slate-100 text-slate-700 border-slate-200';
+                            @endphp
+                            <span class="inline-flex items-center rounded-full border px-2.5 py-0.5 text-[10px] font-bold transition-colors uppercase tracking-wider {{ $currentStatusClass }}">
+                                {{ ucfirst($item->status) }}
+                            </span>
+                        </a>
+                        @empty
+                        <div class="text-center py-12 text-muted-foreground opacity-50">
+                            <i data-lucide="pencil" class="w-10 h-10 mx-auto mb-3"></i>
+                            <p class="text-sm">No content generated yet.</p>
                         </div>
-                        @php
-                            $statusClasses = [
-                                'published' => 'bg-green-100 text-green-700',
-                                'draft' => 'bg-amber-100 text-amber-700',
-                                'generating' => 'bg-blue-100 text-blue-700',
-                                'failed' => 'bg-red-100 text-red-700'
-                            ];
-                            $currentStatusClass = $statusClasses[$item->status] ?? 'bg-slate-100 text-slate-700';
-                        @endphp
-                        <span class="inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 {{ $currentStatusClass }}">
-                            {{ ucfirst($item->status) }}
-                        </span>
-                    </a>
-                    @empty
-                    <div class="text-center py-8 text-muted-foreground">
-                        <i data-lucide="pencil" class="w-8 h-8 mx-auto mb-2 opacity-20"></i>
-                        <p>No content generated yet.</p>
+                        @endforelse
                     </div>
-                    @endforelse
+                </div>
+            </div>
+
+            <!-- Video Mode: How It Works & Tokens -->
+            <div x-show="generator === 'video'" x-transition:enter="transition duration-500" class="space-y-6" style="display: none;">
+                <!-- How It Works -->
+                <div class="rounded-xl border border-border bg-card text-card-foreground shadow-sm overflow-hidden">
+                    <div class="p-6 bg-muted/30 border-b border-border flex items-center gap-2">
+                        <i data-lucide="help-circle" class="w-4 h-4 text-primary"></i>
+                        <h3 class="font-bold text-sm uppercase tracking-tighter">How It Works</h3>
+                    </div>
+                    <div class="p-6 space-y-6 text-xs">
+                        <div class="flex gap-4">
+                            <i data-lucide="layers" class="w-5 h-5 text-purple-500 shrink-0"></i>
+                            <div>
+                                <p class="font-bold mb-1">Queue System</p>
+                                <p class="text-muted-foreground leading-relaxed italic">Videos generate in the background. You can leave the page and come back later.</p>
+                            </div>
+                        </div>
+                        <div class="flex gap-4">
+                            <i data-lucide="save" class="w-5 h-5 text-blue-500 shrink-0"></i>
+                            <div>
+                                <p class="font-bold mb-1">Auto-Save</p>
+                                <p class="text-muted-foreground leading-relaxed italic">All generated videos are automatically saved to your media gallery.</p>
+                            </div>
+                        </div>
+                        <div class="flex gap-4">
+                            <i data-lucide="share-2" class="w-5 h-5 text-green-500 shrink-0"></i>
+                            <div>
+                                <p class="font-bold mb-1">Social Media Scheduling</p>
+                                <p class="text-muted-foreground leading-relaxed italic">On the completed video page, you can schedule your videos to your social media accounts.</p>
+                            </div>
+                        </div>
+                        <div class="flex gap-4">
+                            <i data-lucide="user-plus" class="w-5 h-5 text-amber-500 shrink-0"></i>
+                            <div>
+                                <p class="font-bold mb-1">Sora Cameo Tagging</p>
+                                <p class="text-muted-foreground leading-relaxed italic">Tag your Sora 2 Cameo handle in your description to include yourself in the video.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Token Cost -->
+                <div class="rounded-xl border border-border bg-card text-card-foreground shadow-sm overflow-hidden">
+                    <div class="p-6 bg-muted/30 border-b border-border flex items-center gap-2">
+                        <i data-lucide="coins" class="w-4 h-4 text-amber-500"></i>
+                        <h3 class="font-bold text-sm uppercase tracking-tighter">Token Cost</h3>
+                    </div>
+                    <div class="p-6 space-y-4">
+                        <div class="bg-primary/5 border border-primary/20 rounded-lg p-3 flex justify-between items-center">
+                            <div>
+                                <p class="text-[10px] uppercase font-bold text-primary">Cost</p>
+                                <p class="text-[10px] text-muted-foreground italic">10-second video</p>
+                            </div>
+                            <p class="text-lg font-black text-primary">7 tokens</p>
+                        </div>
+
+                        <!-- Comparison Table -->
+                        <div class="border border-border rounded-lg overflow-hidden bg-muted/10">
+                            <div class="bg-green-50/50 p-2 border-b border-border flex items-center justify-center gap-2">
+                                <i data-lucide="zap" class="w-3 h-3 text-green-600"></i>
+                                <span class="text-[10px] font-bold text-green-700 uppercase tracking-widest">Pricing Analysis</span>
+                            </div>
+                            <table class="w-full text-[10px]">
+                                <thead class="bg-muted/50">
+                                    <tr class="text-left border-b border-border">
+                                        <th class="p-2 font-bold opacity-60">Duration</th>
+                                        <th class="p-2 font-bold text-primary">Architect</th>
+                                        <th class="p-2 font-bold opacity-60 text-right">OpenAI</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr class="border-b border-border/10">
+                                        <td class="p-2 opacity-80">10 seconds</td>
+                                        <td class="p-2 font-black text-green-600">$0.34</td>
+                                        <td class="p-2 opacity-80 text-right">$1.00</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="p-2 opacity-80">15 seconds</td>
+                                        <td class="p-2 font-black text-green-600">$0.58</td>
+                                        <td class="p-2 opacity-80 text-right">$1.50</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <div class="space-y-4">
+                            <div class="flex justify-between items-center px-1">
+                                <p class="text-[10px] font-bold uppercase text-muted-foreground">Your Balance</p>
+                                <p class="text-[10px] font-black uppercase text-foreground">0 Tokens</p>
+                            </div>
+                            <button class="w-full h-10 border border-border bg-card hover:bg-muted text-[10px] font-bold uppercase tracking-widest rounded-lg transition-all">
+                                Get More Tokens
+                            </button>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
