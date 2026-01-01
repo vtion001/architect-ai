@@ -182,11 +182,19 @@
                                 <i data-lucide="eye" class="w-3.5 h-3.5 mr-2 text-primary"></i>
                                 Preview Research
                             </a>
-                            @if($research->status === "completed")
-                            <button class="inline-flex items-center justify-center rounded-md text-sm font-medium border border-input bg-background hover:bg-accent hover:text-accent-foreground h-9 w-9">
-                                <i data-lucide="download" class="w-3 h-3"></i>
+                            <button 
+                                @click="if(confirm('Are you sure you want to stop/delete this research?')) { 
+                                    fetch('{{ route('research-engine.destroy', $research) }}', {
+                                        method: 'DELETE',
+                                        headers: {
+                                            'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                                        }
+                                    }).then(() => window.location.reload());
+                                }"
+                                class="inline-flex items-center justify-center rounded-lg text-sm font-medium border border-border bg-white text-destructive hover:bg-destructive/10 h-9 w-9 transition-colors"
+                            >
+                                <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
                             </button>
-                            @endif
                         </div>
                     </div>
                     @empty

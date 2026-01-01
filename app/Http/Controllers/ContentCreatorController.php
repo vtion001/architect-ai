@@ -67,25 +67,25 @@ class ContentCreatorController extends Controller
         ]);
 
         $content = Content::create([
-            'title' => $request->topic, // Default title to topic
-            'topic' => $request->topic,
-            'type' => $request->type,
-            'context' => $request->context,
+            'title' => $request->input('topic'), // Default title to topic
+            'topic' => $request->input('topic'),
+            'type' => $request->input('type'),
+            'context' => $request->input('context'),
             'status' => 'generating',
             'options' => $options,
         ]);
 
         try {
             $generatedText = $this->contentService->generateText(
-                $request->topic,
-                $request->type,
-                $request->context,
+                $request->input('topic'),
+                $request->input('type'),
+                $request->input('context'),
                 $options
             );
 
             // Extract a title from the first line or use topic
             $lines = explode("\n", trim($generatedText));
-            $title = !empty($lines[0]) ? str_replace(['#', '*', '='], '', $lines[0]) : $request->topic;
+            $title = !empty($lines[0]) ? str_replace(['#', '*', '='], '', $lines[0]) : $request->input('topic');
             if (strlen($title) > 100) $title = substr($title, 0, 97) . '...';
 
             $wordCount = str_word_count(strip_tags($generatedText));
@@ -101,7 +101,7 @@ class ContentCreatorController extends Controller
                 'success' => true,
                 'content' => $content
             ]);
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             Log::error("Content generation failed: " . $e->getMessage());
             $content->update(['status' => 'failed']);
             return response()->json([

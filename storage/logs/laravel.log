@@ -2559,3 +2559,147 @@
 #46 /var/www/public/index.php(14): Illuminate\\Foundation\\Application->handleRequest(Object(Illuminate\\Http\\Request))
 #47 {main}
 "} 
+[2026-01-01 07:02:07] local.ERROR: SQLSTATE[42S02]: Base table or view not found: 1146 Table 'architect_ai.cache' doesn't exist (Connection: mysql, SQL: delete from `cache`) {"exception":"[object] (Illuminate\\Database\\QueryException(code: 42S02): SQLSTATE[42S02]: Base table or view not found: 1146 Table 'architect_ai.cache' doesn't exist (Connection: mysql, SQL: delete from `cache`) at /var/www/vendor/laravel/framework/src/Illuminate/Database/Connection.php:825)
+[stacktrace]
+#0 /var/www/vendor/laravel/framework/src/Illuminate/Database/Connection.php(779): Illuminate\\Database\\Connection->runQueryCallback('delete from `ca...', Array, Object(Closure))
+#1 /var/www/vendor/laravel/framework/src/Illuminate/Database/Connection.php(584): Illuminate\\Database\\Connection->run('delete from `ca...', Array, Object(Closure))
+#2 /var/www/vendor/laravel/framework/src/Illuminate/Database/Connection.php(548): Illuminate\\Database\\Connection->affectingStatement('delete from `ca...', Array)
+#3 /var/www/vendor/laravel/framework/src/Illuminate/Database/Query/Builder.php(4024): Illuminate\\Database\\Connection->delete('delete from `ca...', Array)
+#4 /var/www/vendor/laravel/framework/src/Illuminate/Cache/DatabaseStore.php(422): Illuminate\\Database\\Query\\Builder->delete()
+#5 /var/www/vendor/laravel/framework/src/Illuminate/Cache/Repository.php(792): Illuminate\\Cache\\DatabaseStore->flush()
+#6 /var/www/vendor/laravel/framework/src/Illuminate/Cache/Console/ClearCommand.php(69): Illuminate\\Cache\\Repository->__call('flush', Array)
+#7 /var/www/vendor/laravel/framework/src/Illuminate/Container/BoundMethod.php(36): Illuminate\\Cache\\Console\\ClearCommand->handle()
+#8 /var/www/vendor/laravel/framework/src/Illuminate/Container/Util.php(43): Illuminate\\Container\\BoundMethod::Illuminate\\Container\\{closure}()
+#9 /var/www/vendor/laravel/framework/src/Illuminate/Container/BoundMethod.php(95): Illuminate\\Container\\Util::unwrapIfClosure(Object(Closure))
+#10 /var/www/vendor/laravel/framework/src/Illuminate/Container/BoundMethod.php(35): Illuminate\\Container\\BoundMethod::callBoundMethod(Object(Illuminate\\Foundation\\Application), Array, Object(Closure))
+#11 /var/www/vendor/laravel/framework/src/Illuminate/Container/Container.php(696): Illuminate\\Container\\BoundMethod::call(Object(Illuminate\\Foundation\\Application), Array, Array, NULL)
+#12 /var/www/vendor/laravel/framework/src/Illuminate/Console/Command.php(213): Illuminate\\Container\\Container->call(Array)
+#13 /var/www/vendor/symfony/console/Command/Command.php(341): Illuminate\\Console\\Command->execute(Object(Symfony\\Component\\Console\\Input\\ArgvInput), Object(Illuminate\\Console\\OutputStyle))
+#14 /var/www/vendor/laravel/framework/src/Illuminate/Console/Command.php(182): Symfony\\Component\\Console\\Command\\Command->run(Object(Symfony\\Component\\Console\\Input\\ArgvInput), Object(Illuminate\\Console\\OutputStyle))
+#15 /var/www/vendor/symfony/console/Application.php(1102): Illuminate\\Console\\Command->run(Object(Symfony\\Component\\Console\\Input\\ArgvInput), Object(Symfony\\Component\\Console\\Output\\ConsoleOutput))
+#16 /var/www/vendor/symfony/console/Application.php(356): Symfony\\Component\\Console\\Application->doRunCommand(Object(Illuminate\\Cache\\Console\\ClearCommand), Object(Symfony\\Component\\Console\\Input\\ArgvInput), Object(Symfony\\Component\\Console\\Output\\ConsoleOutput))
+#17 /var/www/vendor/symfony/console/Application.php(195): Symfony\\Component\\Console\\Application->doRun(Object(Symfony\\Component\\Console\\Input\\ArgvInput), Object(Symfony\\Component\\Console\\Output\\ConsoleOutput))
+#18 /var/www/vendor/laravel/framework/src/Illuminate/Foundation/Console/Kernel.php(198): Symfony\\Component\\Console\\Application->run(Object(Symfony\\Component\\Console\\Input\\ArgvInput), Object(Symfony\\Component\\Console\\Output\\ConsoleOutput))
+#19 /var/www/vendor/laravel/framework/src/Illuminate/Foundation/Application.php(1235): Illuminate\\Foundation\\Console\\Kernel->handle(Object(Symfony\\Component\\Console\\Input\\ArgvInput), Object(Symfony\\Component\\Console\\Output\\ConsoleOutput))
+#20 /var/www/artisan(12): Illuminate\\Foundation\\Application->handleCommand(Object(Symfony\\Component\\Console\\Input\\ArgvInput), Object(Symfony\\Component\\Console\\Output\\ConsoleOutput))
+#21 {main}
+
+[previous exception] [object] (PDOException(code: 42S02): SQLSTATE[42S02]: Base table or view not found: 1146 Table 'architect_ai.cache' doesn't exist at /var/www/vendor/laravel/framework/src/Illuminate/Database/Connection.php:592)
+[stacktrace]
+#0 /var/www/vendor/laravel/framework/src/Illuminate/Database/Connection.php(592): PDO->prepare('delete from `ca...')
+#1 /var/www/vendor/laravel/framework/src/Illuminate/Database/Connection.php(812): Illuminate\\Database\\Connection->Illuminate\\Database\\{closure}('delete from `ca...', Array)
+#2 /var/www/vendor/laravel/framework/src/Illuminate/Database/Connection.php(779): Illuminate\\Database\\Connection->runQueryCallback('delete from `ca...', Array, Object(Closure))
+#3 /var/www/vendor/laravel/framework/src/Illuminate/Database/Connection.php(584): Illuminate\\Database\\Connection->run('delete from `ca...', Array, Object(Closure))
+#4 /var/www/vendor/laravel/framework/src/Illuminate/Database/Connection.php(548): Illuminate\\Database\\Connection->affectingStatement('delete from `ca...', Array)
+#5 /var/www/vendor/laravel/framework/src/Illuminate/Database/Query/Builder.php(4024): Illuminate\\Database\\Connection->delete('delete from `ca...', Array)
+#6 /var/www/vendor/laravel/framework/src/Illuminate/Cache/DatabaseStore.php(422): Illuminate\\Database\\Query\\Builder->delete()
+#7 /var/www/vendor/laravel/framework/src/Illuminate/Cache/Repository.php(792): Illuminate\\Cache\\DatabaseStore->flush()
+#8 /var/www/vendor/laravel/framework/src/Illuminate/Cache/Console/ClearCommand.php(69): Illuminate\\Cache\\Repository->__call('flush', Array)
+#9 /var/www/vendor/laravel/framework/src/Illuminate/Container/BoundMethod.php(36): Illuminate\\Cache\\Console\\ClearCommand->handle()
+#10 /var/www/vendor/laravel/framework/src/Illuminate/Container/Util.php(43): Illuminate\\Container\\BoundMethod::Illuminate\\Container\\{closure}()
+#11 /var/www/vendor/laravel/framework/src/Illuminate/Container/BoundMethod.php(95): Illuminate\\Container\\Util::unwrapIfClosure(Object(Closure))
+#12 /var/www/vendor/laravel/framework/src/Illuminate/Container/BoundMethod.php(35): Illuminate\\Container\\BoundMethod::callBoundMethod(Object(Illuminate\\Foundation\\Application), Array, Object(Closure))
+#13 /var/www/vendor/laravel/framework/src/Illuminate/Container/Container.php(696): Illuminate\\Container\\BoundMethod::call(Object(Illuminate\\Foundation\\Application), Array, Array, NULL)
+#14 /var/www/vendor/laravel/framework/src/Illuminate/Console/Command.php(213): Illuminate\\Container\\Container->call(Array)
+#15 /var/www/vendor/symfony/console/Command/Command.php(341): Illuminate\\Console\\Command->execute(Object(Symfony\\Component\\Console\\Input\\ArgvInput), Object(Illuminate\\Console\\OutputStyle))
+#16 /var/www/vendor/laravel/framework/src/Illuminate/Console/Command.php(182): Symfony\\Component\\Console\\Command\\Command->run(Object(Symfony\\Component\\Console\\Input\\ArgvInput), Object(Illuminate\\Console\\OutputStyle))
+#17 /var/www/vendor/symfony/console/Application.php(1102): Illuminate\\Console\\Command->run(Object(Symfony\\Component\\Console\\Input\\ArgvInput), Object(Symfony\\Component\\Console\\Output\\ConsoleOutput))
+#18 /var/www/vendor/symfony/console/Application.php(356): Symfony\\Component\\Console\\Application->doRunCommand(Object(Illuminate\\Cache\\Console\\ClearCommand), Object(Symfony\\Component\\Console\\Input\\ArgvInput), Object(Symfony\\Component\\Console\\Output\\ConsoleOutput))
+#19 /var/www/vendor/symfony/console/Application.php(195): Symfony\\Component\\Console\\Application->doRun(Object(Symfony\\Component\\Console\\Input\\ArgvInput), Object(Symfony\\Component\\Console\\Output\\ConsoleOutput))
+#20 /var/www/vendor/laravel/framework/src/Illuminate/Foundation/Console/Kernel.php(198): Symfony\\Component\\Console\\Application->run(Object(Symfony\\Component\\Console\\Input\\ArgvInput), Object(Symfony\\Component\\Console\\Output\\ConsoleOutput))
+#21 /var/www/vendor/laravel/framework/src/Illuminate/Foundation/Application.php(1235): Illuminate\\Foundation\\Console\\Kernel->handle(Object(Symfony\\Component\\Console\\Input\\ArgvInput), Object(Symfony\\Component\\Console\\Output\\ConsoleOutput))
+#22 /var/www/artisan(12): Illuminate\\Foundation\\Application->handleCommand(Object(Symfony\\Component\\Console\\Input\\ArgvInput), Object(Symfony\\Component\\Console\\Output\\ConsoleOutput))
+#23 {main}
+"} 
+[2026-01-01 07:06:30] local.INFO: Starting research for ID: 3 - Best way to enter a saturated market of cabinet manufacturing here in manila  
+[2026-01-01 07:06:30] local.INFO: Gemini Raw Response: {
+  "error": {
+    "code": 429,
+    "message": "You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-api/docs/rate-limits. To monitor your current usage, head to: https://ai.dev/usage?tab=rate-limit. \n* Quota exceeded for metric: generativelanguage.googleapis.com/generate_content_free_tier_requests, limit: 0, model: gemini-2.0-flash-exp\n* Quota exceeded for metric: generativelanguage.googleapis.com/generate_content_free_tier_requests, limit: 0, model: gemini-2.0-flash-exp\n* Quota exceeded for metric: generativelanguage.googleapis.com/generate_content_free_tier_input_token_count, limit: 0, model: gemini-2.0-flash-exp\nPlease retry in 29.09296275s.",
+    "status": "RESOURCE_EXHAUSTED",
+    "details": [
+      {
+        "@type": "type.googleapis.com/google.rpc.Help",
+        "links": [
+          {
+            "description": "Learn more about Gemini API quotas",
+            "url": "https://a...  
+[2026-01-01 07:06:30] local.ERROR: Gemini API Error Body: {
+  "error": {
+    "code": 429,
+    "message": "You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-api/docs/rate-limits. To monitor your current usage, head to: https://ai.dev/usage?tab=rate-limit. \n* Quota exceeded for metric: generativelanguage.googleapis.com/generate_content_free_tier_requests, limit: 0, model: gemini-2.0-flash-exp\n* Quota exceeded for metric: generativelanguage.googleapis.com/generate_content_free_tier_requests, limit: 0, model: gemini-2.0-flash-exp\n* Quota exceeded for metric: generativelanguage.googleapis.com/generate_content_free_tier_input_token_count, limit: 0, model: gemini-2.0-flash-exp\nPlease retry in 29.09296275s.",
+    "status": "RESOURCE_EXHAUSTED",
+    "details": [
+      {
+        "@type": "type.googleapis.com/google.rpc.Help",
+        "links": [
+          {
+            "description": "Learn more about Gemini API quotas",
+            "url": "https://ai.google.dev/gemini-api/docs/rate-limits"
+          }
+        ]
+      },
+      {
+        "@type": "type.googleapis.com/google.rpc.QuotaFailure",
+        "violations": [
+          {
+            "quotaMetric": "generativelanguage.googleapis.com/generate_content_free_tier_requests",
+            "quotaId": "GenerateRequestsPerDayPerProjectPerModel-FreeTier",
+            "quotaDimensions": {
+              "location": "global",
+              "model": "gemini-2.0-flash-exp"
+            }
+          },
+          {
+            "quotaMetric": "generativelanguage.googleapis.com/generate_content_free_tier_requests",
+            "quotaId": "GenerateRequestsPerMinutePerProjectPerModel-FreeTier",
+            "quotaDimensions": {
+              "location": "global",
+              "model": "gemini-2.0-flash-exp"
+            }
+          },
+          {
+            "quotaMetric": "generativelanguage.googleapis.com/generate_content_free_tier_input_token_count",
+            "quotaId": "GenerateContentInputTokensPerModelPerMinute-FreeTier",
+            "quotaDimensions": {
+              "location": "global",
+              "model": "gemini-2.0-flash-exp"
+            }
+          }
+        ]
+      },
+      {
+        "@type": "type.googleapis.com/google.rpc.RetryInfo",
+        "retryDelay": "29s"
+      }
+    ]
+  }
+}
+  
+[2026-01-01 07:06:30] local.INFO: Research completed for ID: 3. Result length: 124  
+[2026-01-01 07:11:21] local.INFO: Starting research for ID: 4 - Best way to enter a saturated market of cabinet manufacturing here in manila  
+[2026-01-01 07:11:21] local.INFO: Attempting deep research with model: gemini-2.0-flash-exp  
+[2026-01-01 07:11:27] local.ERROR: Research Exception (gemini-2.0-flash-exp): HTTP request returned status code 429:
+{
+  "error": {
+    "code": 429,
+    "message": "You exceeded your current quota, please check your plan and billing deta (truncated...)
+  
+[2026-01-01 07:11:27] local.WARNING: Model gemini-2.0-flash-exp failed or rate limited. Switching to fallback...  
+[2026-01-01 07:11:27] local.INFO: Attempting deep research with model: gemini-1.5-pro  
+[2026-01-01 07:11:27] local.ERROR: Research Exception (gemini-1.5-pro): HTTP request returned status code 404:
+{
+  "error": {
+    "code": 404,
+    "message": "models/gemini-1.5-pro is not found for API version v1beta, or is not sup (truncated...)
+  
+[2026-01-01 07:11:27] local.WARNING: Model gemini-1.5-pro failed or rate limited. Switching to fallback...  
+[2026-01-01 07:11:27] local.INFO: Attempting deep research with model: gemini-1.5-flash  
+[2026-01-01 07:11:28] local.ERROR: Research Exception (gemini-1.5-flash): HTTP request returned status code 404:
+{
+  "error": {
+    "code": 404,
+    "message": "models/gemini-1.5-flash is not found for API version v1beta, or is not s (truncated...)
+  
+[2026-01-01 07:11:28] local.WARNING: Model gemini-1.5-flash failed or rate limited. Switching to fallback...  
+[2026-01-01 07:11:28] local.INFO: Research completed for ID: 4. Result length: 104  

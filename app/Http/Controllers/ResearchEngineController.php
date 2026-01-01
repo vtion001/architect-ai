@@ -45,7 +45,12 @@ class ResearchEngineController extends Controller
         try {
             // In a production app, this would be a queued job.
             // Dispatching synchronously for immediate feedback in this demo env.
-            $resultMarkdown = $this->researchService->performResearch($request->input('query'));
+            set_time_limit(300); // Allow 5 minutes for deep research
+            Log::info("Starting research for ID: {$research->id} - {$request->input('title')}");
+            
+            $resultMarkdown = $this->researchService->performResearch((string)$request->input('query'));
+            
+            Log::info("Research completed for ID: {$research->id}. Result length: " . strlen($resultMarkdown));
             
             // Basic heuristic to count sources/pages from markdown
             preg_match_all('/\[\d+\]/', $resultMarkdown, $matches);
@@ -73,5 +78,11 @@ class ResearchEngineController extends Controller
     public function show(Research $research)
     {
         return view('research-engine.show', compact('research'));
+    }
+
+    public function destroy(Research $research)
+    {
+        $research->delete();
+        return response()->json(['success' => true]);
     }
 }

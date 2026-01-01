@@ -27,9 +27,36 @@ class ResearchService
             return "Research for: $topic (Gemini API key not configured).";
         }
 
+        // List of models to try in order: Primary -> Fallback 1 -> Fallback 2
+        $models = array_unique([
+            $this->model, 
+            'gemini-1.5-pro', 
+            'gemini-1.5-flash'
+        ]);
+
+        foreach ($models as $model) {
+            Log::info("Attempting deep research with model: $model");
+            
+            $result = $this->attemptResearchWithModel($model, $topic);
+            
+            if ($result) {
+                return $result;
+            }
+            
+            Log::warning("Model $model failed or rate limited. Switching to fallback...");
+        }
+
+        return "Research failed: Rate limit exceeded on all available Gemini models. Please wait a minute and try again.";
+    }
+
+    private function attemptResearchWithModel(string $model, string $topic): ?string
+    {
         try {
             $response = Http::timeout(120)
-                ->post("https://generativelanguage.googleapis.com/v1beta/models/{$this->model}:generateContent?key={$this->apiKey}", [
+                ->retry(2, 5000, function ($exception, $request) {
+                    return $exception->response->status() === 429;
+                })
+                ->post("https://generativelanguage.googleapis.com/v1beta/models/{$model}:generateContent?key={$this->apiKey}", [
                     'contents' => [
                         [
                             'role' => 'user',
@@ -60,14 +87,15 @@ class ResearchService
 
             if ($response->successful()) {
                 $candidate = $response->json('candidates.0.content.parts.0.text');
-                return $candidate ?? 'No research results generated.';
+                return $candidate; // Return null if empty, handled by loop
             }
 
-            Log::error('Gemini API Error: ' . $response->body());
-            return "Research failed for: $topic. API Error.";
+            Log::error("Gemini API Error ($model): " . $response->body());
+            return null;
+
         } catch (\Exception $e) {
-            Log::error('Research Exception: ' . $e->getMessage());
-            return "Research failed for: $topic. Technical error.";
+            Log::error("Research Exception ($model): " . $e->getMessage());
+            return null;
         }
     }
 }

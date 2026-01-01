@@ -23,6 +23,7 @@ Route::get('/report-builder/preview', [ReportBuilderController::class, 'preview'
 Route::get('/research-engine', [ResearchEngineController::class, 'index'])->name('research-engine.index');
 Route::post('/research-engine/start', [ResearchEngineController::class, 'store'])->name('research-engine.start');
 Route::get('/research-engine/{research}', [ResearchEngineController::class, 'show'])->name('research-engine.show');
+Route::delete('/research-engine/{research}', [ResearchEngineController::class, 'destroy'])->name('research-engine.destroy');
 Route::get('/content-creator', [ContentCreatorController::class, 'index'])->name('content-creator.index');
 Route::post('/content-creator/generate', [ContentCreatorController::class, 'store'])->name('content-creator.generate');
 Route::get('/content-creator/{content}', [ContentCreatorController::class, 'show'])->name('content-creator.show');
