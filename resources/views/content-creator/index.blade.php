@@ -2,6 +2,7 @@
 
 @section('content')
 <div class="p-8 max-w-7xl mx-auto" x-data="{
+    generator: 'post',
     topic: '',
     type: 'blog-post',
     count: 2,
@@ -11,6 +12,16 @@
     cta: '',
     addLineBreaks: true,
     includeHashtags: false,
+    
+    // Blog Specific
+    keywords: '',
+    structure: 'Standard',
+    
+    // Video Specific
+    platform: 'reels',
+    hookStyle: 'Problem/Solution',
+    duration: '60s',
+    
     isGenerating: false,
     generateContent() {
         if (!this.topic) {
@@ -18,23 +29,35 @@
             return;
         }
         this.isGenerating = true;
+        
+        // Bundle parameters based on generator type
+        const payload = {
+            topic: this.topic,
+            generator: this.generator,
+            type: this.generator === 'post' ? this.type : this.generator,
+            count: this.count,
+            tone: this.tone,
+            length: this.length,
+            context: this.context,
+            cta: this.cta,
+            addLineBreaks: this.addLineBreaks,
+            includeHashtags: this.includeHashtags,
+            
+            // Mode-specific options
+            video_platform: this.platform,
+            video_hook: this.hookStyle,
+            video_duration: this.duration,
+            blog_keywords: this.keywords,
+            blog_structure: this.structure
+        };
+
         fetch('{{ route('content-creator.generate') }}', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
                 'X-CSRF-TOKEN': '{{ csrf_token() }}'
             },
-            body: JSON.stringify({
-                topic: this.topic,
-                type: this.type,
-                count: this.count,
-                tone: this.tone,
-                length: this.length,
-                context: this.context,
-                cta: this.cta,
-                addLineBreaks: this.addLineBreaks,
-                includeHashtags: this.includeHashtags
-            })
+            body: JSON.stringify(payload)
         })
         .then(res => res.json())
         .then(data => {
@@ -75,15 +98,15 @@
         
         <!-- Generator Toggles (Matching User Photo) -->
         <div class="flex flex-col gap-2 min-w-[200px]">
-            <button class="flex items-center gap-3 px-4 py-3 rounded-lg bg-slate-900 text-white/70 hover:text-white transition-all text-sm font-medium border border-white/5">
+            <button @click="generator = 'video'" :class="generator === 'video' ? 'bg-slate-800 text-white shadow-xl shadow-black/20 font-bold border-white/10 ring-1 ring-white/20' : 'bg-slate-900 text-white/70 hover:text-white border-white/5 font-medium'" class="flex items-center gap-3 px-4 py-3 rounded-lg transition-all text-sm border">
                 <i data-lucide="video" class="w-4 h-4"></i>
                 Video Generator
             </button>
-            <button class="flex items-center gap-3 px-4 py-3 rounded-lg bg-slate-800 text-white shadow-xl shadow-black/20 text-sm font-bold border border-white/10 ring-1 ring-white/20">
+            <button @click="generator = 'post'" :class="generator === 'post' ? 'bg-slate-800 text-white shadow-xl shadow-black/20 font-bold border-white/10 ring-1 ring-white/20' : 'bg-slate-900 text-white/70 hover:text-white border-white/5 font-medium'" class="flex items-center gap-3 px-4 py-3 rounded-lg transition-all text-sm border">
                 <i data-lucide="edit-3" class="w-4 h-4"></i>
                 Post Generator
             </button>
-            <button class="flex items-center gap-3 px-4 py-3 rounded-lg bg-slate-900 text-white/70 hover:text-white transition-all text-sm font-medium border border-white/5">
+            <button @click="generator = 'blog'" :class="generator === 'blog' ? 'bg-slate-800 text-white shadow-xl shadow-black/20 font-bold border-white/10 ring-1 ring-white/20' : 'bg-slate-900 text-white/70 hover:text-white border-white/5 font-medium'" class="flex items-center gap-3 px-4 py-3 rounded-lg transition-all text-sm border">
                 <i data-lucide="book" class="w-4 h-4"></i>
                 Blog Generator
             </button>
@@ -146,100 +169,181 @@
         <!-- Content Generator -->
         <div class="rounded-xl border border-border bg-card text-card-foreground shadow-sm lg:col-span-2 overflow-hidden">
             <div class="bg-muted/50 border-b border-border p-3 text-center">
-                <span class="text-sm font-semibold tracking-wide uppercase">Generate from Topic</span>
+                <span class="text-sm font-semibold tracking-wide uppercase" x-text="generator.charAt(0).toUpperCase() + generator.slice(1) + ' Architect'"></span>
             </div>
             
             <div class="p-8 space-y-8">
-                <div>
-                    <h3 class="text-xl font-bold mb-1">Generate from Topic</h3>
-                    <p class="text-sm text-muted-foreground">Define parameters for bulk text post generation based on a topic or idea.</p>
-                </div>
-
-                <!-- Main Topic -->
-                <div class="space-y-4">
-                    <div class="flex items-center justify-between">
-                        <label class="text-sm font-bold uppercase tracking-tight">Main Topic / Theme</label>
-                        <button class="text-xs text-primary font-medium flex items-center gap-1 hover:underline">
-                            <i data-lucide="lightbulb" class="w-3.5 h-3.5"></i>
-                            Prompt Helper
-                        </button>
+                <!-- Post Generator Interface -->
+                <div x-show="generator === 'post'" x-transition:enter="transition ease-out duration-300" x-transition:enter-start="opacity-0 transform -translate-y-2" x-transition:enter-end="opacity-100 transform translate-y-0" class="space-y-8">
+                    <div>
+                        <h3 class="text-xl font-bold mb-1">Architect Single/Bulk Posts</h3>
+                        <p class="text-sm text-muted-foreground">Define parameters for high-engagement text posts powered by your knowledge base.</p>
                     </div>
-                    <input x-model="topic" type="text" placeholder="e.g., 'Healthy Summer Recipes'" class="flex h-12 w-full rounded-lg border border-input bg-muted/30 px-4 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary">
-                </div>
 
-                <!-- Parameters Grid -->
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    <div class="space-y-3">
-                        <label class="text-sm font-bold uppercase tracking-tight">Number of Posts</label>
-                        <input x-model="count" type="number" min="1" class="flex h-12 w-full rounded-lg border border-input bg-muted/30 px-4 py-2 text-sm">
-                    </div>
-                    <div class="space-y-3">
-                        <label class="text-sm font-bold uppercase tracking-tight">Tone (Optional)</label>
-                        <select x-model="tone" class="flex h-12 w-full rounded-lg border border-input bg-muted/30 px-4 py-2 text-sm">
-                            <option>Default Tone</option>
-                            <option>Professional</option>
-                            <option>Casual</option>
-                            <option>Witty</option>
-                            <option>Authoritative</option>
-                        </select>
-                    </div>
-                    <div class="space-y-3">
-                        <label class="text-sm font-bold uppercase tracking-tight">Length (Optional)</label>
-                        <select x-model="length" class="flex h-12 w-full rounded-lg border border-input bg-muted/30 px-4 py-2 text-sm">
-                            <option>Default Length</option>
-                            <option>Short (Small)</option>
-                            <option>Medium (Standard)</option>
-                            <option>Long (Detailed)</option>
-                        </select>
-                    </div>
-                </div>
-
-                <!-- Instructions -->
-                <div class="space-y-3">
-                    <label class="text-sm font-bold uppercase tracking-tight">Additional Instructions for Text (Optional)</label>
-                    <textarea x-model="context" placeholder="e.g., 'Focus on benefits for beginners'" rows="4" class="flex min-h-[100px] w-full rounded-lg border border-input bg-muted/30 px-4 py-3 text-sm"></textarea>
-                </div>
-
-                <!-- CTA -->
-                <div class="space-y-3">
-                    <label class="text-sm font-bold uppercase tracking-tight">Call to Action (Optional)</label>
-                    <input x-model="cta" type="text" placeholder="e.g., 'Visit my website: https://example.com' or 'Use code SUMMER20'" class="flex h-12 w-full rounded-lg border border-input bg-muted/30 px-4 py-2 text-sm">
-                </div>
-
-                <!-- Checkboxes -->
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <label class="flex items-center gap-3 p-4 rounded-xl border border-border bg-muted/10 cursor-pointer hover:bg-muted/20 transition-colors">
-                        <input type="checkbox" x-model="addLineBreaks" class="w-4 h-4 rounded border-input text-primary focus:ring-primary">
-                        <div class="flex items-center gap-1.5">
-                            <span class="text-sm font-medium leading-none">Add line breaks</span>
-                            <i data-lucide="help-circle" class="w-3.5 h-3.5 text-muted-foreground"></i>
+                    <!-- Main Topic -->
+                    <div class="space-y-4">
+                        <div class="flex items-center justify-between">
+                            <label class="text-sm font-bold uppercase tracking-tight">Post Topic / Theme</label>
+                            <button class="text-xs text-primary font-medium flex items-center gap-1 hover:underline">
+                                <i data-lucide="lightbulb" class="w-3.5 h-3.5"></i>
+                                Inspiration
+                            </button>
                         </div>
-                    </label>
-                    <label class="flex items-center gap-3 p-4 rounded-xl border border-border bg-muted/10 cursor-pointer hover:bg-muted/20 transition-colors">
-                        <input type="checkbox" x-model="includeHashtags" class="w-4 h-4 rounded border-input text-primary focus:ring-primary">
-                        <div class="flex items-center gap-1.5">
-                            <span class="text-sm font-medium leading-none">Include hashtags</span>
-                            <i data-lucide="help-circle" class="w-3.5 h-3.5 text-muted-foreground"></i>
+                        <input x-model="topic" type="text" placeholder="e.g., 'Modern Architecture Trends 2026'" class="flex h-12 w-full rounded-lg border border-input bg-muted/30 px-4 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary">
+                    </div>
+
+                    <!-- Parameters Grid -->
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        <div class="space-y-3">
+                            <label class="text-sm font-bold uppercase tracking-tight">Quantity</label>
+                            <input x-model="count" type="number" min="1" class="flex h-12 w-full rounded-lg border border-input bg-muted/30 px-4 py-2 text-sm">
                         </div>
-                    </label>
+                        <div class="space-y-3">
+                            <label class="text-sm font-bold uppercase tracking-tight">Tone</label>
+                            <select x-model="tone" class="flex h-12 w-full rounded-lg border border-input bg-muted/30 px-4 py-2 text-sm">
+                                <option>Professional</option>
+                                <option>Casual</option>
+                                <option>Provocative</option>
+                                <option>Empathetic</option>
+                            </select>
+                        </div>
+                        <div class="space-y-3">
+                            <label class="text-sm font-bold uppercase tracking-tight">Format</label>
+                            <select x-model="type" class="flex h-12 w-full rounded-lg border border-input bg-muted/30 px-4 py-2 text-sm">
+                                <option value="social-media">Social Media</option>
+                                <option value="email">Direct Email</option>
+                                <option value="ad-copy">Ad Copy</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Instructions -->
+                    <div class="space-y-3">
+                        <label class="text-sm font-bold uppercase tracking-tight">Mandate / Specific Context</label>
+                        <textarea x-model="context" placeholder="e.g., 'Focus on sustainable materials and eco-friendly designs...'" rows="4" class="flex min-h-[100px] w-full rounded-lg border border-input bg-muted/30 px-4 py-3 text-sm"></textarea>
+                    </div>
                 </div>
 
-                <div class="text-xs text-muted-foreground mt-4">
-                    Est. Text Generation Cost: <span x-text="count"></span> token(s)
+                <!-- Video Generator Interface -->
+                <div x-show="generator === 'video'" x-transition:enter="transition ease-out duration-300" x-transition:enter-start="opacity-0 transform -translate-y-2" x-transition:enter-end="opacity-100 transform translate-y-0" class="space-y-8" style="display: none;">
+                    <div>
+                        <h3 class="text-xl font-bold mb-1">Architect Video Scripts</h3>
+                        <p class="text-sm text-muted-foreground">Generate viral-ready scripts with visual hooks and storyboards.</p>
+                    </div>
+
+                    <div class="space-y-4">
+                        <label class="text-sm font-bold uppercase tracking-tight">Script Topic</label>
+                        <input x-model="topic" type="text" placeholder="e.g., 'Behind the scenes of our new studio'" class="flex h-12 w-full rounded-lg border border-input bg-muted/30 px-4 py-2 text-sm">
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        <div class="space-y-3">
+                            <label class="text-sm font-bold uppercase tracking-tight">Platform</label>
+                            <select x-model="platform" class="flex h-12 w-full rounded-lg border border-input bg-muted/30 px-4 py-2 text-sm">
+                                <option value="tiktok">TikTok</option>
+                                <option value="reels">Instagram Reels</option>
+                                <option value="youtube">YouTube Shorts</option>
+                            </select>
+                        </div>
+                        <div class="space-y-3">
+                            <label class="text-sm font-bold uppercase tracking-tight">Hook Style</label>
+                            <select x-model="hookStyle" class="flex h-12 w-full rounded-lg border border-input bg-muted/30 px-4 py-2 text-sm">
+                                <option>Problem/Solution</option>
+                                <option>Curiosity Gap</option>
+                                <option>Direct Fact</option>
+                                <option>Question Hook</option>
+                            </select>
+                        </div>
+                        <div class="space-y-3">
+                            <label class="text-sm font-bold uppercase tracking-tight">Target Length</label>
+                            <select x-model="duration" class="flex h-12 w-full rounded-lg border border-input bg-muted/30 px-4 py-2 text-sm">
+                                <option>15s</option>
+                                <option>30s</option>
+                                <option>60s</option>
+                                <option>90s</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="space-y-3">
+                        <label class="text-sm font-bold uppercase tracking-tight">Key Visual Elements to Include</label>
+                        <textarea x-model="context" placeholder="Add specific visual cues or props..." rows="4" class="flex min-h-[100px] w-full rounded-lg border border-input bg-muted/30 px-4 py-3 text-sm"></textarea>
+                    </div>
                 </div>
 
-                <div class="pt-6 border-t border-border">
+                <!-- Blog Generator Interface -->
+                <div x-show="generator === 'blog'" x-transition:enter="transition ease-out duration-300" x-transition:enter-start="opacity-0 transform -translate-y-2" x-transition:enter-end="opacity-100 transform translate-y-0" class="space-y-8" style="display: none;">
+                    <div>
+                        <h3 class="text-xl font-bold mb-1">Architect Long-Form Blogs</h3>
+                        <p class="text-sm text-muted-foreground">Generate SEO-optimized articles with technical depth and structure.</p>
+                    </div>
+
+                    <div class="space-y-4">
+                        <label class="text-sm font-bold uppercase tracking-tight">Article Title / Main Theme</label>
+                        <input x-model="topic" type="text" placeholder="e.g., 'The Future of Agentic Coding Foundations'" class="flex h-12 w-full rounded-lg border border-input bg-muted/30 px-4 py-2 text-sm">
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div class="space-y-3">
+                            <label class="text-sm font-bold uppercase tracking-tight">Target Keyword</label>
+                            <input x-model="keywords" type="text" placeholder="e.g., 'sustainable architecture'" class="flex h-12 w-full rounded-lg border border-input bg-muted/30 px-4 py-2 text-sm">
+                        </div>
+                        <div class="space-y-3">
+                            <label class="text-sm font-bold uppercase tracking-tight">Article Structure</label>
+                            <select x-model="structure" class="flex h-12 w-full rounded-lg border border-input bg-muted/30 px-4 py-2 text-sm">
+                                <option>Standard Article</option>
+                                <option>Detailed Case Study</option>
+                                <option>How-To Guide</option>
+                                <option>Comparison Analysis</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="space-y-3">
+                        <label class="text-sm font-bold uppercase tracking-tight">Outline Mandate</label>
+                        <textarea x-model="context" placeholder="e.g., 'Include a section on carbon footprint and one on recycled steel...'" rows="4" class="flex min-h-[100px] w-full rounded-lg border border-input bg-muted/30 px-4 py-3 text-sm"></textarea>
+                    </div>
+                </div>
+
+                <!-- Shared CTA & Checkboxes -->
+                <div class="space-y-6 pt-6 border-t border-border/50">
+                    <div class="space-y-3">
+                        <label class="text-sm font-bold uppercase tracking-tight text-primary/80">Global Call to Action</label>
+                        <input x-model="cta" type="text" placeholder="e.g., 'Join the waitlist at arch-ai.io/beta'" class="flex h-12 w-full rounded-lg border border-input bg-muted/30 px-4 py-2 text-sm">
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <label class="flex items-center gap-3 p-4 rounded-xl border border-border bg-muted/10 cursor-pointer hover:bg-muted/20 transition-colors">
+                            <input type="checkbox" x-model="addLineBreaks" class="w-4 h-4 rounded border-input text-primary focus:ring-primary">
+                            <div class="flex items-center gap-1.5">
+                                <span class="text-sm font-medium leading-none">Generous Spacing</span>
+                                <i data-lucide="help-circle" class="w-3.5 h-3.5 text-muted-foreground"></i>
+                            </div>
+                        </label>
+                        <label class="flex items-center gap-3 p-4 rounded-xl border border-border bg-muted/10 cursor-pointer hover:bg-muted/20 transition-colors" x-show="generator !== 'blog'">
+                            <input type="checkbox" x-model="includeHashtags" class="w-4 h-4 rounded border-input text-primary focus:ring-primary">
+                            <div class="flex items-center gap-1.5">
+                                <span class="text-sm font-medium leading-none">Include Hashtags</span>
+                                <i data-lucide="hash" class="w-3.5 h-3.5 text-muted-foreground"></i>
+                            </div>
+                        </label>
+                    </div>
+
+                    <div class="text-xs text-muted-foreground mt-4 italic">
+                        Estimated Token Consumption: <span class="font-bold text-foreground" x-text="generator === 'post' ? count : (generator === 'blog' ? 5 : 3)"></span>
+                    </div>
+
                     <button @click="generateContent" :disabled="isGenerating" class="w-full inline-flex items-center justify-center rounded-xl text-md font-bold ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground hover:scale-[1.01] active:scale-[0.99] h-14 px-8 py-4 shadow-lg shadow-primary/20">
                         <template x-if="!isGenerating">
                             <div class="flex items-center gap-2">
                                 <i data-lucide="sparkles" class="w-5 h-5"></i>
-                                <span>Generate Posts (<span x-text="count"></span> <i data-lucide="gem" class="w-4 h-4 inline-block align-middle ml-1"></i>)</span>
+                                <span>Architect <span x-text="generator.toUpperCase()"></span> content</span>
                             </div>
                         </template>
                         <template x-if="isGenerating">
                             <div class="flex items-center gap-2">
                                 <i data-lucide="loader-2" class="w-5 h-5 animate-spin"></i>
-                                <span>Architecting <span x-text="count"></span> Posts...</span>
+                                <span>Architecting...</span>
                             </div>
                         </template>
                     </button>

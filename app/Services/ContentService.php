@@ -18,31 +18,66 @@ class ContentService
 
     public function generateText(string $topic, string $type, ?string $context = null, array $options = []): string
     {
-        $tone = $options['tone'] ?? 'Default Tone';
-        $length = $options['length'] ?? 'Default Length';
-        $count = $options['count'] ?? 1;
+        $generator = $options['generator'] ?? 'post';
+        $tone = $options['tone'] ?? 'Professional';
         $cta = $options['cta'] ?? '';
-        $hashtags = ($options['includeHashtags'] ?? false) ? "Include relevant hashtags." : "Do not include hashtags.";
-        $lineBreaks = ($options['addLineBreaks'] ?? true) ? "Use generous line breaks for readability." : "Use standard paragraph spacing.";
+        $lineBreaks = ($options['addLineBreaks'] ?? true) ? "Use generous line breaks for readability." : "Use standard spacing.";
+        $hashtags = ($options['includeHashtags'] ?? false) ? "Include relevant hashtags." : "";
 
-        $systemPrompt = "You are an expert content creator and brand strategist. Your goal is to generate high-quality, engaging content that sounds human and professional.
-                         CONTENT TYPE: $type
-                         TONE: $tone
-                         LENGTH: $length
-                         
-                         DIRECTIONS:
-                         - Maintain a consistent, authoritative brand voice ($tone).
-                         - Use appropriate formatting (Markdown) with headers, lists, and bold text.
-                         - $lineBreaks
-                         - $hashtags
-                         - Ensure the content is SEO-optimized.
-                         - Aim for a clear introduction, structured body, and call-to-action.
-                         " . ($cta ? "MANDATORY CALL TO ACTION: $cta" : "");
+        if ($generator === 'video') {
+            $platform = $options['video_platform'] ?? 'reels';
+            $hook = $options['video_hook'] ?? 'Problem/Solution';
+            $duration = $options['video_duration'] ?? '60s';
 
-        $userPrompt = "Please generate $count unique $type(s) about: $topic. \nContext: $context \nDesired Length: $length \nDesired Tone: $tone";
-        
-        if ($count > 1) {
-            $userPrompt .= "\n\nPlease format the output as a numbered list of posts, clearly separated.";
+            $systemPrompt = "You are an expert video scriptwriter. Create a viral-ready script for $platform.
+                             HOOK STYLE: $hook
+                             TARGET DURATION: $duration
+                             PLATFORM: $platform
+                             
+                             STRICT GUIDELINES:
+                             - Start with a high-impact hook using the $hook style.
+                             - Provide clear visual cues in brackets [Script: Visual Cue].
+                             - Keep the language punchy and suitable for $platform.
+                             - Include a strong call to action at the end: $cta";
+            
+            $userPrompt = "Write a $duration video script about $topic. Context: $context";
+        } elseif ($generator === 'blog') {
+            $keywords = $options['blog_keywords'] ?? '';
+            $structure = $options['blog_structure'] ?? 'Standard';
+
+            $systemPrompt = "You are a senior SEO content strategist and technical writer. 
+                             ARTICLE STRUCTURE: $structure
+                             TARGET KEYWORDS: $keywords
+                             TONE: $tone
+                             
+                             STRICT GUIDELINES:
+                             - Use Markdown headers (H1, H2, H3) for structure.
+                             - Ensure technical depth and professional authority.
+                             - Seamlessly integrate keywords.
+                             - Provide a clear summary and next steps.
+                             - Mandatory CTA: $cta";
+            
+            $userPrompt = "Write a comprehensive $structure blog post about $topic. \nKeywords to include: $keywords. \nContext: $context";
+        } else {
+            // Default: Post Generator
+            $count = $options['count'] ?? 1;
+            $length = $options['length'] ?? 'Standard';
+            
+            $systemPrompt = "You are an expert social media and content architect.
+                             TONE: $tone
+                             FORMAT: $type
+                             
+                             STRICT GUIDELINES:
+                             - $lineBreaks
+                             - $hashtags
+                             - $tone brand voice.
+                             - Clear, actionable structure.
+                             - Mandatory CTA: $cta";
+            
+            $userPrompt = "Generate $count unique $type(s) about: $topic. \nContext: $context \nTone: $tone \nLength: $length";
+            if ($count > 1) {
+                $userPrompt .= "\nFormat as a numbered list of distinct options.";
+            }
         }
 
         try {

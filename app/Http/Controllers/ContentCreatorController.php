@@ -38,9 +38,18 @@ class ContentCreatorController extends Controller
             'cta' => 'nullable|string',
             'addLineBreaks' => 'nullable|boolean',
             'includeHashtags' => 'nullable|boolean',
+            'generator' => 'nullable|string',
+            'video_platform' => 'nullable|string',
+            'video_hook' => 'nullable|string',
+            'video_duration' => 'nullable|string',
+            'blog_keywords' => 'nullable|string',
+            'blog_structure' => 'nullable|string',
         ]);
 
-        $options = $request->only(['count', 'tone', 'length', 'cta', 'addLineBreaks', 'includeHashtags']);
+        $options = $request->only([
+            'count', 'tone', 'length', 'cta', 'addLineBreaks', 'includeHashtags',
+            'generator', 'video_platform', 'video_hook', 'video_duration', 'blog_keywords', 'blog_structure'
+        ]);
 
         $content = Content::create([
             'title' => $request->topic, // Default title to topic
