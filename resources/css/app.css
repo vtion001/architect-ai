@@ -1,0 +1,99 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 264 5% 96%; /* oklch converted approx or kept as is if browser supports */
+    /* Wait, tailwind config uses var(--background) directly. 
+       If I use oklch in variables, I might need to ensure browser support or use hex.
+       The original file used oklch. Modern browsers support it.
+       However, Tailwind v3 colors usually expect rgb values for opacity support if defined as `R G B`.
+       But here I am defining the full color string. So opacity modifiers like `bg-primary/50` WON'T work 
+       unless I define the variable as just the channels.
+       
+       BUT, the original `globals.css` used `oklch(...)`. 
+       If I use `bg-primary` it will use `var(--primary)` which is `oklch(...)`.
+       If I use `bg-primary/50`, Tailwind attempts to apply opacity. 
+       If the variable is a color string, Tailwind v3 CANNOT inject opacity unless I use the `color: rgb(var(--color) / <alpha-value>)` syntax.
+       
+       Given this is a quick migration, I will stick to the exact values from globals.css. 
+       If opacity utilities break, so be it for now.
+    */
+    --background: oklch(0.96 0.005 264);
+    --foreground: oklch(0.25 0.015 264);
+    --card: oklch(1 0 0);
+    --card-foreground: oklch(0.25 0.015 264);
+    --popover: oklch(1 0 0);
+    --popover-foreground: oklch(0.25 0.015 264);
+    --primary: oklch(0.55 0.22 264);
+    --primary-foreground: oklch(1 0 0);
+    --secondary: oklch(0.92 0.01 264);
+    --secondary-foreground: oklch(0.25 0.015 264);
+    --muted: oklch(0.95 0.01 264);
+    --muted-foreground: oklch(0.52 0.015 264);
+    --accent: oklch(0.55 0.22 264);
+    --accent-foreground: oklch(1 0 0);
+    --destructive: oklch(0.577 0.245 27.325);
+    --destructive-foreground: oklch(1 0 0);
+    --border: oklch(0.9 0.01 264);
+    --input: oklch(0.9 0.01 264);
+    --ring: oklch(0.55 0.22 264);
+    --chart-1: oklch(0.55 0.22 264);
+    --chart-2: oklch(0.35 0.12 264);
+    --chart-3: oklch(0.75 0.15 264);
+    --chart-4: oklch(0.88 0.08 264);
+    --chart-5: oklch(0.65 0.18 220);
+    --radius: 0.5rem;
+    --sidebar: oklch(0.22 0.03 264);
+    --sidebar-foreground: oklch(0.88 0.02 264);
+    --sidebar-primary: oklch(0.55 0.22 264);
+    --sidebar-primary-foreground: oklch(1 0 0);
+    --sidebar-accent: oklch(0.28 0.04 264);
+    --sidebar-accent-foreground: oklch(0.95 0.02 264);
+    --sidebar-border: oklch(0.28 0.04 264);
+    --sidebar-ring: oklch(0.55 0.22 264);
+  }
+
+  .dark {
+    --background: oklch(0.145 0 0);
+    --foreground: oklch(0.985 0 0);
+    --card: oklch(0.145 0 0);
+    --card-foreground: oklch(0.985 0 0);
+    --popover: oklch(0.145 0 0);
+    --popover-foreground: oklch(0.985 0 0);
+    --primary: oklch(0.985 0 0);
+    --primary-foreground: oklch(0.205 0 0);
+    --secondary: oklch(0.269 0 0);
+    --secondary-foreground: oklch(0.985 0 0);
+    --muted: oklch(0.269 0 0);
+    --muted-foreground: oklch(0.708 0 0);
+    --accent: oklch(0.269 0 0);
+    --accent-foreground: oklch(0.985 0 0);
+    --destructive: oklch(0.396 0.141 25.723);
+    --destructive-foreground: oklch(0.637 0.237 25.331);
+    --border: oklch(0.269 0 0);
+    --input: oklch(0.269 0 0);
+    --ring: oklch(0.439 0 0);
+    --chart-1: oklch(0.488 0.243 264.376);
+    --chart-2: oklch(0.696 0.17 162.48);
+    --chart-3: oklch(0.769 0.188 70.08);
+    --chart-4: oklch(0.627 0.265 303.9);
+    --chart-5: oklch(0.645 0.246 16.439);
+    --sidebar: oklch(0.205 0 0);
+    --sidebar-foreground: oklch(0.985 0 0);
+    --sidebar-primary: oklch(0.488 0.243 264.376);
+    --sidebar-primary-foreground: oklch(0.985 0 0);
+    --sidebar-accent: oklch(0.269 0 0);
+    --sidebar-accent-foreground: oklch(0.985 0 0);
+    --sidebar-border: oklch(0.269 0 0);
+    --sidebar-ring: oklch(0.439 0 0);
+  }
+
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+}
