@@ -34,7 +34,10 @@ Route::post('/content-creator/regenerate', [ContentCreatorController::class, 're
 Route::post('/content-creator/publish', [ContentCreatorController::class, 'publish'])->name('content-creator.publish');
 Route::get('/content-creator/{content}', [ContentCreatorController::class, 'show'])->name('content-creator.show');
 Route::get('/social-planner', [SocialPlannerController::class, 'index'])->name('social-planner.index');
+Route::post('/social-planner/store', [SocialPlannerController::class, 'store'])->name('social-planner.store');
 Route::post('/social-planner/suggestions', [SocialPlannerController::class, 'getSuggestions'])->name('social-planner.suggestions');
+Route::get('/social-planner/facebook-pages', [SocialPlannerController::class, 'getFacebookPages'])->name('social-planner.facebook-pages');
+Route::get('/social/callback/{platform}', [SocialPlannerController::class, 'handleCallback'])->name('social.callback');
 Route::get('/knowledge-base', [KnowledgeBaseController::class, 'index'])->name('knowledge-base.index');
 Route::get('/documents', [DocumentsController::class, 'index'])->name('documents.index');
 Route::get('/analytics', [AnalyticsController::class, 'index'])->name('analytics.index');

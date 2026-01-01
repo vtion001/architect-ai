@@ -76,201 +76,202 @@
             $cleanText = str_replace(['*', '`'], '', $cleanText); // Remove asterisks and ticks
             $cleanHtml = nl2br(e($cleanText));
         @endphp
-        <div x-data="{ 
-            showMediaOptions: false, 
-            imageUrl: null, 
-            isUploading: false, 
-            isGenerating: false,
-            isRegenerating: false,
-            isPublishing: false,
-            showPublishModal: false,
-            selectedPlatforms: [],
-            scheduleDate: new Date().toISOString().slice(0, 16),
-            rawContent: {{ Js::from($finalPostContent) }},
-            htmlContent: {{ Js::from($cleanHtml) }},
+        <script>
+            window.contentData_{{ $content->id }}_{{ $index }} = {
+                raw: {{ Js::from($finalPostContent) }},
+                html: {{ Js::from($cleanHtml) }}
+            };
+            
+            document.addEventListener('alpine:init', () => {
+                if (!Alpine.store('postCard_{{ $content->id }}_{{ $index }}_registered')) {
+                    Alpine.store('postCard_{{ $content->id }}_{{ $index }}_registered', true);
+                    Alpine.data('postCard_{{ $content->id }}_{{ $index }}', () => ({
+                        showMediaOptions: false,
+                        imageUrl: null,
+                        isUploading: false,
+                        isGenerating: false,
+                        isRegenerating: false,
+                        isPublishing: false,
+                        showPublishModal: false,
+                        selectedPlatforms: [],
+                        scheduleDate: new Date().toISOString().slice(0, 16),
+                        facebookPages: [],
+                        selectedFacebookPage: null,
+                        isFetchingPages: false,
+                        showPageModal: false,
+                        rawContent: window.contentData_{{ $content->id }}_{{ $index }}.raw,
+                        htmlContent: window.contentData_{{ $content->id }}_{{ $index }}.html,
 
-            triggerUpload() {
-                this.$refs.fileInput.click();
-            },
+                        fetchFacebookPages() {
+                            this.isFetchingPages = true;
+                            this.showPageModal = true;
+                            fetch('/social-planner/facebook-pages')
+                                .then(res => res.json())
+                                .then(data => { this.facebookPages = data.pages; })
+                                .catch(err => {
+                                    console.error(err);
+                                    alert('Failed to fetch Facebook pages.');
+                                    this.showPageModal = false;
+                                })
+                                .finally(() => { this.isFetchingPages = false; });
+                        },
 
-            handleUpload(event) {
-                const file = event.target.files[0];
-                if (!file) return;
-
-                this.isUploading = true;
-
-                // Client-side compression
-                this.compressImage(file, (compressedBlob) => {
-                    const formData = new FormData();
-                    formData.append('file', compressedBlob, file.name);
-                    
-                    fetch('{{ route('content-creator.upload-media') }}', {
-                        method: 'POST',
-                        body: formData,
-                        headers: {
-                            'X-CSRF-TOKEN': '{{ csrf_token() }}',
-                            'Accept': 'application/json' 
-                        }
-                    })
-                    .then(async res => {
-                        if (!res.ok) {
-                            if (res.status === 413) throw new Error('File is too large.');
-                            const text = await res.text();
-                            try { return JSON.parse(text); } catch { throw new Error(res.statusText); }
-                        }
-                        return res.json();
-                    })
-                    .then(data => {
-                        if(data.success) {
-                            this.imageUrl = data.url;
-                            this.showMediaOptions = false;
-                        } else {
-                            alert(data.message || 'Upload failed');
-                        }
-                    })
-                    .catch(err => {
-                        console.error(err);
-                        alert(err.message || 'Upload error');
-                    })
-                    .finally(() => { this.isUploading = false; });
-                });
-            },
-
-            compressImage(file, callback) {
-                const reader = new FileReader();
-                reader.readAsDataURL(file);
-                reader.onload = (event) => {
-                    const img = new Image();
-                    img.src = event.target.result;
-                    img.onload = () => {
-                        const canvas = document.createElement('canvas');
-                        const MAX_WIDTH = 1920;
-                        const MAX_HEIGHT = 1920;
-                        let width = img.width;
-                        let height = img.height;
-
-                        if (width > height) {
-                            if (width > MAX_WIDTH) {
-                                height *= MAX_WIDTH / width;
-                                width = MAX_WIDTH;
+                        selectPage(page) {
+                            this.selectedFacebookPage = page;
+                            this.showPageModal = false;
+                            if (!this.selectedPlatforms.includes('facebook')) {
+                                this.selectedPlatforms.push('facebook');
                             }
-                        } else {
-                            if (height > MAX_HEIGHT) {
-                                width *= MAX_HEIGHT / height;
-                                height = MAX_HEIGHT;
+                        },
+
+                        triggerUpload() { this.$refs.fileInput.click(); },
+
+                        handleUpload(event) {
+                            const file = event.target.files[0];
+                            if (!file) return;
+                            this.isUploading = true;
+                            this.compressImage(file, (compressedBlob) => {
+                                const formData = new FormData();
+                                formData.append('file', compressedBlob, file.name);
+                                fetch('/content-creator/upload-media', {
+                                    method: 'POST',
+                                    body: formData,
+                                    headers: { 'X-CSRF-TOKEN': '{{ csrf_token() }}', 'Accept': 'application/json' }
+                                })
+                                .then(async res => {
+                                    if (!res.ok) {
+                                        if (res.status === 413) throw new Error('File is too large.');
+                                        const text = await res.text();
+                                        try { return JSON.parse(text); } catch { throw new Error(res.statusText); }
+                                    }
+                                    return res.json();
+                                })
+                                .then(data => {
+                                    if (data.success) {
+                                        this.imageUrl = data.url;
+                                        this.showMediaOptions = false;
+                                    } else { alert(data.message || 'Upload failed'); }
+                                })
+                                .catch(err => { console.error(err); alert(err.message || 'Upload error'); })
+                                .finally(() => { this.isUploading = false; });
+                            });
+                        },
+
+                        compressImage(file, callback) {
+                            const reader = new FileReader();
+                            reader.readAsDataURL(file);
+                            reader.onload = (event) => {
+                                const img = new Image();
+                                img.src = event.target.result;
+                                img.onload = () => {
+                                    const canvas = document.createElement('canvas');
+                                    const MAX_WIDTH = 1920;
+                                    const MAX_HEIGHT = 1920;
+                                    let width = img.width;
+                                    let height = img.height;
+                                    if (width > height) {
+                                        if (width > MAX_WIDTH) { height *= MAX_WIDTH / width; width = MAX_WIDTH; }
+                                    } else {
+                                        if (height > MAX_HEIGHT) { width *= MAX_HEIGHT / height; height = MAX_HEIGHT; }
+                                    }
+                                    canvas.width = width;
+                                    canvas.height = height;
+                                    const ctx = canvas.getContext('2d');
+                                    ctx.drawImage(img, 0, 0, width, height);
+                                    canvas.toBlob((blob) => { callback(blob); }, 'image/jpeg', 0.8);
+                                };
+                            };
+                        },
+
+                        generateImage() {
+                            this.isGenerating = true;
+                            const prompt = this.rawContent.substring(0, 400);
+                            fetch('/content-creator/generate-media', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json', 'Accept': 'application/json', 'X-CSRF-TOKEN': '{{ csrf_token() }}' },
+                                body: JSON.stringify({ prompt: prompt })
+                            })
+                            .then(res => res.json())
+                            .then(data => {
+                                if (data.success) { this.imageUrl = data.url; this.showMediaOptions = false; }
+                                else { alert(data.message || 'Generation failed'); }
+                            })
+                            .catch(err => alert('Generation error'))
+                            .finally(() => { this.isGenerating = false; });
+                        },
+
+                        regenerateText() {
+                            this.isRegenerating = true;
+                            fetch('/content-creator/regenerate', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json', 'Accept': 'application/json', 'X-CSRF-TOKEN': '{{ csrf_token() }}' },
+                                body: JSON.stringify({ content_id: {{ $content->id }}, current_text: this.rawContent })
+                            })
+                            .then(res => res.json())
+                            .then(data => {
+                                if (data.success) {
+                                    this.rawContent = data.new_text;
+                                    this.htmlContent = this.formatForDisplay(data.new_text);
+                                } else { alert('Failed to redo'); }
+                            })
+                            .catch(e => console.error(e))
+                            .finally(() => { this.isRegenerating = false; });
+                        },
+
+                        formatForDisplay(text) {
+                            let clean = text
+                                .replace(/\*\*/g, '')
+                                .replace(/\*/g, '')
+                                .replace(/^#+\s+/gm, '')
+                                .replace(/`/g, '');
+                            return clean.replace(/\n/g, '<br>');
+                        },
+
+                        openPublishModal() { this.showPublishModal = true; },
+
+                        confirmPublish() {
+                            if (this.selectedPlatforms.length === 0) {
+                                alert('Please select at least one platform.');
+                                return;
                             }
+                            let fbPageId = null;
+                            let fbPageToken = null;
+                            if (this.selectedPlatforms.includes('facebook')) {
+                                if (this.selectedFacebookPage) {
+                                    fbPageId = this.selectedFacebookPage.id;
+                                    fbPageToken = this.selectedFacebookPage.access_token;
+                                } else {
+                                    if (!confirm('You have selected Facebook but no specific Page. Continue?')) { return; }
+                                }
+                            }
+                            this.isPublishing = true;
+                            fetch('/content-creator/publish', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json', 'Accept': 'application/json', 'X-CSRF-TOKEN': '{{ csrf_token() }}' },
+                                body: JSON.stringify({
+                                    content_id: {{ $content->id }},
+                                    final_text: this.rawContent,
+                                    image_url: this.imageUrl,
+                                    platforms: this.selectedPlatforms,
+                                    scheduled_at: this.scheduleDate,
+                                    facebook_page_id: fbPageId,
+                                    facebook_page_token: fbPageToken
+                                })
+                            })
+                            .then(res => res.json())
+                            .then(data => {
+                                if (data.success) {
+                                    alert('Scheduled to Social Planner!');
+                                    window.location.href = '{{ route('social-planner.index') }}';
+                                }
+                            })
+                            .finally(() => { this.isPublishing = false; this.showPublishModal = false; });
                         }
-
-                        canvas.width = width;
-                        canvas.height = height;
-                        const ctx = canvas.getContext('2d');
-                        ctx.drawImage(img, 0, 0, width, height);
-
-                        canvas.toBlob((blob) => {
-                            callback(blob);
-                        }, 'image/jpeg', 0.8);
-                    };
-                };
-            },
-
-            generateImage() {
-                this.isGenerating = true;
-                const prompt = this.rawContent.substring(0, 400); // Use current raw content
-
-                fetch('{{ route('content-creator.generate-media') }}', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Accept': 'application/json',
-                        'X-CSRF-TOKEN': '{{ csrf_token() }}'
-                    },
-                    body: JSON.stringify({ prompt: prompt })
-                })
-                .then(res => res.json())
-                .then(data => {
-                    if(data.success) {
-                        this.imageUrl = data.url;
-                        this.showMediaOptions = false;
-                    } else {
-                        alert(data.message || 'Generation failed');
-                    }
-                })
-                .catch(err => alert('Generation error'))
-                .finally(() => { this.isGenerating = false; });
-            },
-
-            regenerateText() {
-                this.isRegenerating = true;
-                fetch('{{ route('content-creator.regenerate') }}', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json', 'Accept': 'application/json', 'X-CSRF-TOKEN': '{{ csrf_token() }}' },
-                    body: JSON.stringify({ 
-                        content_id: {{ $content->id }},
-                        current_text: this.rawContent
-                    })
-                })
-                .then(res => res.json())
-                .then(data => {
-                    if(data.success) {
-                        this.rawContent = data.new_text;
-                        this.htmlContent = this.formatForDisplay(data.new_text);
-                    } else {
-                        alert('Failed to redo');
-                    }
-                })
-                .catch(e => console.error(e))
-                .finally(() => { this.isRegenerating = false; });
-            },
-
-            formatForDisplay(text) {
-                // Remove Markdown symbols but keep structure
-                let clean = text
-                    .replace(/\*\*/g, '')    // Remove bold **
-                    .replace(/\*/g, '')      // Remove italics *
-                    .replace(/^#+\s+/gm, '') // Remove Header hashes (e.g. ## Title)
-                    .replace(/`/g, '');      // Remove code ticks
-
-                // Convert newlines to breaks
-                return clean.replace(/\n/g, '<br>');
-            },
-
-            openPublishModal() {
-                this.showPublishModal = true;
-            },
-
-            confirmPublish() {
-                if (this.selectedPlatforms.length === 0) {
-                    alert('Please select at least one platform.');
-                    return;
+                    }));
                 }
-
-                this.isPublishing = true;
-                fetch('{{ route('content-creator.publish') }}', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json', 'Accept': 'application/json', 'X-CSRF-TOKEN': '{{ csrf_token() }}' },
-                    body: JSON.stringify({ 
-                        content_id: {{ $content->id }},
-                        final_text: this.rawContent,
-                        image_url: this.imageUrl,
-                        platforms: this.selectedPlatforms,
-                        scheduled_at: this.scheduleDate
-                    })
-                })
-                .then(res => res.json())
-                .then(data => {
-                    if(data.success) {
-                        alert('Scheduled to Social Planner!');
-                        // Optional: Redirect
-                        window.location.href = '{{ route('social-planner.index') }}';
-                    }
-                })
-                .finally(() => { 
-                    this.isPublishing = false;
-                    this.showPublishModal = false;
-                });
-            }
-
-        }" class="w-full bg-card border border-border rounded-xl shadow-md overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-500" style="animation-delay: {{ $index * 150 }}ms;">
+            });
+        </script>
+        <div x-data="postCard_{{ $content->id }}_{{ $index }}()" class="w-full bg-card border border-border rounded-xl shadow-md overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-500" style="animation-delay: {{ $index * 150 }}ms;">
             
             <!-- Hidden File Input -->
             <input type="file" x-ref="fileInput" class="hidden" accept="image/*" @change="handleUpload">
@@ -395,11 +396,23 @@
                             <div class="w-8 h-8 rounded bg-sky-400 flex items-center justify-center text-white">Tw</div>
                             <span class="text-sm font-medium">Twitter</span>
                         </label>
-                         <label class="flex items-center gap-3 p-3 rounded-lg border border-border bg-muted/20 cursor-pointer hover:bg-muted/40 transition-colors" :class="{'border-blue-700 bg-blue-700/10': selectedPlatforms.includes('facebook')}">
-                            <input type="checkbox" value="facebook" x-model="selectedPlatforms" class="hidden">
-                            <div class="w-8 h-8 rounded bg-blue-700 flex items-center justify-center text-white">Fb</div>
-                            <span class="text-sm font-medium">Facebook</span>
-                        </label>
+                         <div class="relative">
+                             <label class="flex items-center gap-3 p-3 rounded-lg border border-border bg-muted/20 cursor-pointer hover:bg-muted/40 transition-colors w-full" :class="{'border-blue-700 bg-blue-700/10': selectedPlatforms.includes('facebook')}">
+                                <input type="checkbox" value="facebook" x-model="selectedPlatforms" class="hidden">
+                                <div class="w-8 h-8 rounded bg-blue-700 flex items-center justify-center text-white">Fb</div>
+                                <span class="text-sm font-medium">Facebook</span>
+                            </label>
+                            <!-- Facebook Gear Button -->
+                             <button @click.stop="fetchFacebookPages" class="absolute right-2 top-1/2 -translate-y-1/2 p-2 hover:bg-blue-200/20 rounded-full transition-colors z-10" title="Select Page">
+                                <i data-lucide="settings" class="w-4 h-4 text-muted-foreground"></i>
+                             </button>
+                         </div>
+                         
+                         <!-- Selected Page Indicator -->
+                        <div x-show="selectedFacebookPage" class="col-span-2 text-xs text-center p-2 bg-blue-50 text-blue-800 rounded-lg flex items-center justify-center gap-2">
+                            <i data-lucide="check-circle" class="w-3 h-3"></i>
+                            Posting to: <strong x-text="selectedFacebookPage?.name"></strong>
+                        </div>
                          <label class="flex items-center gap-3 p-3 rounded-lg border border-border bg-muted/20 cursor-pointer hover:bg-muted/40 transition-colors" :class="{'border-pink-500 bg-pink-500/10': selectedPlatforms.includes('instagram')}">
                              <input type="checkbox" value="instagram" x-model="selectedPlatforms" class="hidden">
                             <div class="w-8 h-8 rounded bg-pink-600 flex items-center justify-center text-white">In</div>
@@ -415,6 +428,34 @@
                     <div class="flex gap-2 pt-2">
                         <button @click="showPublishModal = false" class="flex-1 py-2 text-xs font-bold uppercase text-muted-foreground hover:bg-muted rounded-lg">Cancel</button>
                         <button @click="confirmPublish" class="flex-1 py-2 text-xs font-bold uppercase bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 shadow-md">Confirm</button>
+                    </div>
+
+                    <!-- Page Selection Modal Overlay -->
+                    <div x-show="showPageModal" style="display: none;" class="absolute inset-0 z-50 bg-background rounded-xl p-4 flex flex-col" x-transition>
+                        <div class="flex items-center justify-between mb-4">
+                            <h4 class="font-bold">Select Facebook Page</h4>
+                            <button @click="showPageModal = false"><i data-lucide="x" class="w-4 h-4"></i></button>
+                        </div>
+                        
+                        <div x-show="isFetchingPages" class="flex-1 flex items-center justify-center">
+                            <i data-lucide="loader-2" class="w-6 h-6 animate-spin text-primary"></i>
+                        </div>
+
+                        <div x-show="!isFetchingPages" class="flex-1 overflow-y-auto space-y-2">
+                            <template x-for="page in facebookPages" :key="page.id">
+                                <button @click="selectPage(page)" class="w-full text-left p-3 rounded-lg border border-border hover:bg-muted flex items-center gap-3 transition-all" :class="{'bg-blue-50 border-blue-200': selectedFacebookPage && selectedFacebookPage.id === page.id}">
+                                    <div class="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-bold" x-text="page.name.charAt(0)"></div>
+                                    <div class="flex-1">
+                                        <p class="text-sm font-bold" x-text="page.name"></p>
+                                        <p class="text-[10px] text-muted-foreground" x-text="page.category || 'Page'"></p>
+                                    </div>
+                                    <i x-show="selectedFacebookPage && selectedFacebookPage.id === page.id" data-lucide="check" class="w-4 h-4 text-blue-600"></i>
+                                </button>
+                            </template>
+                            <div x-show="facebookPages.length === 0" class="text-center py-8 text-muted-foreground text-sm">
+                                No pages found. Ensure you granted "pages_read_engagement" permission.
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>

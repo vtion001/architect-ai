@@ -243,32 +243,97 @@ class ContentCreatorController extends Controller
             'final_text' => 'required|string',
             'image_url' => 'nullable|url',
             'platforms' => 'required|array|min:1',
-            'scheduled_at' => 'required|date'
+            'scheduled_at' => 'required|date',
+            'facebook_page_id' => 'nullable|string',
+            'facebook_page_token' => 'nullable|string',
         ]);
 
         $parentDrag = Content::find($validated['content_id']);
-        
+        $results = [];
+
         foreach ($validated['platforms'] as $platform) {
-            Content::create([
+            $options = [
+                'platform' => $platform,
+                'scheduled_at' => $validated['scheduled_at'],
+                'image_url' => $validated['image_url'],
+                'original_content_id' => $validated['content_id']
+            ];
+
+            // Attach specific credentials for Facebook
+            if ($platform === 'facebook') {
+                $options['page_id'] = $validated['facebook_page_id'] ?? null;
+                $options['page_token'] = $validated['facebook_page_token'] ?? null;
+            }
+
+            $contentRecord = Content::create([
                 'title' => 'Scheduled ' . ucfirst($platform) . ' - ' . Str::limit($parentDrag->topic, 20),
                 'topic' => $parentDrag->topic,
-                'type' => 'social-post', // specific type for planner
+                'type' => 'social-post', 
                 'context' => $parentDrag->context,
                 'status' => 'scheduled',
-                'result' => $validated['final_text'], // The final text becomes the content
-                'options' => [
-                    'platform' => $platform,
-                    'scheduled_at' => $validated['scheduled_at'],
-                    'image_url' => $validated['image_url'],
-                    'original_content_id' => $validated['content_id']
-                ]
+                'result' => $validated['final_text'], 
+                'options' => $options
             ]);
+
+            // If scheduled time is substantially "now" (within 2 mins), post immediately for demo purposes
+            // Or if user specifically requested this to be "setup end to end", immediate feedback is good.
+            if ($platform === 'facebook' && $options['page_id'] && $options['page_token']) {
+                $scheduledTime = \Carbon\Carbon::parse($validated['scheduled_at']);
+                if ($scheduledTime->diffInMinutes(now()) < 5 || $scheduledTime->isPast()) {
+                    $fbResult = $this->postToFacebook($contentRecord);
+                    $results['facebook'] = $fbResult;
+                    if ($fbResult['success']) {
+                        $contentRecord->update(['status' => 'published', 'result' => $validated['final_text'] . "\n\n[Posted to FB ID: {$fbResult['id']}]"]);
+                    } else {
+                        $contentRecord->update(['status' => 'failed', 'result' => $validated['final_text'] . "\n\n[FB Error: {$fbResult['error']}]"]);
+                    }
+                }
+            }
         }
 
         return response()->json([
             'success' => true,
-            'message' => 'Content scheduled for ' . count($validated['platforms']) . ' platforms.'
+            'message' => 'Content scheduled.',
+            'debug_results' => $results
         ]);
+    }
+
+    private function postToFacebook(Content $content)
+    {
+        $options = $content->options;
+        $pageId = $options['page_id'];
+        $token = $options['page_token'];
+        $message = $content->result;
+        $imageUrl = $options['image_url'] ?? null;
+
+        try {
+            if ($imageUrl) {
+                // Photo Post
+                $response = Http::post("https://graph.facebook.com/v18.0/$pageId/photos", [
+                    'url' => $imageUrl,
+                    'message' => $message,
+                    'access_token' => $token
+                ]);
+            } else {
+                // Text/Feed Post
+                $response = Http::post("https://graph.facebook.com/v18.0/$pageId/feed", [
+                    'message' => $message,
+                    'access_token' => $token
+                ]);
+            }
+
+            $data = $response->json();
+
+            if (isset($data['id'])) {
+                return ['success' => true, 'id' => $data['id']];
+            } else {
+                Log::error("FB Post Error: " . json_encode($data));
+                return ['success' => false, 'error' => $data['error']['message'] ?? 'Unknown error'];
+            }
+        } catch (\Exception $e) {
+            Log::error("FB Exception: " . $e->getMessage());
+            return ['success' => false, 'error' => $e->getMessage()];
+        }
     }
 
     public function generateMedia(Request $request)
