@@ -8,6 +8,8 @@ use App\DTOs\ReportRequestData;
 use App\Enums\ReportTemplate;
 use Illuminate\Support\Facades\View;
 
+class ReportService
+{
     public function __construct(
         private readonly ResearchService $researchService
     ) {}

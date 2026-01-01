@@ -13,6 +13,8 @@
 
         <!-- Scripts -->
         <?php echo app('Illuminate\Foundation\Vite')(['resources/css/app.css', 'resources/js/app.js']); ?>
+        <script src="https://unpkg.com/lucide@latest"></script>
+        <script src="https://unpkg.com/alpinejs" defer></script>
     </head>
     <body class="font-sans antialiased">
         <div class="flex h-screen bg-background">

@@ -4,6 +4,7 @@
 <div class="p-8 max-w-7xl mx-auto" x-data="{ 
     categories: @js($templateCategories),
     template: 'executive-summary',
+    templateVariant: 'exec-corporate',
     recipientName: '',
     recipientTitle: '',
     analysisType: 'Comparative Analysis',
@@ -14,6 +15,8 @@
     activeTab: 'preview',
     htmlPreview: '',
     zoomLevel: 0.5,
+    showVariantModal: false, 
+    selectedCategory: null,
     get selectedCategoryData() { return this.categories.find(c => c.id === this.template); },
     get selectedVariantData() { 
         if (!this.selectedCategoryData) return null;
@@ -65,17 +68,51 @@
             this.isGenerating = false;
         });
     },
+    handleFullView() {
+        if (!this.htmlPreview) return;
+        const newWin = window.open('', '_blank');
+        newWin.document.write(this.htmlPreview);
+        newWin.document.close();
+    },
+    downloadPdf() {
+        if (!this.htmlPreview) return;
+        const newWin = window.open('', '_blank');
+        newWin.document.write(this.htmlPreview);
+        newWin.document.close();
+        
+        // Add a small timeout to ensure styles are parsed before print dialog
+        setTimeout(() => {
+            newWin.print();
+        }, 500);
+    },
     init() {
         // Fetch preview on page load
         this.fetchPreview();
+        this.$nextTick(() => {
+            if (window.lucide) window.lucide.createIcons();
+        });
+
         // Watch for template or variant changes
         this.$watch('template', () => {
             if (this.selectedCategoryData && this.selectedCategoryData.variants.length > 0) {
                 this.templateVariant = this.selectedCategoryData.variants[0].id;
             }
             this.fetchPreview();
+            this.$nextTick(() => {
+                if (window.lucide) window.lucide.createIcons();
+            });
         });
-        this.$watch('templateVariant', () => this.fetchPreview());
+        this.$watch('templateVariant', () => {
+            this.fetchPreview();
+            this.$nextTick(() => {
+                if (window.lucide) window.lucide.createIcons();
+            });
+        });
+        this.$watch('showVariantModal', (value) => {
+            if (value) this.$nextTick(() => {
+                if (window.lucide) window.lucide.createIcons();
+            });
+        });
     }
 }">
     <div class="mb-6">
@@ -101,10 +138,7 @@
             <div class="p-6 pt-0 space-y-6">
                 <!-- Template Selection Grid -->
                 <!-- x-data augmentation to support modal state -->
-                <div x-data="{ 
-                    showVariantModal: false, 
-                    selectedCategory: null 
-                }">
+                <div class="space-y-4">
                     <label class="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 mb-3 block">
                         Select Report Template Style
                     </label>
@@ -220,11 +254,19 @@
                     <p class="text-sm text-muted-foreground">Live preview of your generated report</p>
                 </div>
                 <div class="flex items-center gap-2">
-                    <button class="inline-flex items-center justify-center rounded-md text-xs font-medium border border-input bg-background hover:bg-accent hover:text-accent-foreground h-8 px-3">
+                    <button 
+                        @click="downloadPdf"
+                        :disabled="!htmlPreview"
+                        class="inline-flex items-center justify-center rounded-md text-xs font-medium border border-input bg-background hover:bg-accent hover:text-accent-foreground h-8 px-3 disabled:opacity-50"
+                    >
                         <i data-lucide="download" class="w-3.5 h-3.5 mr-2"></i>
                         PDF
                     </button>
-                    <button class="inline-flex items-center justify-center rounded-md text-xs font-medium border border-input bg-background hover:bg-accent hover:text-accent-foreground h-8 px-3">
+                    <button 
+                        @click="handleFullView"
+                        :disabled="!htmlPreview"
+                        class="inline-flex items-center justify-center rounded-md text-xs font-medium border border-input bg-background hover:bg-accent hover:text-accent-foreground h-8 px-3 disabled:opacity-50"
+                    >
                         <i data-lucide="maximize-2" class="w-3.5 h-3.5 mr-2"></i>
                         Full View
                     </button>
@@ -277,7 +319,7 @@
                         <div x-show="!isLoadingPreview && htmlPreview" 
                               class="shadow-2xl bg-white ring-1 ring-slate-900/5 overflow-hidden origin-top transition-transform duration-200" 
                               :style="`width: 210mm; min-height: 297mm; transform: scale(${zoomLevel})`">
-                            <iframe :srcdoc="htmlPreview" class="w-full border-none" style="height: 297mm;" sandbox="allow-same-origin"></iframe>
+                            <iframe :srcdoc="htmlPreview" class="w-full border-none" style="height: 297mm;" sandbox="allow-same-origin allow-scripts"></iframe>
                         </div>
 
                         <!-- Placeholder when no preview is available -->
@@ -304,8 +346,4 @@
     </div>
 </div>
 
-<!-- Simple Alpine.js script usage since we can't easily add full React interactivity without a build step for it. 
-     Note: In a real Laravel app, we'd use Livewire or Vue/React via Inertia. 
-     Here we use a lightweight inline script to simulate the interactions requested. -->
-<script src="//unpkg.com/alpinejs" defer></script>
 @endsection
