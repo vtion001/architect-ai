@@ -98,4 +98,61 @@ class ResearchService
             return null;
         }
     }
+
+    /**
+     * Generate social media topic suggestions using Gemini.
+     */
+    public function suggestSocialMediaTopics(string $topic): string
+    {
+        if (!$this->apiKey) {
+            return "Gemini API key missing.";
+        }
+
+        // Models to try: Configured -> Flash 1.5 -> Pro 1.5
+        $models = array_unique([
+            $this->model,
+            'gemini-1.5-flash',
+            'gemini-1.5-pro'
+        ]);
+
+        foreach ($models as $model) {
+            try {
+                $response = Http::timeout(30)
+                    ->retry(1, 2000) // Brief retry for network blips
+                    ->post("https://generativelanguage.googleapis.com/v1beta/models/{$model}:generateContent?key={$this->apiKey}", [
+                        'contents' => [
+                            [
+                                'role' => 'user',
+                                'parts' => [
+                                    ['text' => "You are a social media trend expert. 
+                                    Generate 5 high-impact, engaging social media post topic ideas derived from the seed: '$topic'.
+                                    
+                                    FORMAT:
+                                    - Provide ONLY a simple bulleted list.
+                                    - Keep titles catchy, concise, and click-worthy.
+                                    - Do not include introductory text or explanations.
+                                    - Focus on viral potential and professional engagement."]
+                                ]
+                            ]
+                        ],
+                        'generationConfig' => [
+                            'temperature' => 0.8,
+                            'maxOutputTokens' => 500,
+                        ]
+                    ]);
+
+                if ($response->successful()) {
+                    return $response->json('candidates.0.content.parts.0.text') ?? "No suggestions generated.";
+                }
+
+                Log::warning("Gemini Suggestions Error ($model): " . $response->json('error.message', 'Unknown error'));
+
+            } catch (\Exception $e) {
+                Log::warning("Gemini Suggestions Exception ($model): " . $e->getMessage());
+            }
+        }
+
+        Log::error("All Gemini models failed for suggestions.");
+        return "Error generating suggestions. Please try again later.";
+    }
 }

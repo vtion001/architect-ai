@@ -29,6 +29,32 @@
     hookStyle: 'Problem/Solution',
     duration: '60s',
     
+    suggestions: '',
+    isLoadingSuggestions: false,
+    fetchSuggestions() {
+        if (!this.topic || this.isLoadingSuggestions) return;
+        this.isLoadingSuggestions = true;
+        this.suggestions = '';
+        fetch('<?php echo e(route('content-creator.suggestions')); ?>', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': '<?php echo e(csrf_token()); ?>'
+            },
+            body: JSON.stringify({ topic: this.topic })
+        })
+        .then(res => res.json())
+        .then(data => {
+            this.suggestions = data.suggestions;
+            this.isLoadingSuggestions = false;
+        })
+        .catch(err => {
+            console.error(err);
+            this.suggestions = 'Error fetching suggestions.';
+            this.isLoadingSuggestions = false;
+        });
+    },
+
     isGenerating: false,
     generateContent() {
         if (!this.topic) {
@@ -208,12 +234,24 @@
                     <div class="space-y-4">
                         <div class="flex items-center justify-between">
                             <label class="text-[10px] font-black uppercase tracking-widest text-foreground italic">Post Topic / Theme <span class="text-red-500">*</span></label>
-                            <button class="bg-muted px-3 py-1 rounded border border-border text-[10px] font-bold flex items-center gap-1.5 hover:bg-muted/80">
-                                <i data-lucide="sparkles" class="w-3 h-3 text-primary"></i>
-                                GET SUGGESTIONS
+                            <button @click="fetchSuggestions()" :disabled="isLoadingSuggestions || !topic" class="bg-muted px-3 py-1 rounded border border-border text-[10px] font-bold flex items-center gap-1.5 hover:bg-muted/80 disabled:opacity-50">
+                                <span x-show="!isLoadingSuggestions" class="flex items-center gap-1.5">
+                                    <i data-lucide="sparkles" class="w-3 h-3 text-primary"></i>
+                                    GET SUGGESTIONS
+                                </span>
+                                <span x-show="isLoadingSuggestions">Running Gemini...</span>
                             </button>
                         </div>
                         <input x-model="topic" type="text" placeholder="e.g., 'Modern Architecture Trends 2026'" class="w-full h-14 bg-muted/20 border border-border rounded-xl px-5 text-sm font-medium focus:ring-1 focus:ring-primary">
+                        
+                        <!-- Suggestions Results -->
+                        <div x-show="suggestions" x-transition class="p-4 bg-muted/30 border border-border rounded-lg relative">
+                            <button @click="suggestions = ''" class="absolute top-2 right-2 text-muted-foreground hover:text-foreground">
+                                <i data-lucide="x" class="w-3 h-3"></i>
+                            </button>
+                            <h4 class="text-xs font-bold uppercase mb-2 text-primary">Gemini Ideas:</h4>
+                            <div class="prose prose-sm max-w-none text-muted-foreground whitespace-pre-wrap text-sm" x-text="suggestions"></div>
+                        </div>
                     </div>
 
                     <!-- Parameters Grid -->

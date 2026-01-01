@@ -26,8 +26,10 @@ Route::get('/research-engine/{research}', [ResearchEngineController::class, 'sho
 Route::delete('/research-engine/{research}', [ResearchEngineController::class, 'destroy'])->name('research-engine.destroy');
 Route::get('/content-creator', [ContentCreatorController::class, 'index'])->name('content-creator.index');
 Route::post('/content-creator/generate', [ContentCreatorController::class, 'store'])->name('content-creator.generate');
+Route::post('/content-creator/suggestions', [ContentCreatorController::class, 'getSuggestions'])->name('content-creator.suggestions');
 Route::get('/content-creator/{content}', [ContentCreatorController::class, 'show'])->name('content-creator.show');
 Route::get('/social-planner', [SocialPlannerController::class, 'index'])->name('social-planner.index');
+Route::post('/social-planner/suggestions', [SocialPlannerController::class, 'getSuggestions'])->name('social-planner.suggestions');
 Route::get('/knowledge-base', [KnowledgeBaseController::class, 'index'])->name('knowledge-base.index');
 Route::get('/documents', [DocumentsController::class, 'index'])->name('documents.index');
 Route::get('/analytics', [AnalyticsController::class, 'index'])->name('analytics.index');

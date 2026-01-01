@@ -10,7 +10,8 @@ use Illuminate\Support\Facades\Log;
 class ContentCreatorController extends Controller
 {
     public function __construct(
-        private readonly ContentService $contentService
+        private readonly ContentService $contentService,
+        protected \App\Services\ResearchService $researchService
     ) {}
     public function index()
     {
@@ -114,5 +115,18 @@ class ContentCreatorController extends Controller
     public function show(Content $content)
     {
         return view('content-creator.show', compact('content'));
+    }
+
+    public function getSuggestions(Request $request)
+    {
+        $request->validate([
+            'topic' => 'required|string|min:3',
+        ]);
+
+        $suggestions = $this->researchService->suggestSocialMediaTopics($request->topic);
+
+        return response()->json([
+            'suggestions' => $suggestions
+        ]);
     }
 }
