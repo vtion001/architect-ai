@@ -30,8 +30,8 @@
     <?php if($variant === 'exec-detailed'): ?>
         .report-header { background: #0f172a; padding: 60px 40px; border-left: 20px solid #1e3a8a; }
         .report-header h1 { text-transform: uppercase; letter-spacing: 0.1em; font-size: 2.2rem; }
-        .report-content { column-count: 2; column-gap: 40px; }
-        .report-content > h2 { column-span: all; background: #f8fafc; padding: 15px; border: 1px solid #e2e8f0; border-left: 5px solid #1e3a8a; }
+        .report-content { padding: 50px 60px; }
+        .report-content > h2 { background: #f8fafc; padding: 15px; border: 1px solid #e2e8f0; border-left: 5px solid #1e3a8a; margin-left: -20px; margin-right: -20px; }
     <?php endif; ?>
 <?php $__env->stopSection(); ?>
 

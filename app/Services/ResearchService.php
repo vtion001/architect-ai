@@ -27,19 +27,20 @@ class ResearchService
 
         try {
             $response = Http::withToken($this->apiKey)
+                ->timeout(120) // Deep research takes time
                 ->post('https://api.perplexity.ai/chat/completions', [
-                    'model' => 'llama-3.1-sonar-small-128k-online',
+                    'model' => 'llama-3.1-sonar-large-128k-online',
                     'messages' => [
                         [
                             'role' => 'system',
-                            'content' => 'You are a deep research assistant. Provide detailed, factual, and up-to-date information on the requested topic. Use bullet points and clear sections.'
+                            'content' => 'You are a professional research analyst. Your goal is to perform a broad and deep search across at least 15-20 distinct high-quality sources (news, industry reports, official data, and specialized publications). Provide a comprehensive, data-heavy, and factual report. Include specific numbers, dates, market trends, and competitive insights. Avoid generic filler; prioritize hard data points.'
                         ],
                         [
                             'role' => 'user',
-                            'content' => "Perform a deep research on: $topic"
+                            'content' => "Perform an exhaustive deep research on: $topic. Ensure you explore a wide breadth of sources (aiming for 20 unique sources) to provide the most detailed and factual analysis possible."
                         ],
                     ],
-                    'max_tokens' => 2000,
+                    'max_tokens' => 4000,
                 ]);
 
             if ($response->successful()) {
