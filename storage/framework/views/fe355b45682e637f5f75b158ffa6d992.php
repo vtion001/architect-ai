@@ -98,7 +98,7 @@
                     <i data-lucide="brain" class="w-5 h-5"></i>
                     Start New Research
                 </h3>
-                <p class="text-sm text-muted-foreground">Enter your research topic and let AI gather comprehensive insights</p>
+                <p class="text-sm text-muted-foreground">Gemini-powered deep research engine with real-time web grounding</p>
             </div>
             <div class="p-6 pt-0 space-y-4">
                 <div>
@@ -126,7 +126,7 @@
                         <template x-if="isResearching">
                             <i data-lucide="loader-2" class="w-4 h-4 mr-2 animate-spin"></i>
                         </template>
-                        <span x-text="isResearching ? 'Gathering Sources...' : 'Start Research'"></span>
+                        <span x-text="isResearching ? 'Gemini is Architecting...' : 'Start Deep Research (Gemini)'"></span>
                     </button>
                 </div>
             </div>
@@ -156,8 +156,9 @@
                                 ];
                                 $currentStatusClass = $statusClasses[$research->status] ?? 'bg-slate-100 text-slate-700';
                             ?>
-                            <span class="inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 <?php echo e($currentStatusClass); ?>">
-                                <?php echo e(ucfirst($research->status)); ?>
+                            <span class="inline-flex items-center rounded-full border px-2.5 py-1 text-[10px] font-black uppercase tracking-wider transition-colors <?php echo e($currentStatusClass); ?>">
+                                <span class="w-1.5 h-1.5 rounded-full bg-current mr-1.5 animate-pulse"></span>
+                                <?php echo e($research->status); ?>
 
                             </span>
                         </div>
@@ -176,9 +177,9 @@
                         <div class="flex gap-2">
                             <a 
                                 href="<?php echo e(route('research-engine.show', $research)); ?>"
-                                class="flex-1 inline-flex items-center justify-center rounded-md text-sm font-medium border border-input bg-background hover:bg-accent hover:text-accent-foreground h-9 px-3">
-                                <i data-lucide="eye" class="w-3 h-3 mr-2"></i>
-                                View Result
+                                class="flex-1 inline-flex items-center justify-center rounded-lg text-xs font-black uppercase tracking-wider border border-border bg-white hover:bg-muted transition-all h-9 px-3">
+                                <i data-lucide="eye" class="w-3.5 h-3.5 mr-2 text-primary"></i>
+                                Preview Research
                             </a>
                             <?php if($research->status === "completed"): ?>
                             <button class="inline-flex items-center justify-center rounded-md text-sm font-medium border border-input bg-background hover:bg-accent hover:text-accent-foreground h-9 w-9">

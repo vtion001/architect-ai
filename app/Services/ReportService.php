@@ -47,7 +47,7 @@ class ReportService
         // Perform Deep Research if a topic is provided
         $researchData = '';
         if ($data->researchTopic) {
-            \Illuminate\Support\Facades\Log::info("Performing Perplexity research for: " . $data->researchTopic);
+            \Illuminate\Support\Facades\Log::info("Performing Gemini deep research for: " . $data->researchTopic);
             $researchData = $this->researchService->performResearch($data->researchTopic);
             \Illuminate\Support\Facades\Log::info("Research received. Length: " . strlen($researchData));
         }

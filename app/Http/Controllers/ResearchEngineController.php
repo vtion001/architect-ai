@@ -37,15 +37,15 @@ class ResearchEngineController extends Controller
         ]);
 
         $research = Research::create([
-            'title' => $request->title,
-            'query' => $request->query,
+            'title' => $request->input('title'),
+            'query' => $request->input('query'),
             'status' => 'researching',
         ]);
 
         try {
             // In a production app, this would be a queued job.
             // Dispatching synchronously for immediate feedback in this demo env.
-            $resultMarkdown = $this->researchService->performResearch($request->query);
+            $resultMarkdown = $this->researchService->performResearch($request->input('query'));
             
             // Basic heuristic to count sources/pages from markdown
             preg_match_all('/\[\d+\]/', $resultMarkdown, $matches);
@@ -63,7 +63,7 @@ class ResearchEngineController extends Controller
                 'success' => true,
                 'research' => $research
             ]);
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             Log::error("Research failed: " . $e->getMessage());
             $research->update(['status' => 'failed']);
             return response()->json(['success' => false, 'message' => 'Research failed.'], 500);
