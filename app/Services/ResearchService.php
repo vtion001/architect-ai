@@ -108,11 +108,12 @@ class ResearchService
             return "Gemini API key missing.";
         }
 
-        // Models to try: Configured -> Flash 1.5 -> Pro 1.5
+        // Models to try: Configured -> Flash 1.5 Latest -> Pro 1.5 Latest -> Gemini Pro (1.0)
         $models = array_unique([
             $this->model,
-            'gemini-1.5-flash',
-            'gemini-1.5-pro'
+            'gemini-1.5-flash-latest',
+            'gemini-1.5-pro-latest',
+            'gemini-pro'
         ]);
 
         foreach ($models as $model) {
@@ -152,7 +153,125 @@ class ResearchService
             }
         }
 
-        Log::error("All Gemini models failed for suggestions.");
+        Log::error("All Gemini models failed. Attempting OpenAI fallback...");
+
+        // OpenAI Fallback
+        $openaiKey = config('services.openai.key');
+        if ($openaiKey) {
+            try {
+                $response = Http::withToken($openaiKey)
+                    ->timeout(30)
+                    ->post('https://api.openai.com/v1/chat/completions', [
+                        'model' => config('services.openai.model', 'gpt-4o-mini'),
+                        'messages' => [
+                            [
+                                'role' => 'system',
+                                'content' => 'You are a social media trend expert.'
+                            ],
+                            [
+                                'role' => 'user',
+                                'content' => "Generate 5 high-impact, engaging social media post topic ideas derived from the seed: '$topic'.
+                                
+                                FORMAT:
+                                - Provide ONLY a simple bulleted list.
+                                - Keep titles catchy, concise, and click-worthy.
+                                - Do not include introductory text or explanations.
+                                - Focus on viral potential and professional engagement."
+                            ]
+                        ],
+                        'temperature' => 0.8,
+                        'max_tokens' => 500,
+                    ]);
+
+                if ($response->successful()) {
+                    return $response->json('choices.0.message.content') ?? "No suggestions generated (OpenAI).";
+                }
+
+                Log::error("OpenAI Fallback Error: " . $response->body());
+
+            } catch (\Exception $e) {
+                Log::error("OpenAI Fallback Exception: " . $e->getMessage());
+            }
+        }
+
         return "Error generating suggestions. Please try again later.";
+    }
+
+    /**
+     * Refine and rewrite context/mandate for better clarity.
+     */
+    public function refineContext(string $text): string
+    {
+        if (!$this->apiKey) {
+            return $text; // Return original if no key
+        }
+
+        // Models to try: Configured -> Flash 1.5 Latest -> Pro 1.5 Latest
+        $models = array_unique([
+            $this->model,
+            'gemini-1.5-flash-latest',
+            'gemini-1.5-pro-latest'
+        ]);
+
+        foreach ($models as $model) {
+            try {
+                $response = Http::timeout(30)
+                    ->retry(1, 2000)
+                    ->post("https://generativelanguage.googleapis.com/v1beta/models/{$model}:generateContent?key={$this->apiKey}", [
+                        'contents' => [
+                            [
+                                'role' => 'user',
+                                'parts' => [
+                                    ['text' => "You are a professional content editor. 
+                                    Rewrite the following context/mandate to be more clear, professional, and impactful. 
+                                    
+                                    GOAL: Improve instructions for an AI content generator.
+                                    RULES:
+                                    - Keep the original intent and meaning.
+                                    - Remove ambiguity.
+                                    - Fix grammar and flow.
+                                    - Return ONLY the rewritten text, no explanations.
+                                    
+                                    Original Text: '$text'"]
+                                ]
+                            ]
+                        ],
+                        'generationConfig' => [
+                            'temperature' => 0.7,
+                            'maxOutputTokens' => 500,
+                        ]
+                    ]);
+
+                if ($response->successful()) {
+                    return $response->json('candidates.0.content.parts.0.text') ?? $text;
+                }
+            } catch (\Exception $e) {
+                // Continue to next model
+            }
+        }
+
+        // OpenAI Fallback
+        $openaiKey = config('services.openai.key');
+        if ($openaiKey) {
+            try {
+                $response = Http::withToken($openaiKey)
+                    ->timeout(30)
+                    ->post('https://api.openai.com/v1/chat/completions', [
+                        'model' => config('services.openai.model', 'gpt-4o-mini'),
+                        'messages' => [
+                            ['role' => 'system', 'content' => 'You are a professional content editor.'],
+                            ['role' => 'user', 'content' => "Rewrite the following text to be more clear, professional, and impactful for an AI generator instructions. Return ONLY the rewritten text. Text: '$text'"]
+                        ],
+                    ]);
+
+                if ($response->successful()) {
+                    return $response->json('choices.0.message.content') ?? $text;
+                }
+            } catch (\Exception $e) {
+                // Ignore
+            }
+        }
+
+        return $text; // Fallback to original
     }
 }

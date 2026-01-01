@@ -129,4 +129,17 @@ class ContentCreatorController extends Controller
             'suggestions' => $suggestions
         ]);
     }
+
+    public function refineContext(Request $request)
+    {
+        $request->validate([
+            'context' => 'required|string|min:3',
+        ]);
+
+        $refined = $this->researchService->refineContext($request->context);
+
+        return response()->json([
+            'context' => trim($refined)
+        ]);
+    }
 }

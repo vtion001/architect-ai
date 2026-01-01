@@ -27,6 +27,7 @@ Route::delete('/research-engine/{research}', [ResearchEngineController::class, '
 Route::get('/content-creator', [ContentCreatorController::class, 'index'])->name('content-creator.index');
 Route::post('/content-creator/generate', [ContentCreatorController::class, 'store'])->name('content-creator.generate');
 Route::post('/content-creator/suggestions', [ContentCreatorController::class, 'getSuggestions'])->name('content-creator.suggestions');
+Route::post('/content-creator/refine', [ContentCreatorController::class, 'refineContext'])->name('content-creator.refine');
 Route::get('/content-creator/{content}', [ContentCreatorController::class, 'show'])->name('content-creator.show');
 Route::get('/social-planner', [SocialPlannerController::class, 'index'])->name('social-planner.index');
 Route::post('/social-planner/suggestions', [SocialPlannerController::class, 'getSuggestions'])->name('social-planner.suggestions');

@@ -57,6 +57,31 @@
         });
     },
 
+    isRefining: false,
+    refineContext() {
+        if (!this.context || this.isRefining) return;
+        this.isRefining = true;
+        fetch('{{ route('content-creator.refine') }}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': '{{ csrf_token() }}'
+            },
+            body: JSON.stringify({ context: this.context })
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.context) {
+                this.context = data.context;
+            }
+            this.isRefining = false;
+        })
+        .catch(err => {
+            console.error(err);
+            this.isRefining = false;
+        });
+    },
+
     isGenerating: false,
     generateContent() {
         if (!this.topic) {
@@ -283,7 +308,16 @@
 
                     <!-- Instructions -->
                     <div class="space-y-3">
-                        <label class="text-[10px] font-black uppercase tracking-widest text-foreground italic">Mandate / Specific Context</label>
+                        <div class="flex items-center justify-between">
+                            <label class="text-[10px] font-black uppercase tracking-widest text-foreground italic">Mandate / Specific Context</label>
+                            <button @click="refineContext()" :disabled="!context || isRefining" class="bg-muted px-3 py-1 rounded border border-border text-[10px] font-bold flex items-center gap-1.5 hover:bg-muted/80 disabled:opacity-50">
+                                <span x-show="!isRefining" class="flex items-center gap-1.5">
+                                    <i data-lucide="wand-2" class="w-3 h-3 text-primary"></i>
+                                    AI REWRITE ASSIST
+                                </span>
+                                <span x-show="isRefining">Polishing...</span>
+                            </button>
+                        </div>
                         <textarea x-model="context" placeholder="e.g., 'Focus on sustainable materials and eco-friendly designs...'" rows="4" class="w-full min-h-[120px] bg-muted/20 border border-border rounded-xl px-5 py-4 text-sm font-medium focus:ring-1 focus:ring-primary"></textarea>
                     </div>
 
@@ -709,37 +743,92 @@
 
         <!-- Sidebar: Context Aware Content -->
         <div class="space-y-6">
-            <!-- Normal Mode: Recent Content -->
-            <div x-show="generator !== 'video'" class="rounded-xl border border-border bg-card text-card-foreground shadow-sm">
-                <div class="flex flex-col space-y-1.5 p-6 border-b border-border/50">
-                    <h3 class="text-2xl font-semibold leading-none tracking-tight">Recent Content</h3>
+            <!-- Normal Mode: Recent Content (Facebook Style Feed) -->
+            <div x-show="generator !== 'video'" class="rounded-xl border border-border bg-card text-card-foreground shadow-sm overflow-hidden">
+                <div class="flex flex-col space-y-1.5 p-6 border-b border-border/50 bg-background/50 backdrop-blur-sm sticky top-0 z-10">
+                    <h3 class="text-xl font-bold leading-none tracking-tight flex items-center gap-2">
+                        <i data-lucide="activity" class="w-5 h-5 text-primary"></i>
+                        Recent Activity Feed
+                    </h3>
                 </div>
-                <div class="p-6 pt-0 mt-4">
+                
+                <div class="bg-muted/10 p-4 min-h-[400px]">
                     <div class="space-y-4">
                         @forelse($recentContents as $item)
-                        <a href="{{ route('content-creator.show', $item) }}" class="block p-3 border border-border rounded-lg hover:bg-muted/50 transition-all">
-                            <h3 class="font-semibold text-sm mb-2 line-clamp-1">{{ $item->title }}</h3>
-                            <div class="flex items-center justify-between text-[10px] text-muted-foreground mb-2 uppercase font-bold tracking-tight">
-                                <span>{{ ucwords(str_replace('-', ' ', $item->type)) }}</span>
-                                <span>{{ $item->word_count }} words</span>
+                        <div class="bg-card border border-border rounded-xl shadow-sm hover:shadow-md transition-all duration-200 group relative">
+                             <!-- Clickable Area Overlay -->
+                            <a href="{{ route('content-creator.show', $item) }}" class="absolute inset-0 z-10 block rounded-xl focus:ring-2 focus:ring-primary focus:outline-none"></a>
+                            
+                            <!-- Post Header -->
+                            <div class="p-4 flex items-center justify-between">
+                                <div class="flex items-center gap-3">
+                                    <!-- Avatar -->
+                                    <div class="w-10 h-10 rounded-full bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center border border-primary/10 shadow-inner">
+                                        <i data-lucide="bot" class="w-5 h-5 text-primary"></i>
+                                    </div>
+                                    <div>
+                                        <h4 class="text-sm font-bold text-foreground leading-tight">Architect AI</h4>
+                                        <div class="flex items-center gap-1.5 text-[10px] text-muted-foreground font-medium">
+                                            <span>{{ $item->created_at->diffForHumans() }}</span>
+                                            <span class="text-muted-foreground/50">•</span>
+                                            <i data-lucide="globe" class="w-3 h-3 opacity-70"></i>
+                                        </div>
+                                    </div>
+                                </div>
+                                <button class="relative z-20 p-2 text-muted-foreground hover:bg-muted rounded-full transition-colors">
+                                    <i data-lucide="more-horizontal" class="w-5 h-5"></i>
+                                </button>
                             </div>
-                            @php
-                                $statusClasses = [
-                                    'published' => 'bg-green-100 text-green-700 border-green-200',
-                                    'draft' => 'bg-amber-100 text-amber-700 border-amber-200',
-                                    'generating' => 'bg-blue-100 text-blue-700 border-blue-200',
-                                    'failed' => 'bg-red-100 text-red-700 border-red-200'
-                                ];
-                                $currentStatusClass = $statusClasses[$item->status] ?? 'bg-slate-100 text-slate-700 border-slate-200';
-                            @endphp
-                            <span class="inline-flex items-center rounded-full border px-2.5 py-0.5 text-[10px] font-bold transition-colors uppercase tracking-wider {{ $currentStatusClass }}">
-                                {{ ucfirst($item->status) }}
-                            </span>
-                        </a>
+        
+                            <!-- Post Content -->
+                            <div class="px-4 pb-3">
+                                <p class="text-sm text-foreground leading-relaxed line-clamp-3 mb-3 font-medium">
+                                    {{ $item->title }}
+                                </p>
+        
+                                <!-- Badges -->
+                                @php
+                                    $statusColors = [
+                                        'published' => 'text-green-700 bg-green-50/80 border-green-200',
+                                        'draft' => 'text-amber-700 bg-amber-50/80 border-amber-200',
+                                        'generating' => 'text-blue-700 bg-blue-50/80 border-blue-200',
+                                        'failed' => 'text-red-700 bg-red-50/80 border-red-200'
+                                    ];
+                                    $statusColor = $statusColors[$item->status] ?? 'text-slate-700 bg-slate-50 border-slate-200';
+                                @endphp
+                                <div class="flex flex-wrap gap-2">
+                                     <span class="inline-flex items-center rounded-full border px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider shadow-sm {{ $statusColor }}">
+                                        {{ ucfirst($item->status) }}
+                                    </span>
+                                     <span class="inline-flex items-center rounded-full border border-border bg-muted/30 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-muted-foreground shadow-sm">
+                                        {{ ucwords(str_replace('-', ' ', $item->type)) }}
+                                    </span>
+                                </div>
+                            </div>
+        
+                            <!-- Post Footer (Fake Actions) -->
+                            <div class="px-2 py-1 border-t border-border flex items-center justify-between bg-muted/5">
+                                 <div class="flex items-center gap-1 w-full relative z-20">
+                                    <button class="flex-1 flex items-center justify-center gap-2 py-2 rounded-lg hover:bg-muted/50 transition-colors group/btn">
+                                        <i data-lucide="thumbs-up" class="w-4 h-4 text-muted-foreground group-hover/btn:text-blue-500 transition-colors"></i>
+                                        <span class="text-xs font-semibold text-muted-foreground group-hover/btn:text-blue-500 transition-colors">Like</span>
+                                    </button>
+                                    <button class="flex-1 flex items-center justify-center gap-2 py-2 rounded-lg hover:bg-muted/50 transition-colors group/btn">
+                                        <i data-lucide="message-circle" class="w-4 h-4 text-muted-foreground group-hover/btn:text-primary transition-colors"></i>
+                                        <span class="text-xs font-semibold text-muted-foreground group-hover/btn:text-primary transition-colors">Comment</span>
+                                    </button>
+                                    <button class="flex-1 flex items-center justify-center gap-2 py-2 rounded-lg hover:bg-muted/50 transition-colors group/btn">
+                                        <i data-lucide="share-2" class="w-4 h-4 text-muted-foreground group-hover/btn:text-green-500 transition-colors"></i>
+                                        <span class="text-xs font-semibold text-muted-foreground group-hover/btn:text-green-500 transition-colors">Share</span>
+                                    </button>
+                                 </div>
+                            </div>
+                        </div>
                         @empty
-                        <div class="text-center py-12 text-muted-foreground opacity-50">
-                            <i data-lucide="pencil" class="w-10 h-10 mx-auto mb-3"></i>
-                            <p class="text-sm">No content generated yet.</p>
+                        <!-- Empty State -->
+                        <div class="text-center py-12 text-muted-foreground opacity-50 bg-card/50 rounded-xl border border-border border-dashed">
+                            <i data-lucide="rss" class="w-10 h-10 mx-auto mb-3"></i>
+                            <p class="text-sm font-medium">Activity feed is empty.</p>
                         </div>
                         @endforelse
                     </div>
