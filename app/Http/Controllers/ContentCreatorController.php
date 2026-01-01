@@ -6,6 +6,8 @@ use App\Models\Content;
 use App\Services\ContentService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Str;
 
 class ContentCreatorController extends Controller
 {
@@ -141,5 +143,177 @@ class ContentCreatorController extends Controller
         return response()->json([
             'context' => trim($refined)
         ]);
+    }
+
+    public function uploadMedia(Request $request)
+    {
+        $request->validate([
+            'file' => 'required|image|max:10240', // 10MB max
+        ]);
+
+        if ($request->hasFile('file')) {
+            $file = $request->file('file');
+            
+            // Check for Cloudinary Config
+            $cloudName = config('services.cloudinary.cloud_name');
+            $apiKey = config('services.cloudinary.api_key');
+            $apiSecret = config('services.cloudinary.api_secret');
+
+            if ($cloudName && $apiKey && $apiSecret) {
+                // Upload to Cloudinary
+                try {
+                    $timestamp = time();
+                    $signature = sha1("timestamp=$timestamp$apiSecret");
+
+                    // Use attach() for file uploads (multipart/form-data)
+                    $response = Http::attach(
+                        'file', 
+                        fopen($file->getRealPath(), 'r'), 
+                        $file->getClientOriginalName()
+                    )->post("https://api.cloudinary.com/v1_1/$cloudName/image/upload", [
+                        'api_key' => $apiKey,
+                        'timestamp' => $timestamp,
+                        'signature' => $signature,
+                    ]);
+
+                    if ($response->successful()) {
+                        $url = $response->json()['secure_url'];
+                        Log::info("Media uploaded to Cloudinary. URL: $url");
+                        return response()->json(['success' => true, 'url' => $url]);
+                    } else {
+                        Log::error("Cloudinary upload failed: " . $response->body());
+                        return response()->json(['success' => false, 'message' => 'Cloudinary upload failed.'], 500);
+                    }
+                } catch (\Exception $e) {
+                    Log::error("Cloudinary exception: " . $e->getMessage());
+                    return response()->json(['success' => false, 'message' => 'Upload error.'], 500);
+                }
+            } else {
+                 Log::warning("Cloudinary credentials missing in .env. Falling back to public upload.");
+            }
+
+            // FALLBACK: Local Public Upload
+            $filename = \Illuminate\Support\Str::random(40) . '.' . $file->getClientOriginalExtension();
+            $file->move(public_path('uploads/content-media'), $filename);
+            $url = '/uploads/content-media/' . $filename;
+            
+            Log::info("Media uploaded directly to public. URL: $url");
+
+            return response()->json([
+                'success' => true,
+                'url' => $url,
+                'message' => 'Uploaded locally. Add CLOUDINARY_ keys to .env for cloud storage.'
+            ]);
+        }
+
+        return response()->json(['success' => false, 'message' => 'No file uploaded'], 400);
+    }
+
+    public function regenerate(Request $request)
+    {
+        $request->validate([
+            'content_id' => 'required|exists:contents,id',
+            'current_text' => 'required|string',
+        ]);
+
+        $content = Content::findOrFail($request->content_id);
+        
+        try {
+            // Simple regen prompt logic
+            $newText = $this->contentService->generateText(
+                $content->topic, 
+                $content->type, 
+                "REWRITE THIS POST. Original context: " . $content->context . ". \n\nCONTENT TO IMPROVE: " . $request->current_text,
+                $content->options ?? []
+            );
+
+            return response()->json([
+                'success' => true,
+                'new_text' => $newText
+            ]);
+        } catch (\Exception $e) {
+             return response()->json(['success' => false, 'message' => 'Regeneration failed'], 500);
+        }
+    }
+
+    public function publish(Request $request)
+    {
+        $validated = $request->validate([
+            'content_id' => 'required|exists:contents,id',
+            'final_text' => 'required|string',
+            'image_url' => 'nullable|url',
+            'platforms' => 'required|array|min:1',
+            'scheduled_at' => 'required|date'
+        ]);
+
+        $parentDrag = Content::find($validated['content_id']);
+        
+        foreach ($validated['platforms'] as $platform) {
+            Content::create([
+                'title' => 'Scheduled ' . ucfirst($platform) . ' - ' . Str::limit($parentDrag->topic, 20),
+                'topic' => $parentDrag->topic,
+                'type' => 'social-post', // specific type for planner
+                'context' => $parentDrag->context,
+                'status' => 'scheduled',
+                'result' => $validated['final_text'], // The final text becomes the content
+                'options' => [
+                    'platform' => $platform,
+                    'scheduled_at' => $validated['scheduled_at'],
+                    'image_url' => $validated['image_url'],
+                    'original_content_id' => $validated['content_id']
+                ]
+            ]);
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Content scheduled for ' . count($validated['platforms']) . ' platforms.'
+        ]);
+    }
+
+    public function generateMedia(Request $request)
+    {
+        $request->validate([
+            'prompt' => 'required|string|min:3',
+        ]);
+
+        $generatedUrl = $this->contentService->generateImage($request->prompt);
+
+        if ($generatedUrl) {
+            // Attempt to upload generated URL to Cloudinary for persistence
+            $cloudName = config('services.cloudinary.cloud_name');
+            $apiKey = config('services.cloudinary.api_key');
+            $apiSecret = config('services.cloudinary.api_secret');
+
+            if ($cloudName && $apiKey && $apiSecret) {
+                try {
+                    $timestamp = time();
+                    $signature = sha1("timestamp=$timestamp$apiSecret");
+
+                    // Use asForm() for URL uploads to ensure application/x-www-form-urlencoded
+                    $response = Http::asForm()->post("https://api.cloudinary.com/v1_1/$cloudName/image/upload", [
+                        'file' => $generatedUrl, // Cloudinary accepts remote URLs!
+                        'api_key' => $apiKey,
+                        'timestamp' => $timestamp,
+                        'signature' => $signature,
+                    ]);
+
+                    if ($response->successful()) {
+                         $generatedUrl = $response->json()['secure_url'];
+                         Log::info("Generated AI image saved to Cloudinary: $generatedUrl");
+                    }
+                } catch (\Exception $e) {
+                    Log::warning("Failed to save AI image to Cloudinary: " . $e->getMessage());
+                    // Silently fail back to original OpenAI URL
+                }
+            }
+
+            return response()->json([
+                'success' => true,
+                'url' => $generatedUrl
+            ]);
+        }
+
+        return response()->json(['success' => false, 'message' => 'Image generation failed. Please try again.'], 500);
     }
 }

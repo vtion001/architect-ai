@@ -4,6 +4,8 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 
+use App\Models\Content;
+
 class SocialPlannerController extends Controller
 {
     public function __construct(
@@ -12,7 +14,12 @@ class SocialPlannerController extends Controller
 
     public function index()
     {
-        return view('social-planner.index');
+        $scheduledPosts = Content::where('type', 'social-post')
+            ->where('status', 'scheduled')
+            ->latest()
+            ->get();
+
+        return view('social-planner.index', compact('scheduledPosts'));
     }
 
     public function getSuggestions(Request $request)

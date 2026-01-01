@@ -28,6 +28,10 @@ Route::get('/content-creator', [ContentCreatorController::class, 'index'])->name
 Route::post('/content-creator/generate', [ContentCreatorController::class, 'store'])->name('content-creator.generate');
 Route::post('/content-creator/suggestions', [ContentCreatorController::class, 'getSuggestions'])->name('content-creator.suggestions');
 Route::post('/content-creator/refine', [ContentCreatorController::class, 'refineContext'])->name('content-creator.refine');
+Route::post('/content-creator/upload-media', [ContentCreatorController::class, 'uploadMedia'])->name('content-creator.upload-media');
+Route::post('/content-creator/generate-media', [ContentCreatorController::class, 'generateMedia'])->name('content-creator.generate-media');
+Route::post('/content-creator/regenerate', [ContentCreatorController::class, 'regenerate'])->name('content-creator.regenerate');
+Route::post('/content-creator/publish', [ContentCreatorController::class, 'publish'])->name('content-creator.publish');
 Route::get('/content-creator/{content}', [ContentCreatorController::class, 'show'])->name('content-creator.show');
 Route::get('/social-planner', [SocialPlannerController::class, 'index'])->name('social-planner.index');
 Route::post('/social-planner/suggestions', [SocialPlannerController::class, 'getSuggestions'])->name('social-planner.suggestions');

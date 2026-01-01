@@ -105,8 +105,26 @@ class ContentService
 
     public function generateImage(string $prompt): ?string
     {
-        // Placeholder for Banana Pro or specialized image generation
-        // For now, returning null or a generic high-end placeholder URL if needed
-        return null; 
+        try {
+            $response = Http::withToken($this->apiKey)
+                ->timeout(60)
+                ->post('https://api.openai.com/v1/images/generations', [
+                    'model' => 'dall-e-3',
+                    'prompt' => "A professional, high-quality, photorealistic image for a social media post about: $prompt. Style: Modern, Architectural, Clean.",
+                    'n' => 1,
+                    'size' => '1024x1024',
+                ]);
+
+            if ($response->successful()) {
+                return $response->json('data.0.url');
+            }
+            
+            Log::error("Image generation failed: " . $response->body());
+            return null;
+
+        } catch (\Exception $e) {
+            Log::error("Image generation exception: " . $e->getMessage());
+            return null;
+        }
     }
 }

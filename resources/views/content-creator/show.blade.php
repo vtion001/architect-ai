@@ -70,7 +70,211 @@
                  $finalPostContent .= "\n\n" . $globalHashtags;
             }
         @endphp
-        <div class="w-full bg-card border border-border rounded-xl shadow-md overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-500" style="animation-delay: {{ $index * 150 }}ms;">
+        @php
+            // Clean content for display (remove markdown symbols)
+            $cleanText = preg_replace('/^#+\s+/m', '', $finalPostContent); // Remove headers
+            $cleanText = str_replace(['*', '`'], '', $cleanText); // Remove asterisks and ticks
+            $cleanHtml = nl2br(e($cleanText));
+        @endphp
+        <div x-data="{ 
+            showMediaOptions: false, 
+            imageUrl: null, 
+            isUploading: false, 
+            isGenerating: false,
+            isRegenerating: false,
+            isPublishing: false,
+            showPublishModal: false,
+            selectedPlatforms: [],
+            scheduleDate: new Date().toISOString().slice(0, 16),
+            rawContent: {{ Js::from($finalPostContent) }},
+            htmlContent: {{ Js::from($cleanHtml) }},
+
+            triggerUpload() {
+                this.$refs.fileInput.click();
+            },
+
+            handleUpload(event) {
+                const file = event.target.files[0];
+                if (!file) return;
+
+                this.isUploading = true;
+
+                // Client-side compression
+                this.compressImage(file, (compressedBlob) => {
+                    const formData = new FormData();
+                    formData.append('file', compressedBlob, file.name);
+                    
+                    fetch('{{ route('content-creator.upload-media') }}', {
+                        method: 'POST',
+                        body: formData,
+                        headers: {
+                            'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                            'Accept': 'application/json' 
+                        }
+                    })
+                    .then(async res => {
+                        if (!res.ok) {
+                            if (res.status === 413) throw new Error('File is too large.');
+                            const text = await res.text();
+                            try { return JSON.parse(text); } catch { throw new Error(res.statusText); }
+                        }
+                        return res.json();
+                    })
+                    .then(data => {
+                        if(data.success) {
+                            this.imageUrl = data.url;
+                            this.showMediaOptions = false;
+                        } else {
+                            alert(data.message || 'Upload failed');
+                        }
+                    })
+                    .catch(err => {
+                        console.error(err);
+                        alert(err.message || 'Upload error');
+                    })
+                    .finally(() => { this.isUploading = false; });
+                });
+            },
+
+            compressImage(file, callback) {
+                const reader = new FileReader();
+                reader.readAsDataURL(file);
+                reader.onload = (event) => {
+                    const img = new Image();
+                    img.src = event.target.result;
+                    img.onload = () => {
+                        const canvas = document.createElement('canvas');
+                        const MAX_WIDTH = 1920;
+                        const MAX_HEIGHT = 1920;
+                        let width = img.width;
+                        let height = img.height;
+
+                        if (width > height) {
+                            if (width > MAX_WIDTH) {
+                                height *= MAX_WIDTH / width;
+                                width = MAX_WIDTH;
+                            }
+                        } else {
+                            if (height > MAX_HEIGHT) {
+                                width *= MAX_HEIGHT / height;
+                                height = MAX_HEIGHT;
+                            }
+                        }
+
+                        canvas.width = width;
+                        canvas.height = height;
+                        const ctx = canvas.getContext('2d');
+                        ctx.drawImage(img, 0, 0, width, height);
+
+                        canvas.toBlob((blob) => {
+                            callback(blob);
+                        }, 'image/jpeg', 0.8);
+                    };
+                };
+            },
+
+            generateImage() {
+                this.isGenerating = true;
+                const prompt = this.rawContent.substring(0, 400); // Use current raw content
+
+                fetch('{{ route('content-creator.generate-media') }}', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json',
+                        'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                    },
+                    body: JSON.stringify({ prompt: prompt })
+                })
+                .then(res => res.json())
+                .then(data => {
+                    if(data.success) {
+                        this.imageUrl = data.url;
+                        this.showMediaOptions = false;
+                    } else {
+                        alert(data.message || 'Generation failed');
+                    }
+                })
+                .catch(err => alert('Generation error'))
+                .finally(() => { this.isGenerating = false; });
+            },
+
+            regenerateText() {
+                this.isRegenerating = true;
+                fetch('{{ route('content-creator.regenerate') }}', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Accept': 'application/json', 'X-CSRF-TOKEN': '{{ csrf_token() }}' },
+                    body: JSON.stringify({ 
+                        content_id: {{ $content->id }},
+                        current_text: this.rawContent
+                    })
+                })
+                .then(res => res.json())
+                .then(data => {
+                    if(data.success) {
+                        this.rawContent = data.new_text;
+                        this.htmlContent = this.formatForDisplay(data.new_text);
+                    } else {
+                        alert('Failed to redo');
+                    }
+                })
+                .catch(e => console.error(e))
+                .finally(() => { this.isRegenerating = false; });
+            },
+
+            formatForDisplay(text) {
+                // Remove Markdown symbols but keep structure
+                let clean = text
+                    .replace(/\*\*/g, '')    // Remove bold **
+                    .replace(/\*/g, '')      // Remove italics *
+                    .replace(/^#+\s+/gm, '') // Remove Header hashes (e.g. ## Title)
+                    .replace(/`/g, '');      // Remove code ticks
+
+                // Convert newlines to breaks
+                return clean.replace(/\n/g, '<br>');
+            },
+
+            openPublishModal() {
+                this.showPublishModal = true;
+            },
+
+            confirmPublish() {
+                if (this.selectedPlatforms.length === 0) {
+                    alert('Please select at least one platform.');
+                    return;
+                }
+
+                this.isPublishing = true;
+                fetch('{{ route('content-creator.publish') }}', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Accept': 'application/json', 'X-CSRF-TOKEN': '{{ csrf_token() }}' },
+                    body: JSON.stringify({ 
+                        content_id: {{ $content->id }},
+                        final_text: this.rawContent,
+                        image_url: this.imageUrl,
+                        platforms: this.selectedPlatforms,
+                        scheduled_at: this.scheduleDate
+                    })
+                })
+                .then(res => res.json())
+                .then(data => {
+                    if(data.success) {
+                        alert('Scheduled to Social Planner!');
+                        // Optional: Redirect
+                        window.location.href = '{{ route('social-planner.index') }}';
+                    }
+                })
+                .finally(() => { 
+                    this.isPublishing = false;
+                    this.showPublishModal = false;
+                });
+            }
+
+        }" class="w-full bg-card border border-border rounded-xl shadow-md overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-500" style="animation-delay: {{ $index * 150 }}ms;">
+            
+            <!-- Hidden File Input -->
+            <input type="file" x-ref="fileInput" class="hidden" accept="image/*" @change="handleUpload">
+
             <!-- Post Header -->
             <div class="p-4 flex items-center justify-between border-b border-border/50">
                 <div class="flex items-center gap-3">
@@ -89,52 +293,134 @@
                         </div>
                     </div>
                 </div>
-                <!-- Action Buttons Removed -->
             </div>
 
             <!-- Post Content Body -->
             <div class="p-4 text-foreground">
-                <div class="prose prose-slate max-w-none dark:prose-invert prose-p:my-2 prose-headings:my-3 prose-ul:my-2 text-[15px] leading-relaxed">
-                    {!! Str::markdown($finalPostContent) !!}
+                <div class="prose prose-slate max-w-none dark:prose-invert prose-p:my-2 prose-headings:my-3 prose-ul:my-2 text-[15px] leading-relaxed" x-html="htmlContent">
                 </div>
             </div>
 
-            <!-- Media Placeholder -->
+            <!-- Media Placeholder / Interactive Area -->
             <div class="px-4 pb-4">
-                 <div class="w-full h-56 rounded-lg bg-muted/20 border-2 border-dashed border-border/50 flex flex-col items-center justify-center gap-2 text-muted-foreground/50 transition-colors hover:bg-muted/30 hover:border-primary/20 hover:text-primary/70 cursor-pointer group">
-                     <div class="w-12 h-12 rounded-full bg-background/50 flex items-center justify-center group-hover:scale-110 transition-transform shadow-sm">
-                        <i data-lucide="image-plus" class="w-6 h-6"></i>
+                 <!-- Image Display State -->
+                 <div x-show="imageUrl" class="relative w-full h-auto rounded-lg overflow-hidden border border-border group min-h-[200px]" x-transition>
+                     <img :src="imageUrl" class="w-full h-auto object-cover max-h-[500px]" alt="Post Media">
+                     <!-- Hover Overlay to Remove/Replace -->
+                     <div class="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                         <button @click="imageUrl = null" class="p-2 bg-white/10 hover:bg-white/20 text-white rounded-full backdrop-blur-md transition-colors" title="Remove Image">
+                             <i data-lucide="trash-2" class="w-5 h-5"></i>
+                         </button>
+                         <button @click="showMediaOptions = true" class="p-2 bg-white/10 hover:bg-white/20 text-white rounded-full backdrop-blur-md transition-colors" title="Replace Image">
+                             <i data-lucide="refresh-cw" class="w-5 h-5"></i>
+                         </button>
                      </div>
-                     <span class="text-xs font-bold uppercase tracking-widest">Add Visuals</span>
+                 </div>
+
+                 <!-- Placeholder State -->
+                 <div x-show="!imageUrl" class="relative w-full h-56 rounded-lg bg-muted/20 border-2 border-dashed border-border/50 overflow-hidden group">
+                     
+                     <!-- Default State: Add Visuals Prompt -->
+                     <div @click="showMediaOptions = true" x-show="!showMediaOptions && !isGenerating && !isUploading" class="absolute inset-0 flex flex-col items-center justify-center gap-2 text-muted-foreground/50 transition-colors hover:bg-muted/30 hover:text-primary/70 cursor-pointer">
+                         <div class="w-12 h-12 rounded-full bg-background/50 flex items-center justify-center group-hover:scale-110 transition-transform shadow-sm">
+                            <i data-lucide="image-plus" class="w-6 h-6"></i>
+                         </div>
+                         <span class="text-xs font-bold uppercase tracking-widest">Add Visuals</span>
+                     </div>
+                     
+                     <!-- Loading State -->
+                     <div x-show="isGenerating || isUploading" class="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-muted/10 z-20" style="display: none;">
+                        <i data-lucide="loader-2" class="w-8 h-8 text-primary animate-spin"></i>
+                        <span class="text-xs font-bold uppercase tracking-widest text-primary" x-text="isGenerating ? 'Designing...' : 'Uploading...'"></span>
+                     </div>
+
+                     <!-- Active State: Media Options -->
+                     <div x-show="showMediaOptions && !isGenerating && !isUploading" 
+                          x-transition:enter="transition ease-out duration-200"
+                          x-transition:enter-start="opacity-0 scale-95"
+                          x-transition:enter-end="opacity-100 scale-100"
+                          class="absolute inset-0 bg-background/95 backdrop-blur-sm z-10 flex flex-col items-center justify-center p-6 gap-3"
+                          style="display: none;">
+                        
+                        <h5 class="text-sm font-semibold text-foreground mb-1">Select Media Source</h5>
+                        
+                        <div class="flex items-center gap-3 w-full max-w-xs">
+                             <button @click="triggerUpload" class="flex-1 flex flex-col items-center justify-center gap-2 p-4 rounded-xl border border-border bg-card hover:border-primary/50 hover:bg-primary/5 transition-all group/btn">
+                                <i data-lucide="paperclip" class="w-5 h-5 text-muted-foreground group-hover/btn:text-primary"></i>
+                                <span class="text-[10px] font-bold uppercase tracking-wider text-muted-foreground group-hover/btn:text-primary">Upload Photo</span>
+                             </button>
+                             <button @click="generateImage" class="flex-1 flex flex-col items-center justify-center gap-2 p-4 rounded-xl border border-border bg-card hover:border-purple-500/50 hover:bg-purple-500/5 transition-all group/btn">
+                                <i data-lucide="sparkles" class="w-5 h-5 text-purple-500"></i>
+                                <span class="text-[10px] font-bold uppercase tracking-wider text-muted-foreground group-hover/btn:text-purple-600">Banana Pro AI</span>
+                             </button>
+                        </div>
+
+                        <button @click="showMediaOptions = false" class="absolute top-2 right-2 p-2 text-muted-foreground hover:text-foreground">
+                            <i data-lucide="x" class="w-4 h-4"></i>
+                        </button>
+                     </div>
                  </div>
             </div>
 
              <!-- Draft Actions Footer -->
-            <div class="px-4 py-3 border-t border-border bg-muted/5 flex flex-wrap items-center justify-between gap-3">
-                 <!-- Left Group: Visuals -->
-                 <div class="flex gap-2 w-full md:w-auto">
-                     <button class="flex-1 md:flex-none flex items-center justify-center gap-2 py-2 px-3 rounded-lg bg-card border border-border text-muted-foreground hover:text-primary hover:border-primary/30 transition-all text-xs font-bold uppercase tracking-wider whitespace-nowrap" title="Generate AI Image">
-                        <i data-lucide="sparkles" class="w-4 h-4"></i>
-                        <span class="hidden sm:inline">Gen Photo</span>
-                    </button>
-                    <button class="flex-1 md:flex-none flex items-center justify-center gap-2 py-2 px-3 rounded-lg bg-card border border-border text-muted-foreground hover:text-blue-500 hover:border-blue-200 transition-all text-xs font-bold uppercase tracking-wider whitespace-nowrap" title="Upload Image">
-                        <i data-lucide="paperclip" class="w-4 h-4"></i>
-                        <span class="hidden sm:inline">Attach</span>
-                    </button>
-                 </div>
-
-                 <!-- Right Group: Actions -->
-                 <div class="flex gap-2 w-full md:w-auto">
-                     <button class="flex-1 md:flex-none flex items-center justify-center gap-2 py-2 px-3 rounded-lg bg-white border border-border text-muted-foreground hover:text-red-500 hover:border-red-200 hover:bg-red-50 transition-all text-xs font-bold uppercase tracking-wider" title="Regenerate Text">
-                        <i data-lucide="refresh-cw" class="w-4 h-4"></i>
-                        <span class="hidden sm:inline">Redo</span>
-                    </button>
-                    <button class="flex-1 md:flex-none flex items-center justify-center gap-2 py-2 px-4 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 transition-all text-xs font-bold uppercase tracking-wider shadow-sm flex-grow md:flex-grow-0">
-                        <i data-lucide="send" class="w-4 h-4"></i>
-                        Publish
-                    </button>
-                 </div>
+            <div class="px-4 py-3 border-t border-border bg-muted/5 flex items-center justify-end gap-3">
+                 <button @click="regenerateText" :disabled="isRegenerating" class="flex items-center justify-center gap-2 py-2 px-3 rounded-lg bg-white border border-border text-muted-foreground hover:text-red-500 hover:border-red-200 hover:bg-red-50 transition-all text-xs font-bold uppercase tracking-wider disabled:opacity-50 disabled:cursor-not-allowed" title="Regenerate Text">
+                    <i x-show="!isRegenerating" data-lucide="refresh-cw" class="w-4 h-4"></i>
+                    <i x-show="isRegenerating" data-lucide="loader-2" class="w-4 h-4 animate-spin"></i>
+                    <span x-text="isRegenerating ? 'Redoing...' : 'Redo'" class="hidden sm:inline"></span>
+                </button>
+                <button @click="openPublishModal" :disabled="isPublishing" class="flex items-center justify-center gap-2 py-2 px-4 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 transition-all text-xs font-bold uppercase tracking-wider shadow-sm disabled:opacity-50 disabled:cursor-not-allowed">
+                    <i x-show="!isPublishing" data-lucide="send" class="w-4 h-4"></i>
+                    <i x-show="isPublishing" data-lucide="loader-2" class="w-4 h-4 animate-spin"></i>
+                    <span x-text="isPublishing ? 'Publishing...' : 'Publish'"></span>
+                </button>
             </div>
+
+            <!-- Publish Modal (Inside Loop for Isolation) -->
+            <div x-show="showPublishModal" class="absolute inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4" x-transition style="display: none;">
+                <div @click.away="showPublishModal = false" class="bg-card w-full max-w-sm rounded-xl shadow-2xl border border-border p-5 space-y-4">
+                    <div class="text-center">
+                        <h3 class="text-lg font-bold">Publish to Social Planner</h3>
+                        <p class="text-xs text-muted-foreground">Where should this content go?</p>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-3">
+                        <label class="flex items-center gap-3 p-3 rounded-lg border border-border bg-muted/20 cursor-pointer hover:bg-muted/40 transition-colors" :class="{'border-blue-500 bg-blue-500/10': selectedPlatforms.includes('linkedin')}">
+                            <input type="checkbox" value="linkedin" x-model="selectedPlatforms" class="hidden">
+                            <div class="w-8 h-8 rounded bg-blue-600 flex items-center justify-center text-white">Li</div>
+                            <span class="text-sm font-medium">LinkedIn</span>
+                        </label>
+                         <label class="flex items-center gap-3 p-3 rounded-lg border border-border bg-muted/20 cursor-pointer hover:bg-muted/40 transition-colors" :class="{'border-sky-500 bg-sky-500/10': selectedPlatforms.includes('twitter')}">
+                            <input type="checkbox" value="twitter" x-model="selectedPlatforms" class="hidden">
+                            <div class="w-8 h-8 rounded bg-sky-400 flex items-center justify-center text-white">Tw</div>
+                            <span class="text-sm font-medium">Twitter</span>
+                        </label>
+                         <label class="flex items-center gap-3 p-3 rounded-lg border border-border bg-muted/20 cursor-pointer hover:bg-muted/40 transition-colors" :class="{'border-blue-700 bg-blue-700/10': selectedPlatforms.includes('facebook')}">
+                            <input type="checkbox" value="facebook" x-model="selectedPlatforms" class="hidden">
+                            <div class="w-8 h-8 rounded bg-blue-700 flex items-center justify-center text-white">Fb</div>
+                            <span class="text-sm font-medium">Facebook</span>
+                        </label>
+                         <label class="flex items-center gap-3 p-3 rounded-lg border border-border bg-muted/20 cursor-pointer hover:bg-muted/40 transition-colors" :class="{'border-pink-500 bg-pink-500/10': selectedPlatforms.includes('instagram')}">
+                             <input type="checkbox" value="instagram" x-model="selectedPlatforms" class="hidden">
+                            <div class="w-8 h-8 rounded bg-pink-600 flex items-center justify-center text-white">In</div>
+                            <span class="text-sm font-medium">Instagram</span>
+                        </label>
+                    </div>
+
+                    <div class="space-y-1">
+                        <label class="text-[10px] font-bold uppercase text-muted-foreground">Schedule For</label>
+                        <input type="datetime-local" x-model="scheduleDate" class="w-full bg-muted/30 border border-border rounded-lg text-sm px-3 py-2">
+                    </div>
+
+                    <div class="flex gap-2 pt-2">
+                        <button @click="showPublishModal = false" class="flex-1 py-2 text-xs font-bold uppercase text-muted-foreground hover:bg-muted rounded-lg">Cancel</button>
+                        <button @click="confirmPublish" class="flex-1 py-2 text-xs font-bold uppercase bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 shadow-md">Confirm</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+            
+
         </div>
         @endforeach
     </div>

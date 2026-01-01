@@ -143,12 +143,51 @@
                     </button>
                 </div>
             </div>
-            <div class="p-6 pt-0">
+            <div class="p-6 pt-0 max-h-[600px] overflow-y-auto">
                 <div class="space-y-4">
-                    <div class="flex flex-col items-center justify-center py-12 text-muted-foreground">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-calendar-x mb-4 opacity-50"><rect width="18" height="18" x="3" y="4" rx="2" ry="2"/><line x1="16" x2="16" y1="2" y2="6"/><line x1="8" x2="8" y1="2" y2="6"/><line x1="3" x2="21" y1="10" y2="10"/><line x1="10" x2="14" y1="14" y2="18"/><line x1="14" x2="10" y1="14" y2="18"/></svg>
-                        <p>No posts scheduled yet.</p>
-                    </div>
+                    <?php $__empty_1 = true; $__currentLoopData = $scheduledPosts; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $post): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); $__empty_1 = false; ?>
+                        <?php
+                            $options = $post->options ?? [];
+                            $platform = $options['platform'] ?? 'generic';
+                            $date = \Carbon\Carbon::parse($options['scheduled_at'] ?? $post->created_at);
+                            $bgColors = [
+                                'linkedin' => 'bg-blue-600',
+                                'twitter' => 'bg-sky-400',
+                                'facebook' => 'bg-blue-700',
+                                'instagram' => 'bg-pink-600',
+                                'generic' => 'bg-gray-500'
+                            ];
+                            $bgColor = $bgColors[$platform] ?? 'bg-gray-500';
+                            $initials = substr(ucfirst($platform), 0, 2);
+                        ?>
+                        <div class="flex items-start gap-4 p-4 rounded-lg border border-border bg-muted/20 hover:bg-muted/30 transition-colors group">
+                            <!-- Icon -->
+                            <div class="w-10 h-10 <?php echo e($bgColor); ?> rounded-lg flex items-center justify-center text-white font-bold shrink-0 shadow-sm">
+                                <?php echo e($initials); ?>
+
+                            </div>
+                            
+                            <!-- Content -->
+                            <div class="flex-1 min-w-0">
+                                <div class="flex items-center justify-between mb-1">
+                                    <h4 class="font-semibold text-sm truncate"><?php echo e(ucfirst($platform)); ?> Post</h4>
+                                    <span class="text-xs text-muted-foreground"><?php echo e($date->format('M d, g:i A')); ?></span>
+                                </div>
+                                <p class="text-sm text-muted-foreground line-clamp-2 mb-2"><?php echo e($post->result); ?></p>
+                                
+                                <?php if(!empty($options['image_url'])): ?>
+                                    <div class="w-24 h-16 rounded overflow-hidden shadow-sm border border-border">
+                                        <img src="<?php echo e($options['image_url']); ?>" class="w-full h-full object-cover">
+                                    </div>
+                                <?php endif; ?>
+                            </div>
+                        </div>
+                    <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); if ($__empty_1): ?>
+                        <div class="flex flex-col items-center justify-center py-12 text-muted-foreground">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-calendar-x mb-4 opacity-50"><rect width="18" height="18" x="3" y="4" rx="2" ry="2"/><line x1="16" x2="16" y1="2" y2="6"/><line x1="8" x2="8" y1="2" y2="6"/><line x1="3" x2="21" y1="10" y2="10"/><line x1="10" x2="14" y1="14" y2="18"/><line x1="14" x2="10" y1="14" y2="18"/></svg>
+                            <p>No posts scheduled yet.</p>
+                        </div>
+                    <?php endif; ?>
                 </div>
             </div>
         </div>
