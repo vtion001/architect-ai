@@ -3253,3 +3253,9 @@ Please retry in 6.09718493s.
 #49 /var/www/public/index.php(14): Illuminate\\Foundation\\Application->handleRequest(Object(Illuminate\\Http\\Request))
 #50 {main}
 "} 
+[2026-01-02 06:43:55] local.INFO: Attempting to delete batch for Content ID: 10  
+[2026-01-02 06:43:55] local.INFO: Found 2 child posts to remove.  
+[2026-01-02 06:43:55] local.INFO: Attempting live removal from Facebook: 122123977808998435  
+[2026-01-02 06:43:56] local.ERROR: Facebook Delete API Error (ID 122123977808998435): {"error":{"message":"Unsupported delete request. Object with ID '122123977808998435' does not exist, cannot be loaded due to missing permissions, or does not support this operation. Please read the Graph API documentation at https:\/\/developers.facebook.com\/docs\/graph-api","type":"GraphMethodException","code":100,"error_subcode":33,"fbtrace_id":"AqIzuvSWYBRW0IgNJXTTnuG"}}  
+[2026-01-02 06:43:56] local.INFO: Attempting live removal from Facebook: 122123980850998435  
+[2026-01-02 06:43:56] local.ERROR: Facebook Delete API Error (ID 122123980850998435): {"error":{"message":"Unsupported delete request. Object with ID '122123980850998435' does not exist, cannot be loaded due to missing permissions, or does not support this operation. Please read the Graph API documentation at https:\/\/developers.facebook.com\/docs\/graph-api","type":"GraphMethodException","code":100,"error_subcode":33,"fbtrace_id":"AUMEba4tnO9N11nhLrZKaIx"}}  

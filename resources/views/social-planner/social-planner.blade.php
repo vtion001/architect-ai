@@ -288,14 +288,14 @@
                                 <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="sparkles" class="lucide lucide-sparkles w-3 h-3 text-primary"><path d="M11.017 2.814a1 1 0 0 1 1.966 0l1.051 5.558a2 2 0 0 0 1.594 1.594l5.558 1.051a1 1 0 0 1 0 1.966l-5.558 1.051a2 2 0 0 0-1.594 1.594l-1.051 5.558a1 1 0 0 1-1.966 0l-1.051-5.558a2 2 0 0 0-1.594-1.594l-5.558-1.051a1 1 0 0 1 0-1.966l5.558-1.051a2 2 0 0 0 1.594-1.594z"></path><path d="M20 2v4"></path><path d="M22 4h-4"></path><circle cx="4" cy="20" r="2"></circle></svg>
                                 GET SUGGESTIONS
                             </span>
-                            <span x-show="isLoadingSuggestions">Running Gemini...</span>
+                            <span x-show="isLoadingSuggestions">Running OpenAI...</span>
                         </button>
                     </div>
                     <input x-model="topic" type="text" placeholder="e.g., 'Modern Architecture Trends 2026'" class="w-full h-14 bg-muted/20 border border-border rounded-xl px-5 text-sm font-medium focus:ring-1 focus:ring-primary">
                     
                     <!-- Suggestions Results -->
                     <div x-show="suggestions" x-transition class="p-4 bg-muted/30 border border-border rounded-lg">
-                        <h4 class="text-xs font-bold uppercase mb-2 text-primary">Gemini Ideas:</h4>
+                        <h4 class="text-xs font-bold uppercase mb-2 text-primary">OpenAI Ideas:</h4>
                         <div class="prose prose-sm max-w-none text-muted-foreground whitespace-pre-wrap text-sm" x-text="suggestions"></div>
                     </div>
                 </div>

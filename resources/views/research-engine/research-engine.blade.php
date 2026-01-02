@@ -100,7 +100,7 @@
                     <i data-lucide="brain" class="w-5 h-5"></i>
                     Start New Research
                 </h3>
-                <p class="text-sm text-muted-foreground">Gemini-powered deep research engine with real-time web grounding</p>
+                <p class="text-sm text-muted-foreground">OpenAI-powered deep research engine with real-time web grounding</p>
             </div>
             <div class="p-6 pt-0 space-y-4">
                 <div>
@@ -128,7 +128,7 @@
                         <template x-if="isResearching">
                             <i data-lucide="loader-2" class="w-4 h-4 mr-2 animate-spin"></i>
                         </template>
-                        <span x-text="isResearching ? 'Gemini is Architecting...' : 'Start Deep Research (Gemini)'"></span>
+                        <span x-text="isResearching ? 'OpenAI is Architecting...' : 'Start Deep Research (OpenAI)'"></span>
                     </button>
                 </div>
             </div>

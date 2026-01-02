@@ -43,14 +43,14 @@
         }));
 
         // Individual Post Card component
-        Alpine.data('postCard', (index, initialRaw, initialHtml) => ({
+        Alpine.data('postCard', (index, initialRaw, initialHtml, alreadyPublished = false) => ({
             showMediaOptions: false,
             imageUrl: null,
             isUploading: false,
             isGenerating: false,
             isRegenerating: false,
             isPublishing: false,
-            isPublished: false,
+            isPublished: alreadyPublished,
             publishResult: null,
             showPublishModal: false,
             selectedPlatforms: [],
@@ -239,6 +239,7 @@
                     headers: { 'Content-Type': 'application/json', 'Accept': 'application/json', 'X-CSRF-TOKEN': '{{ csrf_token() }}' },
                     body: JSON.stringify({
                         content_id: {{ $content->id }},
+                        segment_index: index,
                         final_text: this.rawContent,
                         image_url: this.imageUrl,
                         platforms: this.selectedPlatforms,
@@ -345,7 +346,7 @@
             $cleanHtml = nl2br(e($cleanText));
         @endphp
         
-        <div x-data="postCard({{ $index }}, {{ Js::from($finalPostContent) }}, {{ Js::from($cleanHtml) }})" 
+        <div x-data="postCard({{ $index }}, {{ Js::from($finalPostContent) }}, {{ Js::from($cleanHtml) }}, {{ in_array($index, $publishedIndexes) ? 'true' : 'false' }})" 
              class="w-full bg-card border border-border rounded-xl shadow-md overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-500 relative" 
              style="animation-delay: {{ $index * 150 }}ms;">
             
@@ -385,6 +386,15 @@
                             <span class="text-muted-foreground/50">•</span>
                             <i data-lucide="globe" class="w-3 h-3 opacity-70"></i>
                         </div>
+                    </div>
+                </div>
+
+                <!-- Status Preview Holder -->
+                <div class="flex items-center">
+                    <div :class="isPublished ? 'bg-green-100 text-green-700 border-green-200' : 'bg-red-50 text-red-600 border-red-100'" 
+                         class="inline-flex items-center rounded-full border px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider transition-colors">
+                        <div :class="isPublished ? 'bg-green-600' : 'bg-red-600'" class="w-1.5 h-1.5 rounded-full mr-1.5"></div>
+                        <span x-text="isPublished ? 'Published' : 'Unpublished'"></span>
                     </div>
                 </div>
             </div>

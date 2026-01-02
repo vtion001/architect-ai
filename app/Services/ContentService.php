@@ -21,62 +21,68 @@ class ContentService
         $generator = $options['generator'] ?? 'post';
         $tone = $options['tone'] ?? 'Professional';
         $cta = $options['cta'] ?? '';
-        $lineBreaks = ($options['addLineBreaks'] ?? true) ? "Use generous line breaks for readability." : "Use standard spacing.";
-        $hashtags = ($options['includeHashtags'] ?? false) ? "Include relevant hashtags." : "";
+        $lineBreaks = ($options['addLineBreaks'] ?? true) ? "Use natural spacing and paragraph breaks for a human-like flow." : "Use standard spacing.";
+        $hashtags = ($options['includeHashtags'] ?? false) ? "Include 2-3 relevant hashtags that a human would actually use (no spamming)." : "";
+
+        // Humanizing constraints to avoid "AI-speak"
+        $humanizeInstruction = "
+            STRICT HUMANIZATION GUIDELINES:
+            - Write like a real person sharing valuable insights, not an AI following a prompt.
+            - Use natural sentence variety (mix short and long sentences).
+            - Use contractions (e.g., 'don't', 'it's', 'we're') to sound conversational.
+            - Avoid AI 'tells' and clichés: Do NOT use words like 'delve', 'unlock', 'embark', 'comprehensive', 'in today's digital landscape', or 'tapestry'.
+            - Use active voice and focus on a direct connection with the reader.
+            - Inject a bit of personality and warmth while maintaining the '$tone' tone.";
 
         if ($generator === 'video') {
             $platform = $options['video_platform'] ?? 'reels';
             $hook = $options['video_hook'] ?? 'Problem/Solution';
             $duration = $options['video_duration'] ?? '60s';
 
-            $systemPrompt = "You are an expert video scriptwriter. Create a viral-ready script for $platform.
+            $systemPrompt = "You are a creative video storyteller. Create a script for $platform that feels authentic and engaging.
                              HOOK STYLE: $hook
                              TARGET DURATION: $duration
-                             PLATFORM: $platform
                              
-                             STRICT GUIDELINES:
-                             - Start with a high-impact hook using the $hook style.
-                             - Provide clear visual cues in brackets [Script: Visual Cue].
-                             - Keep the language punchy and suitable for $platform.
-                             - Include a strong call to action at the end: $cta";
+                             $humanizeInstruction
+                             - Write scripts that sound natural when spoken aloud. 
+                             - Include realistic pauses and verbal emphasis.
+                             - Visual cues should support the narrative flow, not just describe actions.
+                             - CTA: $cta";
             
-            $userPrompt = "Write a $duration video script about $topic. Context: $context";
+            $userPrompt = "Write a $duration video script about $topic. Provide it in a clear format. Context: $context";
         } elseif ($generator === 'blog') {
             $keywords = $options['blog_keywords'] ?? '';
             $structure = $options['blog_structure'] ?? 'Standard';
 
-            $systemPrompt = "You are a senior SEO content strategist and technical writer. 
+            $systemPrompt = "You are an insightful thought leader. Write an article that people actually want to read.
                              ARTICLE STRUCTURE: $structure
-                             TARGET KEYWORDS: $keywords
                              TONE: $tone
                              
-                             STRICT GUIDELINES:
-                             - Use Markdown headers (H1, H2, H3) for structure.
-                             - Ensure technical depth and professional authority.
-                             - Seamlessly integrate keywords.
-                             - Provide a clear summary and next steps.
+                             $humanizeInstruction
+                             - Use Markdown headers (H1, H2, H3) that are catchy and human-centric.
+                             - Explain complex ideas simply, as if explaining to a smart friend.
+                             - Integrate keywords naturally; if they feel forced, prioritize readability.
                              - Mandatory CTA: $cta";
             
-            $userPrompt = "Write a comprehensive $structure blog post about $topic. \nKeywords to include: $keywords. \nContext: $context";
+            $userPrompt = "Write a $structure blog post about $topic. \nKeywords to consider: $keywords. \nContext: $context";
         } else {
             // Default: Post Generator
             $count = $options['count'] ?? 1;
             $length = $options['length'] ?? 'Standard';
             
-            $systemPrompt = "You are an expert social media and content architect.
+            $systemPrompt = "You are a relatable content creator and industry expert.
                              TONE: $tone
                              FORMAT: $type
                              
-                             STRICT GUIDELINES:
+                             $humanizeInstruction
                              - $lineBreaks
                              - $hashtags
-                             - $tone brand voice.
-                             - Clear, actionable structure.
+                             - Make the first sentence a compelling personal hook.
                              - Mandatory CTA: $cta";
             
-            $userPrompt = "Generate $count unique $type(s) about: $topic. \nContext: $context \nTone: $tone \nLength: $length";
+            $userPrompt = "Create $count $type(s) about: $topic. \nContext: $context \nTone: $tone \nLength: $length";
             if ($count > 1) {
-                $userPrompt .= "\nFormat as a numbered list of distinct options.";
+                $userPrompt .= "\nRespond with a numbered list of distinct, unique options.";
             }
         }
 
@@ -90,6 +96,7 @@ class ContentService
                         ['role' => 'user', 'content' => $userPrompt],
                     ],
                     'max_tokens' => 2500,
+                    'temperature' => 0.8, // Increased for more natural variety
                 ]);
 
             if ($response->failed()) {
@@ -110,7 +117,7 @@ class ContentService
                 ->timeout(60)
                 ->post('https://api.openai.com/v1/images/generations', [
                     'model' => 'dall-e-3',
-                    'prompt' => "A professional, high-quality, photorealistic image for a social media post about: $prompt. Style: Modern, Architectural, Clean.",
+                    'prompt' => "A professional, stunning, and organic image about: $prompt. The style should be high-end editorial photography, modern, and clean. No generic stock photo look. Use natural lighting and depth of field.",
                     'n' => 1,
                     'size' => '1024x1024',
                 ]);

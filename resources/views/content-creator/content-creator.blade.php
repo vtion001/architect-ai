@@ -266,7 +266,7 @@
                                     <i data-lucide="sparkles" class="w-3 h-3 text-primary"></i>
                                     GET SUGGESTIONS
                                 </span>
-                                <span x-show="isLoadingSuggestions">Running Gemini...</span>
+                                <span x-show="isLoadingSuggestions">Running OpenAI...</span>
                             </button>
                         </div>
                         <input x-model="topic" type="text" placeholder="e.g., 'Modern Architecture Trends 2026'" class="w-full h-14 bg-muted/20 border border-border rounded-xl px-5 text-sm font-medium focus:ring-1 focus:ring-primary">
@@ -276,7 +276,7 @@
                             <button @click="suggestions = ''" class="absolute top-2 right-2 text-muted-foreground hover:text-foreground">
                                 <i data-lucide="x" class="w-3 h-3"></i>
                             </button>
-                            <h4 class="text-xs font-bold uppercase mb-2 text-primary">Gemini Ideas:</h4>
+                            <h4 class="text-xs font-bold uppercase mb-2 text-primary">OpenAI Ideas:</h4>
                             <div class="prose prose-sm max-w-none text-muted-foreground whitespace-pre-wrap text-sm" x-text="suggestions"></div>
                         </div>
                     </div>

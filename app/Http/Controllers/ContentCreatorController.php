@@ -126,8 +126,23 @@ class ContentCreatorController extends Controller
             $tokens = json_decode(file_get_contents($path), true);
             $isFacebookConnected = !empty($tokens['facebook']);
         }
+
+        // Fetch children to determine which segments are already published
+        // Check both string and int IDs as JSON storage can vary
+        $children = Content::where(function($q) use ($content) {
+                $q->where('options->original_content_id', $content->id)
+                  ->orWhere('options->original_content_id', (string)$content->id);
+            })
+            ->whereIn('status', ['published', 'scheduled'])
+            ->get();
+
+        $publishedIndexes = $children->map(fn($c) => (int)($c->options['segment_index'] ?? -1))
+            ->filter(fn($idx) => $idx !== -1)
+            ->unique()
+            ->values()
+            ->toArray();
         
-        return view('content-creator.content-viewer', compact('content', 'isFacebookConnected'));
+        return view('content-creator.content-viewer', compact('content', 'isFacebookConnected', 'publishedIndexes'));
     }
 
     public function getSuggestions(Request $request)
@@ -251,6 +266,7 @@ class ContentCreatorController extends Controller
     {
         $validated = $request->validate([
             'content_id' => 'required|exists:contents,id',
+            'segment_index' => 'required|integer', // Track which part of the batch this is
             'final_text' => 'required|string',
             'image_url' => 'nullable|url',
             'platforms' => 'required|array|min:1',
@@ -272,7 +288,8 @@ class ContentCreatorController extends Controller
                 'platform' => $platform,
                 'scheduled_at' => $scheduledAt,
                 'image_url' => $validated['image_url'],
-                'original_content_id' => $validated['content_id']
+                'original_content_id' => (int)$validated['content_id'],
+                'segment_index' => (int)$validated['segment_index']
             ];
 
             // Attach specific credentials for Facebook
