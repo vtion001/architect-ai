@@ -33,7 +33,7 @@ class ReportBuilderController extends Controller
             $selectedResearch = \App\Models\Research::find($request->research_id);
         }
 
-        return view('report-builder.index', compact('templateCategories', 'selectedResearch'));
+        return view('report-builder.report-builder', compact('templateCategories', 'selectedResearch'));
     }
 
     public function generate(GenerateReportRequest $request): JsonResponse

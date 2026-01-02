@@ -62,7 +62,7 @@ class SocialPlannerController extends Controller
             $socialConfig[$key]['percentage'] = number_format(($config['count'] / $totalSocialPosts) * 100, 1);
         }
 
-        return view('social-planner.index', compact('scheduledPosts', 'socialConfig'));
+        return view('social-planner.social-planner', compact('scheduledPosts', 'socialConfig'));
     }
 
     public function getSuggestions(Request $request)

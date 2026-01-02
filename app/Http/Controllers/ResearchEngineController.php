@@ -26,7 +26,7 @@ class ResearchEngineController extends Controller
 
         $recentResearches = Research::latest()->take(10)->get();
 
-        return view('research-engine.index', compact('stats', 'recentResearches'));
+        return view('research-engine.research-engine', compact('stats', 'recentResearches'));
     }
 
     public function store(Request $request)
@@ -77,7 +77,7 @@ class ResearchEngineController extends Controller
 
     public function show(Research $research)
     {
-        return view('research-engine.show', compact('research'));
+        return view('research-engine.research-report', compact('research'));
     }
 
     public function destroy(Research $research)

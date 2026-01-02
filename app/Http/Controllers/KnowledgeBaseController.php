@@ -8,6 +8,6 @@ class KnowledgeBaseController extends Controller
 {
     public function index()
     {
-        return view('knowledge-base.index');
+        return view('knowledge-base.knowledge-hub');
     }
 }

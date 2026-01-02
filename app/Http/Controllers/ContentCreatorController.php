@@ -30,7 +30,7 @@ class ContentCreatorController extends Controller
               ->orWhere('options', '[]');
         })->latest()->take(15)->get();
 
-        return view('content-creator.index', compact('stats', 'recentContents'));
+        return view('content-creator.content-creator', compact('stats', 'recentContents'));
     }
 
     public function store(Request $request)
@@ -127,7 +127,7 @@ class ContentCreatorController extends Controller
             $isFacebookConnected = !empty($tokens['facebook']);
         }
         
-        return view('content-creator.show', compact('content', 'isFacebookConnected'));
+        return view('content-creator.content-viewer', compact('content', 'isFacebookConnected'));
     }
 
     public function getSuggestions(Request $request)

@@ -287,16 +287,11 @@
                 <div class="w-full flex flex-col">
                     <!-- Tabs and Zoom Controls -->
                     <div class="flex items-center gap-4 mb-4">
-                        <div class="grid grid-cols-2 bg-muted p-1 rounded-md w-48">
+                        <div class="bg-muted p-1 rounded-md flex w-fit">
                             <button @click="activeTab = 'preview'" 
                                 :class="activeTab === 'preview' ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground hover:bg-background/50'"
                                 class="inline-flex items-center justify-center whitespace-nowrap rounded-sm px-3 py-1.5 text-sm font-medium transition-all">
                                 Preview
-                            </button>
-                            <button @click="activeTab = 'html'"
-                                :class="activeTab === 'html' ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground hover:bg-background/50'"
-                                class="inline-flex items-center justify-center whitespace-nowrap rounded-sm px-3 py-1.5 text-sm font-medium transition-all">
-                                HTML Code
                             </button>
                         </div>
                         <div class="flex items-center gap-2 ml-auto">
