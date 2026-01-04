@@ -71,6 +71,36 @@
                 this.$watch('imageUrl', (val) => {
                     if (val) this.persistVisual(index);
                 });
+
+                // Load remembered Facebook Page
+                const savedPage = localStorage.getItem('arch_ai_fb_page');
+                if (savedPage) {
+                    try {
+                        this.selectedFacebookPage = JSON.parse(savedPage);
+                    } catch (e) { console.error('Error loading saved page', e); }
+                }
+
+                // Silent refresh to ensure we have latest permissions/IG IDs
+                if (this.isFacebookConnected) {
+                    this.refreshPageData();
+                }
+            },
+
+            refreshPageData() {
+                fetch('/social-planner/facebook-pages')
+                    .then(res => res.json())
+                    .then(data => {
+                        const pages = data.pages || [];
+                        if (this.selectedFacebookPage && pages.length > 0) {
+                            const freshPage = pages.find(p => p.id === this.selectedFacebookPage.id);
+                            if (freshPage) {
+                                // Update local state with fresh data (including potential instagram_business_account)
+                                this.selectedFacebookPage = freshPage;
+                                localStorage.setItem('arch_ai_fb_page', JSON.stringify(freshPage));
+                            }
+                        }
+                    })
+                    .catch(e => console.error('Background page refresh failed', e));
             },
 
             toggleEdit() {
@@ -111,8 +141,22 @@
                     .finally(() => { this.isFetchingPages = false; });
             },
 
+            // Alias for Instagram since it uses the same FB Page connection logic
+            fetchInstagramPages() {
+                this.fetchFacebookPages();
+            },
+
+            fetchLinkedinPages() {
+                alert('LinkedIn Company Page selection coming soon.');
+            },
+
+            fetchTwitterPages() {
+                alert('Twitter Account selection coming soon.');
+            },
+
             selectPage(page) {
                 this.selectedFacebookPage = page;
+                localStorage.setItem('arch_ai_fb_page', JSON.stringify(page)); // Persist selection
                 this.showPageModal = false;
                 if (!this.selectedPlatforms.includes('facebook')) {
                     this.selectedPlatforms.push('facebook');
@@ -229,16 +273,33 @@
                     alert('Please select at least one platform.');
                     return;
                 }
+
+                if (this.selectedPlatforms.includes('instagram') && !this.imageUrl) {
+                    alert('Instagram posts require an image. Please add visuals before publishing.');
+                    return;
+                }
+
                 let fbPageId = null;
                 let fbPageToken = null;
-                if (this.selectedPlatforms.includes('facebook')) {
+                let igAccountId = null;
+
+                if (this.selectedPlatforms.includes('facebook') || this.selectedPlatforms.includes('instagram')) {
                     if (this.selectedFacebookPage) {
                         fbPageId = this.selectedFacebookPage.id;
                         fbPageToken = this.selectedFacebookPage.access_token;
+                        
+                        if (this.selectedFacebookPage.instagram_business_account) {
+                            igAccountId = this.selectedFacebookPage.instagram_business_account.id;
+                        }
                     } else {
-                        if (!confirm('You have selected Facebook but no specific Page. Continue?')) { return; }
+                        if (!confirm('You have selected a Meta platform but no specific Page. Continue?')) { return; }
                     }
                 }
+
+                if (this.selectedPlatforms.includes('instagram') && !igAccountId) {
+                     if (!confirm('The selected Facebook Page does not have a linked Instagram Business account. Instagram posting will fail. Continue?')) { return; }
+                }
+
                 this.isPublishing = true;
                 fetch('/content-creator/publish', {
                     method: 'POST',
@@ -251,7 +312,8 @@
                         platforms: this.selectedPlatforms,
                         scheduled_at: this.postNow ? 'now' : this.scheduleDate,
                         facebook_page_id: fbPageId,
-                        facebook_page_token: fbPageToken
+                        facebook_page_token: fbPageToken,
+                        instagram_account_id: igAccountId
                     })
                 })
                 .then(res => res.json())
@@ -261,6 +323,9 @@
                         this.publishResult = data.message;
                         if (data.results && data.results.facebook && !data.results.facebook.success) {
                             this.publishResult += "\n\nNote: Facebook post failed: " + data.results.facebook.error;
+                        }
+                        if (data.results && data.results.instagram && !data.results.instagram.success) {
+                            this.publishResult += "\n\nNote: Instagram post failed: " + data.results.instagram.error;
                         }
                     } else {
                         alert('Publishing failed: ' + (data.message || 'Unknown error'));
@@ -514,16 +579,31 @@
                     </div>
 
                     <div class="grid grid-cols-2 gap-3">
-                        <label class="flex items-center gap-3 p-3 rounded-lg border border-border bg-muted/20 cursor-pointer hover:bg-muted/40 transition-colors" :class="{'border-blue-500 bg-blue-500/10': selectedPlatforms.includes('linkedin')}">
-                            <input type="checkbox" value="linkedin" x-model="selectedPlatforms" class="hidden">
-                            <div class="w-8 h-8 rounded bg-blue-600 flex items-center justify-center text-white">Li</div>
-                            <span class="text-sm font-medium">LinkedIn</span>
-                        </label>
-                         <label class="flex items-center gap-3 p-3 rounded-lg border border-border bg-muted/20 cursor-pointer hover:bg-muted/40 transition-colors" :class="{'border-sky-500 bg-sky-500/10': selectedPlatforms.includes('twitter')}">
-                            <input type="checkbox" value="twitter" x-model="selectedPlatforms" class="hidden">
-                            <div class="w-8 h-8 rounded bg-sky-400 flex items-center justify-center text-white">Tw</div>
-                            <span class="text-sm font-medium">Twitter</span>
-                        </label>
+                        <!-- LinkedIn -->
+                        <div class="relative">
+                            <label class="flex items-center gap-3 p-3 rounded-lg border border-border bg-muted/20 cursor-pointer hover:bg-muted/40 transition-colors w-full" :class="{'border-blue-500 bg-blue-500/10': selectedPlatforms.includes('linkedin')}">
+                                <input type="checkbox" value="linkedin" x-model="selectedPlatforms" class="hidden">
+                                <div class="w-8 h-8 rounded bg-blue-600 flex items-center justify-center text-white">Li</div>
+                                <span class="text-sm font-medium">LinkedIn</span>
+                            </label>
+                            <button @click.stop="fetchLinkedinPages" class="absolute right-2 top-1/2 -translate-y-1/2 p-2 hover:bg-blue-600/20 rounded-full transition-colors z-10" title="Select Page">
+                                <i data-lucide="settings" class="w-4 h-4 text-muted-foreground"></i>
+                            </button>
+                        </div>
+
+                        <!-- Twitter -->
+                        <div class="relative">
+                            <label class="flex items-center gap-3 p-3 rounded-lg border border-border bg-muted/20 cursor-pointer hover:bg-muted/40 transition-colors w-full" :class="{'border-sky-500 bg-sky-500/10': selectedPlatforms.includes('twitter')}">
+                                <input type="checkbox" value="twitter" x-model="selectedPlatforms" class="hidden">
+                                <div class="w-8 h-8 rounded bg-sky-400 flex items-center justify-center text-white">Tw</div>
+                                <span class="text-sm font-medium">Twitter</span>
+                            </label>
+                            <button @click.stop="fetchTwitterPages" class="absolute right-2 top-1/2 -translate-y-1/2 p-2 hover:bg-sky-400/20 rounded-full transition-colors z-10" title="Select Account">
+                                <i data-lucide="settings" class="w-4 h-4 text-muted-foreground"></i>
+                            </button>
+                        </div>
+
+                        <!-- Facebook -->
                          <div class="relative" :class="!isFacebookConnected && 'opacity-60 cursor-not-allowed'">
                              <label class="flex items-center gap-3 p-3 rounded-lg border border-border bg-muted/20 cursor-pointer hover:bg-muted/40 transition-colors w-full" 
                                     :class="{'border-blue-700 bg-blue-700/10': selectedPlatforms.includes('facebook')}"
@@ -533,24 +613,34 @@
                                 <div class="flex flex-col">
                                     <span class="text-sm font-medium">Facebook</span>
                                     <span x-show="!isFacebookConnected" class="text-[9px] text-red-500 font-bold uppercase tracking-tighter">Not Connected</span>
+                                    <span x-show="isFacebookConnected && selectedFacebookPage" class="text-[9px] text-blue-600 font-bold uppercase tracking-tighter truncate max-w-[100px]" x-text="selectedFacebookPage.name"></span>
                                 </div>
                             </label>
-                            <!-- Facebook Gear Button -->
                              <button @click.stop="fetchFacebookPages" class="absolute right-2 top-1/2 -translate-y-1/2 p-2 hover:bg-blue-200/20 rounded-full transition-colors z-10" title="Select Page">
                                 <i data-lucide="settings" class="w-4 h-4 text-muted-foreground"></i>
                              </button>
                          </div>
                          
-                         <!-- Selected Page Indicator -->
+                         <!-- Selected Page Indicator (Shared/FB) -->
                         <div x-show="selectedFacebookPage" class="col-span-2 text-xs text-center p-2 bg-blue-50 text-blue-800 rounded-lg flex items-center justify-center gap-2">
                             <i data-lucide="check-circle" class="w-3 h-3"></i>
                             Posting to: <strong x-text="selectedFacebookPage?.name"></strong>
                         </div>
-                         <label class="flex items-center gap-3 p-3 rounded-lg border border-border bg-muted/20 cursor-pointer hover:bg-muted/40 transition-colors" :class="{'border-pink-500 bg-pink-500/10': selectedPlatforms.includes('instagram')}">
-                             <input type="checkbox" value="instagram" x-model="selectedPlatforms" class="hidden">
-                            <div class="w-8 h-8 rounded bg-pink-600 flex items-center justify-center text-white">In</div>
-                            <span class="text-sm font-medium">Instagram</span>
-                        </label>
+
+                        <!-- Instagram -->
+                        <div class="relative" :class="!isFacebookConnected && 'opacity-60 cursor-not-allowed'">
+                             <label class="flex items-center gap-3 p-3 rounded-lg border border-border bg-muted/20 cursor-pointer hover:bg-muted/40 transition-colors w-full" :class="{'border-pink-500 bg-pink-500/10': selectedPlatforms.includes('instagram')}">
+                                 <input type="checkbox" value="instagram" x-model="selectedPlatforms" class="hidden" :disabled="!isFacebookConnected">
+                                <div class="w-8 h-8 rounded bg-pink-600 flex items-center justify-center text-white">In</div>
+                                <div class="flex flex-col">
+                                    <span class="text-sm font-medium">Instagram</span>
+                                    <span x-show="isFacebookConnected && selectedFacebookPage" class="text-[9px] text-pink-600 font-bold uppercase tracking-tighter truncate max-w-[100px]" x-text="selectedFacebookPage.name"></span>
+                                </div>
+                            </label>
+                            <button @click.stop="fetchInstagramPages" class="absolute right-2 top-1/2 -translate-y-1/2 p-2 hover:bg-pink-500/20 rounded-full transition-colors z-10" title="Select Account">
+                                <i data-lucide="settings" class="w-4 h-4 text-muted-foreground"></i>
+                            </button>
+                        </div>
                     </div>
 
                     <div class="space-y-2 py-1">
@@ -576,29 +666,70 @@
                     </div>
 
                     <!-- Page Selection Modal Overlay -->
-                    <div x-show="showPageModal" style="display: none;" class="absolute inset-0 z-50 bg-background rounded-xl p-4 flex flex-col" x-transition>
-                        <div class="flex items-center justify-between mb-4">
-                            <h4 class="font-bold">Select Facebook Page</h4>
-                            <button @click="showPageModal = false"><i data-lucide="x" class="w-4 h-4"></i></button>
-                        </div>
+                    <div x-show="showPageModal" 
+                         x-cloak
+                         class="absolute inset-0 z-50 bg-background/80 backdrop-blur-sm flex items-center justify-center p-4 rounded-xl" 
+                         x-transition:enter="transition ease-out duration-200"
+                         x-transition:enter-start="opacity-0 scale-95"
+                         x-transition:enter-end="opacity-100 scale-100"
+                         x-transition:leave="transition ease-in duration-150"
+                         x-transition:leave-start="opacity-100 scale-100"
+                         x-transition:leave-end="opacity-0 scale-95">
                         
-                        <div x-show="isFetchingPages" class="flex-1 flex items-center justify-center">
-                            <i data-lucide="loader-2" class="w-6 h-6 animate-spin text-primary"></i>
-                        </div>
-
-                        <div x-show="!isFetchingPages" class="flex-1 overflow-y-auto space-y-2">
-                            <template x-for="page in facebookPages" :key="page.id">
-                                <button @click="selectPage(page)" class="w-full text-left p-3 rounded-lg border border-border hover:bg-muted flex items-center gap-3 transition-all" :class="{'bg-blue-50 border-blue-200': selectedFacebookPage && selectedFacebookPage.id === page.id}">
-                                    <div class="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-bold" x-text="page.name.charAt(0)"></div>
-                                    <div class="flex-1">
-                                        <p class="text-sm font-bold" x-text="page.name"></p>
-                                        <p class="text-[10px] text-muted-foreground" x-text="page.category || 'Page'"></p>
-                                    </div>
-                                    <i x-show="selectedFacebookPage && selectedFacebookPage.id === page.id" data-lucide="check" class="w-4 h-4 text-blue-600"></i>
+                        <div class="bg-card w-full max-w-[300px] max-h-[90%] rounded-2xl shadow-2xl border border-border p-5 flex flex-col overflow-hidden">
+                            <div class="flex items-center justify-between mb-4">
+                                <div>
+                                    <h4 class="font-bold text-sm text-foreground">Select Page</h4>
+                                    <p class="text-[10px] text-muted-foreground uppercase tracking-widest font-black">Choose destination</p>
+                                </div>
+                                <button @click="showPageModal = false" class="p-1.5 hover:bg-muted rounded-full transition-colors text-muted-foreground hover:text-foreground">
+                                    <i data-lucide="x" class="w-4 h-4"></i>
                                 </button>
-                            </template>
-                            <div x-show="facebookPages.length === 0" class="text-center py-8 text-muted-foreground text-sm">
-                                No pages found. Ensure you granted "pages_read_engagement" permission.
+                            </div>
+                            
+                            <div x-show="isFetchingPages" class="flex-1 py-12 flex flex-col items-center justify-center gap-3">
+                                <div class="relative">
+                                    <div class="w-10 h-10 rounded-full border-2 border-primary/20 border-t-primary animate-spin"></div>
+                                    <i data-lucide="facebook" class="w-4 h-4 text-primary absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2"></i>
+                                </div>
+                                <span class="text-[10px] font-bold uppercase tracking-widest text-muted-foreground animate-pulse">Fetching Pages...</span>
+                            </div>
+
+                            <div x-show="!isFetchingPages" class="flex-1 overflow-y-auto space-y-1.5 pr-1 custom-scrollbar">
+                                <template x-for="page in facebookPages" :key="page.id">
+                                    <button @click="selectPage(page)" 
+                                            class="w-full text-left p-2.5 rounded-xl border border-border hover:bg-muted/50 flex items-center gap-3 transition-all group relative overflow-hidden" 
+                                            :class="{'bg-primary/5 border-primary/30 ring-1 ring-primary/10 shadow-sm': selectedFacebookPage && selectedFacebookPage.id === page.id}">
+                                        
+                                        <!-- Selected Indicator Glow -->
+                                        <div x-show="selectedFacebookPage && selectedFacebookPage.id === page.id" class="absolute inset-0 bg-gradient-to-r from-primary/5 to-transparent"></div>
+
+                                        <div class="w-9 h-9 rounded-lg bg-gradient-to-br from-blue-600 to-blue-700 flex items-center justify-center text-white text-xs font-black shadow-md group-hover:scale-105 transition-transform shrink-0" x-text="page.name.charAt(0)"></div>
+                                        
+                                        <div class="flex-1 min-w-0 relative">
+                                            <p class="text-[11px] font-bold text-foreground truncate leading-tight" x-text="page.name"></p>
+                                            <p class="text-[9px] text-muted-foreground truncate uppercase tracking-tighter font-semibold" x-text="page.category || 'Facebook Page'"></p>
+                                        </div>
+
+                                        <div x-show="selectedFacebookPage && selectedFacebookPage.id === page.id" class="w-5 h-5 rounded-full bg-primary flex items-center justify-center shrink-0 shadow-sm">
+                                            <i data-lucide="check" class="w-3 h-3 text-white"></i>
+                                        </div>
+                                    </button>
+                                </template>
+                                
+                                <div x-show="facebookPages.length === 0" class="text-center py-8 px-4 bg-muted/20 rounded-xl border border-dashed border-border">
+                                    <i data-lucide="alert-circle" class="w-8 h-8 text-muted-foreground/40 mx-auto mb-2"></i>
+                                    <p class="text-[10px] font-bold text-muted-foreground leading-relaxed">
+                                        No pages found.<br>
+                                        <span class="font-medium opacity-70">Ensure permissions are granted in Social Planner.</span>
+                                    </p>
+                                </div>
+                            </div>
+                            
+                            <div class="mt-4 pt-4 border-t border-border flex justify-center">
+                                <button @click="showPageModal = false" class="text-[10px] font-black uppercase tracking-widest text-muted-foreground hover:text-primary transition-colors">
+                                    Cancel
+                                </button>
                             </div>
                         </div>
                     </div>

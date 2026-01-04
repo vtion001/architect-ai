@@ -535,33 +535,44 @@
                 let scope = '';
                 let state = 'random_state_string';
 
-                const config = this.socialConfig[platform];
-                
-                if (!config || !config.clientId) {
-                    alert(`Please configure the ${platform.toUpperCase()}_CLIENT_ID in your .env file to connect.`);
-                    return;
-                }
-
-                clientId = config.clientId;
-                redirectUri = config.redirectUri || window.location.origin + '/social/callback/' + platform;
+                // Default config (overridden for Instagram below)
+                let config = this.socialConfig[platform];
 
                 switch(platform) {
                     case 'facebook':
+                        if (!config || !config.clientId) { alert('Missing FACEBOOK_CLIENT_ID'); return; }
+                        clientId = config.clientId;
+                        redirectUri = config.redirectUri || window.location.origin + '/social/callback/facebook';
                         scope = 'public_profile,email,pages_manage_posts,pages_read_engagement';
                         url = `https://www.facebook.com/v18.0/dialog/oauth?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&state=${state}&scope=${scope}`;
                         break;
 
                     case 'instagram':
-                        scope = 'user_profile,user_media';
-                        url = `https://api.instagram.com/oauth/authorize?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&scope=${scope}&response_type=code&state=${state}`;
+                        // Fix: Instagram Business Publishing requires Facebook Login flow
+                        config = this.socialConfig['facebook']; // Use FB config
+                        if (!config || !config.clientId) { alert('To connect Instagram, please configure FACEBOOK_CLIENT_ID.'); return; }
+                        
+                        clientId = config.clientId;
+                        // Redirect to FB callback since we are using FB Login
+                        redirectUri = config.redirectUri || window.location.origin + '/social/callback/facebook'; 
+                        // Combined scopes for FB Pages + Instagram Business
+                        scope = 'public_profile,email,pages_manage_posts,pages_read_engagement,instagram_basic,instagram_content_publish';
+                        
+                        url = `https://www.facebook.com/v18.0/dialog/oauth?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&scope=${scope}&state=${state}`;
                         break;
 
                     case 'linkedin':
+                        if (!config || !config.clientId) { alert('Missing LINKEDIN_CLIENT_ID'); return; }
+                        clientId = config.clientId;
+                        redirectUri = config.redirectUri || window.location.origin + '/social/callback/linkedin';
                         scope = 'w_member_social,r_liteprofile';
                         url = `https://www.linkedin.com/oauth/v2/authorization?response_type=code&client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&state=${state}&scope=${scope}`;
                         break;
 
                     case 'twitter':
+                        if (!config || !config.clientId) { alert('Missing TWITTER_CLIENT_ID'); return; }
+                        clientId = config.clientId;
+                        redirectUri = config.redirectUri || window.location.origin + '/social/callback/twitter';
                         scope = 'tweet.read,tweet.write,users.read';
                         url = `https://twitter.com/i/oauth2/authorize?response_type=code&client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&scope=${scope}&state=${state}&code_challenge=challenge&code_challenge_method=plain`;
                         break;
@@ -580,6 +591,12 @@
                 window.addEventListener('message', (event) => {
                     if (event.data.type === 'connected') {
                         this.connectedAccounts[event.data.platform] = true;
+                        
+                        // If Facebook connects, assume Instagram is also connected (since we share the flow)
+                        if (event.data.platform === 'facebook') {
+                            this.connectedAccounts.instagram = true;
+                        }
+                        
                         alert(`Successfully connected to ${event.data.platform}!`);
                     }
                 });

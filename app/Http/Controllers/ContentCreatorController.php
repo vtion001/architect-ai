@@ -273,6 +273,7 @@ class ContentCreatorController extends Controller
             'scheduled_at' => 'required|string', // Allow 'now' string or date
             'facebook_page_id' => 'nullable|string',
             'facebook_page_token' => 'nullable|string',
+            'instagram_account_id' => 'nullable|string',
         ]);
 
         // Resolve 'now' to actual timestamp
@@ -295,6 +296,12 @@ class ContentCreatorController extends Controller
             // Attach specific credentials for Facebook
             if ($platform === 'facebook') {
                 $options['page_id'] = $validated['facebook_page_id'] ?? null;
+                $options['page_token'] = $validated['facebook_page_token'] ?? null;
+            }
+            
+            // Attach credentials for Instagram (uses FB Page Token)
+            if ($platform === 'instagram') {
+                $options['instagram_id'] = $validated['instagram_account_id'] ?? null;
                 $options['page_token'] = $validated['facebook_page_token'] ?? null;
             }
 
@@ -326,6 +333,26 @@ class ContentCreatorController extends Controller
                         $contentRecord->update([
                             'status' => 'failed', 
                             'result' => $validated['final_text'] . "\n\n[Facebook Error: " . ($fbResult['error'] ?? 'Unknown Error') . "]"
+                        ]);
+                    }
+                }
+
+                if ($platform === 'instagram' && !empty($options['instagram_id']) && !empty($options['page_token'])) {
+                    $igResult = $this->postToInstagram($contentRecord, $options['instagram_id']);
+                    $results['instagram'] = $igResult;
+
+                    if ($igResult['success']) {
+                        $currentOptions = $contentRecord->options;
+                        $currentOptions['platform_post_id'] = $igResult['id'];
+                        $contentRecord->update([
+                            'status' => 'published',
+                            'result' => $validated['final_text'] . "\n\n[Posted to Instagram: " . ($igResult['id'] ?? 'Success') . "]",
+                            'options' => $currentOptions
+                        ]);
+                    } else {
+                        $contentRecord->update([
+                            'status' => 'failed',
+                            'result' => $validated['final_text'] . "\n\n[Instagram Error: " . ($igResult['error'] ?? 'Unknown Error') . "]"
                         ]);
                     }
                 }
@@ -381,6 +408,54 @@ class ContentCreatorController extends Controller
             return ['success' => false, 'error' => $e->getMessage()];
         }
     }
+
+    private function postToInstagram(Content $content, string $igUserId)
+    {
+        $options = $content->options;
+        $token = $options['page_token'] ?? null;
+        $imageUrl = $options['image_url'] ?? null;
+        $caption = $this->cleanMarkdownForSocial($content->result);
+
+        if (!$token || !$imageUrl) {
+            return ['success' => false, 'error' => 'Instagram requires an image and a valid token.'];
+        }
+
+        try {
+            // 1. Create Media Container
+            $response = Http::post("https://graph.facebook.com/v18.0/$igUserId/media", [
+                'image_url' => $imageUrl,
+                'caption' => $caption,
+                'access_token' => $token
+            ]);
+            
+            $containerData = $response->json();
+            
+            if (!isset($containerData['id'])) {
+                 return ['success' => false, 'error' => 'Container Create Failed: ' . json_encode($containerData)];
+            }
+            
+            $creationId = $containerData['id'];
+
+            // 2. Publish Media
+            $publishResponse = Http::post("https://graph.facebook.com/v18.0/$igUserId/media_publish", [
+                'creation_id' => $creationId,
+                'access_token' => $token
+            ]);
+            
+            $publishData = $publishResponse->json();
+
+            if (isset($publishData['id'])) {
+                return ['success' => true, 'id' => $publishData['id']];
+            } else {
+                return ['success' => false, 'error' => 'Publish Failed: ' . json_encode($publishData)];
+            }
+
+        } catch (\Exception $e) {
+            Log::error("IG Exception: " . $e->getMessage());
+            return ['success' => false, 'error' => $e->getMessage()];
+        }
+    }
+
 
     public function generateMedia(Request $request)
     {

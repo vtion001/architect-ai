@@ -39,7 +39,7 @@ class SocialPlannerController extends Controller
             'instagram' => [
                 'clientId' => config('services.instagram.client_id'),
                 'redirectUri' => config('services.instagram.redirect') ?: $baseUrl . "/social/callback/instagram",
-                'connected' => isset($tokens['instagram']) && !empty($tokens['instagram']),
+                'connected' => (isset($tokens['instagram']) && !empty($tokens['instagram'])) || (isset($tokens['facebook']) && !empty($tokens['facebook'])),
                 'count' => Content::where('type', 'social-post')->where('options->platform', 'instagram')->count(),
             ],
             'linkedin' => [
@@ -149,6 +149,13 @@ class SocialPlannerController extends Controller
                     $tokens = json_decode(file_get_contents($path), true);
                 }
                 $tokens[$platform] = $data['access_token'];
+                
+                // If connecting Facebook, automatically treat as Instagram connected too
+                // since we use the same token for IG Business API
+                if ($platform === 'facebook') {
+                    $tokens['instagram'] = $data['access_token'];
+                }
+
                 file_put_contents($path, json_encode($tokens, JSON_PRETTY_PRINT));
                 
                 return response()->view('social-planner.callback', ['platform' => $platform]);
@@ -177,7 +184,7 @@ class SocialPlannerController extends Controller
              return response()->json(['pages' => []]);
         }
 
-        $response = \Illuminate\Support\Facades\Http::get("https://graph.facebook.com/v18.0/me/accounts?access_token=$accessToken");
+        $response = \Illuminate\Support\Facades\Http::get("https://graph.facebook.com/v18.0/me/accounts?fields=name,category,access_token,instagram_business_account&access_token=$accessToken");
         $data = $response->json();
         
         return response()->json([
