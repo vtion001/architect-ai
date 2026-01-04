@@ -190,13 +190,22 @@ class ContentService
     public function generateImage(string $prompt): ?string
     {
         try {
+            // Enhanced prompt for realism
+            $enhancedPrompt = "A highly realistic, candid photograph capturing the essence of: $prompt. " .
+                              "Style: Documentary or lifestyle photography, appearing 100% authentic and un-staged. " .
+                              "Lighting: Natural, soft, slightly imperfect to add realism (e.g., dappled sunlight, window light). " .
+                              "Texture: Real skin texture, natural material finishes, slight film grain. " .
+                              "Avoid: Hyper-realism, excessive saturation, glossy 3D render aesthetics, surrealism, or 'perfect' stock photo vibes. " .
+                              "Goal: Make it look like a high-quality photo taken by a professional photographer with a DSLR.";
+
             $response = Http::withToken($this->apiKey)
                 ->timeout(60)
                 ->post('https://api.openai.com/v1/images/generations', [
                     'model' => 'dall-e-3',
-                    'prompt' => "A professional, stunning, and organic image about: $prompt. The style should be high-end editorial photography, modern, and clean. No generic stock photo look. Use natural lighting and depth of field.",
+                    'prompt' => substr($enhancedPrompt, 0, 4000), // DALL-E 3 limit
                     'n' => 1,
                     'size' => '1024x1024',
+                    'style' => 'natural', // DALL-E 3 specific parameter for less "artistic" output
                 ]);
 
             if ($response->successful()) {
