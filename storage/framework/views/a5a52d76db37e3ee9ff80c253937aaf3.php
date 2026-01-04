@@ -8,6 +8,46 @@
     length: 'Default Length',
     context: '',
     cta: '',
+    cta_snippets: [
+        'Join the waitlist at arch-ai.io/beta',
+        'Book a free consultation today!',
+        'Like and Follow for more updates!',
+        'Send us a message for inquiries.',
+        'Visit our shop for exclusive deals!',
+        'Check out the link in our bio!',
+    ],
+    showCtaSnippets: false,
+    newSnippet: '',
+    isManagingSnippets: false,
+    
+    init() {
+        // Load snippets from local storage if available
+        const savedSnippets = localStorage.getItem('arch_ai_cta_snippets');
+        if (savedSnippets) {
+            try {
+                this.cta_snippets = JSON.parse(savedSnippets);
+            } catch (e) {
+                console.error('Failed to parse saved snippets');
+            }
+        }
+        
+        // Watch for changes to save
+        this.$watch('cta_snippets', (value) => {
+            localStorage.setItem('arch_ai_cta_snippets', JSON.stringify(value));
+        });
+    },
+
+    addSnippet() {
+        if (this.newSnippet.trim()) {
+            this.cta_snippets.push(this.newSnippet.trim());
+            this.newSnippet = '';
+        }
+    },
+
+    removeSnippet(index) {
+        this.cta_snippets.splice(index, 1);
+    },
+
     addLineBreaks: true,
     includeHashtags: false,
     
@@ -169,15 +209,15 @@
         
         <!-- Generator Toggles (Matching User Photo) -->
         <div class="flex flex-col gap-2 min-w-[200px]">
-            <button @click="generator = 'video'" :class="generator === 'video' ? 'bg-slate-800 text-white shadow-xl shadow-black/20 font-bold border-white/10 ring-1 ring-white/20' : 'bg-slate-900 text-white/70 hover:text-white border-white/5 font-medium'" class="flex items-center gap-3 px-4 py-3 rounded-lg transition-all text-sm border">
+            <button @click="generator = 'video'; type = 'video'" :class="generator === 'video' ? 'bg-slate-800 text-white shadow-xl shadow-black/20 font-bold border-white/10 ring-1 ring-white/20' : 'bg-slate-900 text-white/70 hover:text-white border-white/5 font-medium'" class="flex items-center gap-3 px-4 py-3 rounded-lg transition-all text-sm border">
                 <i data-lucide="video" class="w-4 h-4"></i>
                 Video Generator
             </button>
-            <button @click="generator = 'post'" :class="generator === 'post' ? 'bg-slate-800 text-white shadow-xl shadow-black/20 font-bold border-white/10 ring-1 ring-white/20' : 'bg-slate-900 text-white/70 hover:text-white border-white/5 font-medium'" class="flex items-center gap-3 px-4 py-3 rounded-lg transition-all text-sm border">
+            <button @click="generator = 'post'; type = 'social-media'" :class="generator === 'post' ? 'bg-slate-800 text-white shadow-xl shadow-black/20 font-bold border-white/10 ring-1 ring-white/20' : 'bg-slate-900 text-white/70 hover:text-white border-white/5 font-medium'" class="flex items-center gap-3 px-4 py-3 rounded-lg transition-all text-sm border">
                 <i data-lucide="edit-3" class="w-4 h-4"></i>
                 Post Generator
             </button>
-            <button @click="generator = 'blog'" :class="generator === 'blog' ? 'bg-slate-800 text-white shadow-xl shadow-black/20 font-bold border-white/10 ring-1 ring-white/20' : 'bg-slate-900 text-white/70 hover:text-white border-white/5 font-medium'" class="flex items-center gap-3 px-4 py-3 rounded-lg transition-all text-sm border">
+            <button @click="generator = 'blog'; type = 'blog-post'" :class="generator === 'blog' ? 'bg-slate-800 text-white shadow-xl shadow-black/20 font-bold border-white/10 ring-1 ring-white/20' : 'bg-slate-900 text-white/70 hover:text-white border-white/5 font-medium'" class="flex items-center gap-3 px-4 py-3 rounded-lg transition-all text-sm border">
                 <i data-lucide="book" class="w-4 h-4"></i>
                 Blog Generator
             </button>
@@ -322,7 +362,63 @@
                     <!-- Shared Parameters (Integrated) -->
                     <div class="space-y-6 pt-6 border-t border-border/50">
                         <div class="space-y-3">
-                            <label class="text-[10px] font-black uppercase tracking-widest text-primary/80 italic">Global Call to Action</label>
+                            <div class="flex items-center justify-between">
+                                <label class="text-[10px] font-black uppercase tracking-widest text-primary/80 italic">Global Call to Action</label>
+                                <div class="relative">
+                                    <button @click="showCtaSnippets = !showCtaSnippets" type="button" class="text-[10px] font-bold text-primary hover:underline flex items-center gap-1">
+                                        <i data-lucide="list" class="w-3 h-3"></i>
+                                        SNIPPETS
+                                    </button>
+                                    <div x-show="showCtaSnippets" @click.away="showCtaSnippets = false; isManagingSnippets = false" class="absolute right-0 mt-2 w-72 bg-card border border-border rounded-xl shadow-xl z-50 overflow-hidden flex flex-col" x-transition x-cloak>
+                                        <!-- Header -->
+                                        <div class="p-2 bg-muted/50 border-b border-border flex items-center justify-between px-3 shrink-0">
+                                            <span class="text-[9px] font-black uppercase tracking-widest text-muted-foreground" x-text="isManagingSnippets ? 'Manage Snippets' : 'Quick Select'"></span>
+                                            <button @click="isManagingSnippets = !isManagingSnippets" class="text-primary hover:text-primary/80 transition-colors" title="Manage Snippets">
+                                                <i :class="isManagingSnippets ? 'fill-current' : ''" data-lucide="settings-2" class="w-3 h-3"></i>
+                                            </button>
+                                        </div>
+
+                                        <!-- List Content -->
+                                        <div class="max-h-56 overflow-y-auto">
+                                            <!-- Select Mode -->
+                                            <template x-if="!isManagingSnippets">
+                                                <div>
+                                                    <template x-for="snippet in cta_snippets">
+                                                        <button @click="cta = snippet; showCtaSnippets = false" type="button" class="w-full text-left px-4 py-2.5 text-[11px] font-medium hover:bg-primary/10 hover:text-primary transition-colors border-b border-border/50 last:border-0" x-text="snippet"></button>
+                                                    </template>
+                                                    <div x-show="cta_snippets.length === 0" class="p-4 text-center text-[10px] text-muted-foreground italic">
+                                                        No snippets found. Click settings to add one.
+                                                    </div>
+                                                </div>
+                                            </template>
+                                            
+                                            <!-- Manage Mode -->
+                                            <template x-if="isManagingSnippets">
+                                                <div class="p-1">
+                                                    <template x-for="(snippet, index) in cta_snippets" :key="index">
+                                                        <div class="flex items-center gap-1 px-2 py-1 border-b border-border/50 last:border-0 group">
+                                                            <input type="text" x-model="cta_snippets[index]" class="flex-1 bg-transparent text-[11px] font-medium border-none focus:ring-0 px-2 py-1.5 h-auto text-foreground rounded hover:bg-muted/50 focus:bg-muted transition-colors">
+                                                            <button @click="removeSnippet(index)" class="p-1.5 text-muted-foreground hover:text-red-500 hover:bg-red-500/10 rounded transition-colors opacity-0 group-hover:opacity-100 focus:opacity-100">
+                                                                <i data-lucide="trash-2" class="w-3 h-3"></i>
+                                                            </button>
+                                                        </div>
+                                                    </template>
+                                                    
+                                                    <!-- Add New -->
+                                                    <div class="p-2 pt-3 mt-1 border-t border-border/50 bg-muted/20">
+                                                        <div class="flex gap-2">
+                                                            <input x-model="newSnippet" @keydown.enter.prevent="addSnippet()" type="text" placeholder="Type & press Enter..." class="flex-1 h-8 text-[11px] rounded-lg border border-border bg-background px-3 focus:ring-1 focus:ring-primary shadow-sm">
+                                                            <button @click="addSnippet()" class="h-8 w-8 flex items-center justify-center rounded-lg bg-primary text-primary-foreground hover:opacity-90 shadow-sm transition-all active:scale-95">
+                                                                <i data-lucide="plus" class="w-4 h-4"></i>
+                                                            </button>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </template>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
                             <input x-model="cta" type="text" placeholder="e.g., 'Join the waitlist at arch-ai.io/beta'" class="w-full h-12 bg-muted/20 border border-border rounded-xl px-4 text-sm font-medium">
                         </div>
 
@@ -504,7 +600,63 @@
                     <!-- Shared Parameters (Integrated) -->
                     <div class="space-y-6 pt-6 border-t border-border/50">
                         <div class="space-y-3">
-                            <label class="text-[10px] font-black uppercase tracking-widest text-primary italic">Prompt Call to Action</label>
+                            <div class="flex items-center justify-between">
+                                <label class="text-[10px] font-black uppercase tracking-widest text-primary italic">Prompt Call to Action</label>
+                                <div class="relative">
+                                    <button @click="showCtaSnippets = !showCtaSnippets" type="button" class="text-[10px] font-bold text-primary hover:underline flex items-center gap-1">
+                                        <i data-lucide="list" class="w-3 h-3"></i>
+                                        SNIPPETS
+                                    </button>
+                                    <div x-show="showCtaSnippets" @click.away="showCtaSnippets = false; isManagingSnippets = false" class="absolute right-0 mt-2 w-72 bg-card border border-border rounded-xl shadow-xl z-50 overflow-hidden flex flex-col" x-transition x-cloak>
+                                        <!-- Header -->
+                                        <div class="p-2 bg-muted/50 border-b border-border flex items-center justify-between px-3 shrink-0">
+                                            <span class="text-[9px] font-black uppercase tracking-widest text-muted-foreground" x-text="isManagingSnippets ? 'Manage Snippets' : 'Quick Select'"></span>
+                                            <button @click="isManagingSnippets = !isManagingSnippets" class="text-primary hover:text-primary/80 transition-colors" title="Manage Snippets">
+                                                <i :class="isManagingSnippets ? 'fill-current' : ''" data-lucide="settings-2" class="w-3 h-3"></i>
+                                            </button>
+                                        </div>
+
+                                        <!-- List Content -->
+                                        <div class="max-h-56 overflow-y-auto">
+                                            <!-- Select Mode -->
+                                            <template x-if="!isManagingSnippets">
+                                                <div>
+                                                    <template x-for="snippet in cta_snippets">
+                                                        <button @click="cta = snippet; showCtaSnippets = false" type="button" class="w-full text-left px-4 py-2.5 text-[11px] font-medium hover:bg-primary/10 hover:text-primary transition-colors border-b border-border/50 last:border-0" x-text="snippet"></button>
+                                                    </template>
+                                                    <div x-show="cta_snippets.length === 0" class="p-4 text-center text-[10px] text-muted-foreground italic">
+                                                        No snippets found. Click settings to add one.
+                                                    </div>
+                                                </div>
+                                            </template>
+                                            
+                                            <!-- Manage Mode -->
+                                            <template x-if="isManagingSnippets">
+                                                <div class="p-1">
+                                                    <template x-for="(snippet, index) in cta_snippets" :key="index">
+                                                        <div class="flex items-center gap-1 px-2 py-1 border-b border-border/50 last:border-0 group">
+                                                            <input type="text" x-model="cta_snippets[index]" class="flex-1 bg-transparent text-[11px] font-medium border-none focus:ring-0 px-2 py-1.5 h-auto text-foreground rounded hover:bg-muted/50 focus:bg-muted transition-colors">
+                                                            <button @click="removeSnippet(index)" class="p-1.5 text-muted-foreground hover:text-red-500 hover:bg-red-500/10 rounded transition-colors opacity-0 group-hover:opacity-100 focus:opacity-100">
+                                                                <i data-lucide="trash-2" class="w-3 h-3"></i>
+                                                            </button>
+                                                        </div>
+                                                    </template>
+                                                    
+                                                    <!-- Add New -->
+                                                    <div class="p-2 pt-3 mt-1 border-t border-border/50 bg-muted/20">
+                                                        <div class="flex gap-2">
+                                                            <input x-model="newSnippet" @keydown.enter.prevent="addSnippet()" type="text" placeholder="Type & press Enter..." class="flex-1 h-8 text-[11px] rounded-lg border border-border bg-background px-3 focus:ring-1 focus:ring-primary shadow-sm">
+                                                            <button @click="addSnippet()" class="h-8 w-8 flex items-center justify-center rounded-lg bg-primary text-primary-foreground hover:opacity-90 shadow-sm transition-all active:scale-95">
+                                                                <i data-lucide="plus" class="w-4 h-4"></i>
+                                                            </button>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </template>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
                             <input x-model="cta" type="text" placeholder="e.g., 'Click the link in bio for more info'" class="w-full h-12 bg-muted/20 border border-border rounded-xl px-4 text-sm font-medium">
                         </div>
 
@@ -673,7 +825,63 @@
                         <!-- Shared Parameters (Integrated) -->
                         <div class="space-y-6 pt-6 border-t border-border/50">
                             <div class="space-y-3">
-                                <label class="text-[10px] font-black uppercase tracking-widest text-primary italic">Global Call to Action</label>
+                                <div class="flex items-center justify-between">
+                                    <label class="text-[10px] font-black uppercase tracking-widest text-primary italic">Global Call to Action</label>
+                                    <div class="relative">
+                                        <button @click="showCtaSnippets = !showCtaSnippets" type="button" class="text-[10px] font-bold text-primary hover:underline flex items-center gap-1">
+                                            <i data-lucide="list" class="w-3 h-3"></i>
+                                            SNIPPETS
+                                        </button>
+                                        <div x-show="showCtaSnippets" @click.away="showCtaSnippets = false; isManagingSnippets = false" class="absolute right-0 mt-2 w-72 bg-card border border-border rounded-xl shadow-xl z-50 overflow-hidden flex flex-col" x-transition x-cloak>
+                                            <!-- Header -->
+                                            <div class="p-2 bg-muted/50 border-b border-border flex items-center justify-between px-3 shrink-0">
+                                                <span class="text-[9px] font-black uppercase tracking-widest text-muted-foreground" x-text="isManagingSnippets ? 'Manage Snippets' : 'Quick Select'"></span>
+                                                <button @click="isManagingSnippets = !isManagingSnippets" class="text-primary hover:text-primary/80 transition-colors" title="Manage Snippets">
+                                                    <i :class="isManagingSnippets ? 'fill-current' : ''" data-lucide="settings-2" class="w-3 h-3"></i>
+                                                </button>
+                                            </div>
+
+                                            <!-- List Content -->
+                                            <div class="max-h-56 overflow-y-auto">
+                                                <!-- Select Mode -->
+                                                <template x-if="!isManagingSnippets">
+                                                    <div>
+                                                        <template x-for="snippet in cta_snippets">
+                                                            <button @click="cta = snippet; showCtaSnippets = false" type="button" class="w-full text-left px-4 py-2.5 text-[11px] font-medium hover:bg-primary/10 hover:text-primary transition-colors border-b border-border/50 last:border-0" x-text="snippet"></button>
+                                                        </template>
+                                                        <div x-show="cta_snippets.length === 0" class="p-4 text-center text-[10px] text-muted-foreground italic">
+                                                            No snippets found. Click settings to add one.
+                                                        </div>
+                                                    </div>
+                                                </template>
+                                                
+                                                <!-- Manage Mode -->
+                                                <template x-if="isManagingSnippets">
+                                                    <div class="p-1">
+                                                        <template x-for="(snippet, index) in cta_snippets" :key="index">
+                                                            <div class="flex items-center gap-1 px-2 py-1 border-b border-border/50 last:border-0 group">
+                                                                <input type="text" x-model="cta_snippets[index]" class="flex-1 bg-transparent text-[11px] font-medium border-none focus:ring-0 px-2 py-1.5 h-auto text-foreground rounded hover:bg-muted/50 focus:bg-muted transition-colors">
+                                                                <button @click="removeSnippet(index)" class="p-1.5 text-muted-foreground hover:text-red-500 hover:bg-red-500/10 rounded transition-colors opacity-0 group-hover:opacity-100 focus:opacity-100">
+                                                                    <i data-lucide="trash-2" class="w-3 h-3"></i>
+                                                                </button>
+                                                            </div>
+                                                        </template>
+                                                        
+                                                        <!-- Add New -->
+                                                        <div class="p-2 pt-3 mt-1 border-t border-border/50 bg-muted/20">
+                                                            <div class="flex gap-2">
+                                                                <input x-model="newSnippet" @keydown.enter.prevent="addSnippet()" type="text" placeholder="Type & press Enter..." class="flex-1 h-8 text-[11px] rounded-lg border border-border bg-background px-3 focus:ring-1 focus:ring-primary shadow-sm">
+                                                                <button @click="addSnippet()" class="h-8 w-8 flex items-center justify-center rounded-lg bg-primary text-primary-foreground hover:opacity-90 shadow-sm transition-all active:scale-95">
+                                                                    <i data-lucide="plus" class="w-4 h-4"></i>
+                                                                </button>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </template>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
                                 <input x-model="cta" type="text" placeholder="e.g., 'Read the full guide at arch-ai.io'" class="w-full h-12 bg-muted/20 border border-border rounded-xl px-4 text-sm font-medium">
                             </div>
 

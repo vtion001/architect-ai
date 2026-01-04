@@ -48,6 +48,7 @@
             isGenerating: false,
             isRegenerating: false,
             isPublishing: false,
+            isEditing: false,
             isPublished: alreadyPublished,
             publishResult: null,
             showPublishModal: false,
@@ -70,6 +71,13 @@
                 this.$watch('imageUrl', (val) => {
                     if (val) this.persistVisual(index);
                 });
+            },
+
+            toggleEdit() {
+                this.isEditing = !this.isEditing;
+                if (!this.isEditing) {
+                    this.htmlContent = this.formatForDisplay(this.rawContent);
+                }
             },
 
             persistVisual(idx) {
@@ -333,6 +341,10 @@
         <?php
             // Append global hashtags if they exist
             $finalPostContent = trim($post);
+            
+            // Remove leading numbering (e.g., "1. ", "2. ") to clean up list style outputs
+            $finalPostContent = preg_replace('/^\d+\.\s*/', '', $finalPostContent);
+
             if ($globalHashtags) {
                  $finalPostContent .= "\n\n" . $globalHashtags;
             }
@@ -345,8 +357,14 @@
         ?>
         
         <div x-data="postCard(<?php echo e($index); ?>, <?php echo e(Js::from($finalPostContent)); ?>, <?php echo e(Js::from($cleanHtml)); ?>, <?php echo e(in_array($index, $publishedIndexes) ? 'true' : 'false'); ?>)" 
-             class="w-full bg-card border border-border rounded-xl shadow-md overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-500 relative" 
+             class="w-full bg-card border border-border rounded-xl shadow-md overflow-visible animate-in fade-in slide-in-from-bottom-4 duration-500 relative" 
              style="animation-delay: <?php echo e($index * 150); ?>ms;">
+            
+            <!-- Index Badge -->
+            <div class="absolute -top-3 -left-3 w-8 h-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-sm font-black shadow-lg border-4 border-background z-20">
+                <?php echo e($index + 1); ?>
+
+            </div>
             
             <!-- Success Overlay -->
             <div x-show="isPublished" x-transition.opacity class="absolute inset-0 z-40 bg-white/90 backdrop-blur-[2px] flex flex-col items-center justify-center p-6 text-center" style="display: none;">
@@ -399,8 +417,9 @@
 
             <!-- Post Content Body -->
             <div class="p-4 text-foreground">
-                <div class="prose prose-slate max-w-none dark:prose-invert prose-p:my-2 prose-headings:my-3 prose-ul:my-2 text-[15px] leading-relaxed" x-html="htmlContent">
+                <div x-show="!isEditing" class="prose prose-slate max-w-none dark:prose-invert prose-p:my-2 prose-headings:my-3 prose-ul:my-2 text-[15px] leading-relaxed" x-html="htmlContent">
                 </div>
+                <textarea x-show="isEditing" x-model="rawContent" class="w-full h-64 p-3 bg-muted/20 border border-border rounded-lg text-sm focus:ring-1 focus:ring-primary outline-none resize-y font-mono" placeholder="Edit your post content..." x-cloak></textarea>
             </div>
 
             <!-- Media Placeholder / Interactive Area -->
@@ -466,6 +485,11 @@
 
              <!-- Draft Actions Footer -->
             <div class="px-4 py-3 border-t border-border bg-muted/5 flex items-center justify-end gap-3">
+                 <button @click="toggleEdit()" class="flex items-center justify-center gap-2 py-2 px-3 rounded-lg bg-white border border-border text-muted-foreground hover:text-primary hover:border-primary/30 transition-all text-xs font-bold uppercase tracking-wider" title="Edit Content">
+                    <i x-show="!isEditing" data-lucide="pencil" class="w-4 h-4"></i>
+                    <i x-show="isEditing" data-lucide="check" class="w-4 h-4"></i>
+                    <span x-text="isEditing ? 'Done' : 'Edit'"></span>
+                </button>
                  <button @click="regenerateText" :disabled="isRegenerating" class="flex items-center justify-center gap-2 py-2 px-3 rounded-lg bg-white border border-border text-muted-foreground hover:text-red-500 hover:border-red-200 hover:bg-red-50 transition-all text-xs font-bold uppercase tracking-wider disabled:opacity-50 disabled:cursor-not-allowed" title="Regenerate Text">
                     <i x-show="!isRegenerating" data-lucide="refresh-cw" class="w-4 h-4"></i>
                     <i x-show="isRegenerating" data-lucide="loader-2" class="w-4 h-4 animate-spin"></i>

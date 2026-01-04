@@ -70,15 +70,30 @@ class ContentService
         } else {
             // Default: Post Generator
             $count = $options['count'] ?? 1;
-            // Force short length if API fails, as per requirements, but let's check API first.
-            $length = $options['length'] ?? 'Standard';
+            
+            // Fix: Ensure we don't generate blog posts in Post Generator mode
+            if ($type === 'blog-post') {
+                $type = 'social-media post';
+            }
+
+            // Fix: Enforce shortness if default length is used
+            $length = $options['length'] ?? 'Short and punchy';
+            if ($length === 'Standard') {
+                $length = 'Short, concise, and engaging';
+            }
             
             $viralPosts = $this->getViralPosts($topic);
+            $examples = '';
 
             if (!empty($viralPosts)) {
+                $examples = collect($viralPosts)->map(function ($post) {
+                    if (is_string($post)) return $post;
+                    return $post['caption_text'] ?? $post['caption']['text'] ?? null;
+                })->filter()->take(5)->implode("\n\n---\n\n");
+            }
+
+            if (!empty($examples)) {
                 // API Success Path
-                $examples = collect($viralPosts)->pluck('caption_text')->take(5)->implode("\n\n---\n\n");
-                
                 $systemPrompt = "You are a viral content expert.
                                  BASED ON THESE HIGH-PERFORMING EXAMPLES:
                                  
@@ -86,6 +101,7 @@ class ContentService
                                  
                                  Generate a new caption about \"$topic\" with a $tone tone.
                                  Follow the patterns, hooks, and engagement styles you see in the successful captions above.
+                                 IMPORTANT: Distill the essence of these examples into a SHORT, punchy caption. Do not write long listicles unless explicitly asked.
                                  
                                  $humanizeInstruction
                                  - $lineBreaks
@@ -100,16 +116,16 @@ class ContentService
                                  LENGTH: Short and punchy
                                  
                                  $humanizeInstruction
-                                 - Keep the content SHORT and impactful.
+                                 - Keep the content SHORT and impactful (under 280 chars preferred).
                                  - $lineBreaks
                                  - $hashtags
                                  - Make the first sentence a compelling personal hook or pattern interrupt.
                                  - Mandatory CTA: $cta";
             }
             
-            $userPrompt = "Create $count $type(s) about: $topic. \nContext: $context \nTone: $tone \nLength: $length";
+            $userPrompt = "Create $count $type(s) about: $topic. \nContext: $context \nTone: $tone \nLength: $length. \nConstraint: Keep it short, engaging, and to the point. No fluff. Do NOT number the outputs.";
             if ($count > 1) {
-                $userPrompt .= "\nRespond with a numbered list of distinct, unique options.";
+                $userPrompt .= "\nRespond with distinct options separated by '---' (triple dash).";
             }
         }
 
@@ -143,19 +159,26 @@ class ContentService
             return [];
         }
 
-        // Simple hashtag cleanup: "Social Media Marketing" -> "socialmediamarketing"
         $hashtag = strtolower(preg_replace('/[^a-zA-Z0-9]/', '', $topic));
         
         try {
             $response = Http::withHeaders([
-                'x-access-key' => $this->hikerApiKey
-            ])->get("https://hikerapi.com/v1/instagram/hashtag/{$hashtag}/top");
+                'x-access-key' => $this->hikerApiKey,
+                'accept' => 'application/json',
+            ])->get("https://api.hikerapi.com/v2/hashtag/medias/top", [
+                'name' => $hashtag
+            ]);
 
             if ($response->successful()) {
                 $data = $response->json();
-                // HikerAPI response structure usually contains a list of media objects.
-                // We'll return the data if it's an array, otherwise empty.
-                return is_array($data) ? $data : [];
+                
+                if (is_array($data)) {
+                    return $data;
+                }
+                
+                if (isset($data['response'])) {
+                    return $data['response'];
+                }
             }
         } catch (\Exception $e) {
             Log::warning("HikerAPI fetch failed: " . $e->getMessage());
