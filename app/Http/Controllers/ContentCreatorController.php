@@ -420,6 +420,13 @@ class ContentCreatorController extends Controller
             return ['success' => false, 'error' => 'Instagram requires an image and a valid token.'];
         }
 
+        // Ensure URL is absolute for local uploads
+        if (str_starts_with($imageUrl, '/')) {
+            $imageUrl = rtrim(config('app.url'), '/') . $imageUrl;
+        }
+
+        Log::info("Posting to IG ($igUserId) with Image: $imageUrl");
+
         try {
             // 1. Create Media Container
             $response = Http::post("https://graph.facebook.com/v18.0/$igUserId/media", [
@@ -429,12 +436,16 @@ class ContentCreatorController extends Controller
             ]);
             
             $containerData = $response->json();
+            Log::info("IG Container Response: " . json_encode($containerData));
             
             if (!isset($containerData['id'])) {
-                 return ['success' => false, 'error' => 'Container Create Failed: ' . json_encode($containerData)];
+                 return ['success' => false, 'error' => 'Container Create Failed: ' . ($containerData['error']['message'] ?? json_encode($containerData))];
             }
             
             $creationId = $containerData['id'];
+
+            // Give IG a moment to process the image download (prevents "Media not ready" errors)
+            sleep(5);
 
             // 2. Publish Media
             $publishResponse = Http::post("https://graph.facebook.com/v18.0/$igUserId/media_publish", [
@@ -443,11 +454,12 @@ class ContentCreatorController extends Controller
             ]);
             
             $publishData = $publishResponse->json();
+            Log::info("IG Publish Response: " . json_encode($publishData));
 
             if (isset($publishData['id'])) {
                 return ['success' => true, 'id' => $publishData['id']];
             } else {
-                return ['success' => false, 'error' => 'Publish Failed: ' . json_encode($publishData)];
+                return ['success' => false, 'error' => 'Publish Failed: ' . ($publishData['error']['message'] ?? json_encode($publishData))];
             }
 
         } catch (\Exception $e) {
