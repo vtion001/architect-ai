@@ -48,6 +48,7 @@ class AuthController extends Controller
 
         // 3. Login
         Auth::login($user, $request->boolean('remember'));
+        session(['current_tenant_id' => $user->tenant_id]); // Store for scoping
         $user->update(['last_login_at' => now()]);
 
         if ($request->wantsJson()) {

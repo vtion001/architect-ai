@@ -24,9 +24,16 @@ class CheckPermission
             abort(401);
         }
 
-        // The resource can be passed from the route or inferred (e.g., from model binding)
-        // For simplicity now, we check the permission string (e.g., 'content.create')
         if (!$this->authService->can($user, $permission)) {
+            // Log denied attempt for anomaly detection
+            $this->authService->audit(
+                $user,
+                'access.denied',
+                $request->path(),
+                'denied',
+                "Unauthorized attempt to access resource with permission: $permission"
+            );
+
             abort(403, "You do not have the required permission: $permission");
         }
 

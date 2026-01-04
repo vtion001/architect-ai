@@ -149,11 +149,11 @@ class AuthorizationService
     }
 
     /**
-     * Log an action to the audit log.
+     * Log an action to the audit log and check for anomalies.
      */
     public function audit(User $user, string $action, $resource = null, string $result = 'success', string $justification = null)
     {
-        AuditLog::create([
+        $log = AuditLog::create([
             'actor_id' => $user->id,
             'actor_type' => $user->is_developer ? 'developer' : 'user',
             'tenant_id' => $user->tenant_id,
@@ -164,5 +164,36 @@ class AuthorizationService
             'ip_address' => request()->ip(),
             'justification' => $justification,
         ]);
+
+        if ($result === 'denied') {
+            $this->checkForAnomalies($user);
+        }
+    }
+
+    protected function checkForAnomalies(User $user)
+    {
+        // Count denied attempts in the last 15 minutes
+        $deniedCount = AuditLog::where('actor_id', $user->id)
+            ->where('result', 'denied')
+            ->where('timestamp', '>=', now()->subMinutes(15))
+            ->count();
+
+        if ($deniedCount >= 10) {
+            // Potential lateral movement attempt detected
+            Log::warning("ANOMALY DETECTED: User {$user->email} triggered {$deniedCount} denied access events in 15 mins.");
+            
+            // Auto-suspend user for security
+            $user->update(['status' => 'suspended']);
+            
+            AuditLog::create([
+                'actor_type' => 'system',
+                'tenant_id' => $user->tenant_id,
+                'action' => 'user.auto_suspended',
+                'resource_type' => 'User',
+                'resource_id' => $user->id,
+                'result' => 'success',
+                'metadata' => ['reason' => 'Multiple denied access attempts detected (Anomaly Detection)'],
+            ]);
+        }
     }
 }

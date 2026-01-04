@@ -9,6 +9,8 @@ use Symfony\Component\HttpFoundation\Response;
 
 class TenantMiddleware
 {
+    public function __construct(protected \App\Services\AuthorizationService $authService) {}
+
     /**
      * Handle an incoming request.
      */
@@ -33,11 +35,21 @@ class TenantMiddleware
         if ($tenant) {
             // 2. Validate user belongs to tenant (if logged in)
             if (auth()->check() && !auth()->user()->is_developer && auth()->user()->tenant_id !== $tenant->id) {
+                // Log cross-tenant attempt
+                $this->authService->audit(
+                    auth()->user(),
+                    'tenant.isolation_violation',
+                    $tenant,
+                    'denied',
+                    "User attempted to access unauthorized tenant: {$tenant->slug}"
+                );
+
                 return response()->json(['error' => 'Unauthorized for this workspace'], 403);
             }
 
             // 3. Set global tenant context for the request
             app()->instance(Tenant::class, $tenant);
+            session(['current_tenant_id' => $tenant->id]);
         }
 
         return $next($request);

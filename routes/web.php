@@ -42,6 +42,11 @@ Route::middleware(['auth', 'tenant', 'mfa', 'session_security'])->group(function
 
     // Tenant/Agency Management
     Route::prefix('settings')->group(function () {
+        Route::get('/', [\App\Http\Controllers\Tenant\SettingsController::class, 'index'])->name('settings.index');
+        Route::post('/branding', [\App\Http\Controllers\Tenant\SettingsController::class, 'updateBranding'])->name('settings.branding');
+        Route::post('/profile', [\App\Http\Controllers\Tenant\SettingsController::class, 'updateProfile'])->name('settings.profile');
+        Route::post('/mfa/disable', [\App\Http\Controllers\Tenant\SettingsController::class, 'disableMfa'])->name('settings.mfa.disable');
+
         Route::get('/sub-accounts', [\App\Http\Controllers\Tenant\SubAccountController::class, 'index'])->name('sub-accounts.index');
         Route::post('/sub-accounts', [\App\Http\Controllers\Tenant\SubAccountController::class, 'store'])->name('sub-accounts.store');
         
@@ -58,18 +63,13 @@ Route::middleware(['auth', 'tenant', 'mfa', 'session_security'])->group(function
     Route::post('/report-builder/generate', [ReportBuilderController::class, 'generate'])->name('report-builder.generate');
     Route::get('/report-builder/preview', [ReportBuilderController::class, 'preview'])->name('report-builder.preview');
 
-    Route::get('/research-engine', [ResearchEngineController::class, 'index'])->name('research-engine.index');
-    Route::post('/research-engine/start', [ResearchEngineController::class, 'store'])->name('research-engine.start');
-    Route::get('/research-engine/{research}', [ResearchEngineController::class, 'show'])->name('research-engine.show');
-    Route::delete('/research-engine/{research}', [ResearchEngineController::class, 'destroy'])->name('research-engine.destroy');
-
     Route::get('/content-creator', [ContentCreatorController::class, 'index'])->name('content-creator.index');
-    Route::post('/content-creator/generate', [ContentCreatorController::class, 'store'])->name('content-creator.generate');
+    Route::post('/content-creator/generate', [ContentCreatorController::class, 'store'])->middleware('throttle:10,1')->name('content-creator.generate');
     Route::post('/content-creator/suggestions', [ContentCreatorController::class, 'getSuggestions'])->name('content-creator.suggestions');
     Route::post('/content-creator/refine', [ContentCreatorController::class, 'refineContext'])->name('content-creator.refine');
     Route::post('/content-creator/upload-media', [ContentCreatorController::class, 'uploadMedia'])->name('content-creator.upload-media');
-    Route::post('/content-creator/generate-media', [ContentCreatorController::class, 'generateMedia'])->name('content-creator.generate-media');
-    Route::post('/content-creator/regenerate', [ContentCreatorController::class, 'regenerate'])->name('content-creator.regenerate');
+    Route::post('/content-creator/generate-media', [ContentCreatorController::class, 'generateMedia'])->middleware('throttle:5,1')->name('content-creator.generate-media');
+    Route::post('/content-creator/regenerate', [ContentCreatorController::class, 'regenerate'])->middleware('throttle:10,1')->name('content-creator.regenerate');
     Route::post('/content-creator/publish', [ContentCreatorController::class, 'publish'])->name('content-creator.publish');
     Route::post('/content-creator/{content}/save-visual', [ContentCreatorController::class, 'saveVisual'])->name('content-creator.save-visual');
     Route::delete('/content-creator/{content}', [ContentCreatorController::class, 'destroy'])->name('content-creator.destroy');
@@ -84,6 +84,11 @@ Route::middleware(['auth', 'tenant', 'mfa', 'session_security'])->group(function
     Route::get('/knowledge-base', [KnowledgeBaseController::class, 'index'])->name('knowledge-base.index');
     Route::get('/documents', [DocumentsController::class, 'index'])->name('documents.index');
     Route::get('/analytics', [AnalyticsController::class, 'index'])->name('analytics.index');
+
+    Route::get('/research-engine', [ResearchEngineController::class, 'index'])->name('research-engine.index');
+    Route::post('/research-engine/start', [ResearchEngineController::class, 'store'])->middleware('throttle:5,1')->name('research-engine.start');
+    Route::get('/research-engine/{research}', [ResearchEngineController::class, 'show'])->name('research-engine.show');
+    Route::delete('/research-engine/{research}', [ResearchEngineController::class, 'destroy'])->name('research-engine.destroy');
 
     // Developer Only Routes
     Route::middleware('can:is-developer')->prefix('developer')->group(function () {

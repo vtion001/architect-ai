@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Content;
 use App\Services\ContentService;
+use App\Services\TokenService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Http;
@@ -14,10 +15,13 @@ class ContentCreatorController extends Controller
 {
     public function __construct(
         private readonly ContentService $contentService,
-        protected \App\Services\ResearchService $researchService
+        protected \App\Services\ResearchService $researchService,
+        protected TokenService $tokenService
     ) {}
+
     public function index()
     {
+        $tenant = app(\App\Models\Tenant::class);
         $stats = [
             'total_content' => Content::count(),
             'this_month' => Content::whereMonth('created_at', now()->month)->count(),
@@ -39,32 +43,19 @@ class ContentCreatorController extends Controller
             'topic' => 'required|string|max:255',
             'type' => 'required|string',
             'count' => 'nullable|integer|min:1',
-            'tone' => 'nullable|string',
-            'length' => 'nullable|string',
-            'context' => 'nullable|string',
-            'cta' => 'nullable|string',
-            'addLineBreaks' => 'nullable|boolean',
-            'includeHashtags' => 'nullable|boolean',
-            'generator' => 'nullable|string',
-            
-            // Video Params
-            'video_platform' => 'nullable|string',
-            'video_hook' => 'nullable|string',
-            'video_duration' => 'nullable|string',
-            'video_style' => 'nullable|string',
-            'video_description' => 'nullable|string',
-            'source_image' => 'nullable|string',
-            'ai_model' => 'nullable|string',
-            'resolution' => 'nullable|string',
-            'aspect_ratio' => 'nullable|string',
-            'generation_duration' => 'nullable|string',
-
-            // Blog Params
-            'blog_keywords' => 'nullable|string',
-            'blog_structure' => 'nullable|string',
-            'is_batch_mode' => 'nullable|boolean',
-            'featured_image_type' => 'nullable|string',
+            // ...
         ]);
+
+        $count = $request->input('count', 1);
+        $tokenCost = $count * 10; // 10 tokens per post
+
+        // 1. Check & Consume Tokens
+        if (!$this->tokenService->consume(auth()->user(), $tokenCost, 'content_generation', ['topic' => $request->topic])) {
+            return response()->json([
+                'success' => false,
+                'message' => "Insufficient tokens. This request requires $tokenCost tokens."
+            ], 402);
+        }
 
         $options = $request->only([
             'count', 'tone', 'length', 'cta', 'addLineBreaks', 'includeHashtags',
@@ -110,10 +101,14 @@ class ContentCreatorController extends Controller
             ]);
         } catch (\Throwable $e) {
             Log::error("Content generation failed: " . $e->getMessage());
+            
+            // Refund tokens on failure
+            $this->tokenService->grant(auth()->user()->tenant, $tokenCost, 'refund_failed_generation');
+            
             $content->update(['status' => 'failed']);
             return response()->json([
                 'success' => false, 
-                'message' => 'AI generation failed. Please check logs.'
+                'message' => 'AI generation failed. Tokens refunded.'
             ], 500);
         }
     }

@@ -11,23 +11,29 @@ trait BelongsToTenant
     protected static function bootBelongsToTenant()
     {
         static::addGlobalScope('tenant', function (Builder $builder) {
-            // 1. If not authenticated, default to scoping (or handle public access if applicable)
-            if (!auth()->check()) {
+            if (app()->runningInConsole()) {
                 return;
             }
 
-            // 2. If developer has enabled "Observability Mode", bypass isolation
-            if (auth()->user()->is_developer && session('developer_observability_mode')) {
-                return;
-            }
+            // Get tenant ID from session or service container
+            $tenantId = session('current_tenant_id') ?? (app()->bound(Tenant::class) ? app(Tenant::class)->id : null);
 
-            // 3. Otherwise, enforce strict tenant isolation
-            $builder->where('tenant_id', auth()->user()->tenant_id);
+            if ($tenantId) {
+                // Safely check for developer mode without triggering user load
+                if (auth()->hasUser() && auth()->user()->is_developer && session('developer_observability_mode')) {
+                    return;
+                }
+
+                $builder->where($builder->getModel()->getTable() . '.tenant_id', $tenantId);
+            }
         });
 
         static::creating(function ($model) {
-            if (!$model->tenant_id && auth()->check()) {
-                $model->tenant_id = auth()->user()->tenant_id;
+            if (!$model->tenant_id) {
+                $tenantId = session('current_tenant_id') ?? (app()->bound(Tenant::class) ? app(Tenant::class)->id : null);
+                if ($tenantId) {
+                    $model->tenant_id = $tenantId;
+                }
             }
         });
     }

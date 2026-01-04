@@ -9,11 +9,11 @@
             <div class="p-6">
                 <div class="flex items-start justify-between">
                     <div>
-                        <p class="text-sm text-muted-foreground mb-1">Research Requests</p>
-                        <p class="text-3xl font-bold mb-2">1,456</p>
+                        <p class="text-sm text-muted-foreground mb-1">Research Reports</p>
+                        <p class="text-3xl font-bold mb-2">{{ number_format($researchCount) }}</p>
                         <div class="flex items-center gap-1 text-xs text-green-600">
-                            <i data-lucide="trending-up" class="w-3 h-3"></i>
-                            <span>+6.8% Since last week</span>
+                            <i data-lucide="activity" class="w-3 h-3"></i>
+                            <span>Live Telemetry</span>
                         </div>
                     </div>
                     <div class="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
@@ -28,11 +28,11 @@
             <div class="p-6">
                 <div class="flex items-start justify-between">
                     <div>
-                        <p class="text-sm text-muted-foreground mb-1">Content Generated</p>
-                        <p class="text-3xl font-bold mb-2">3,345</p>
-                        <div class="flex items-center gap-1 text-xs text-red-600">
-                            <i data-lucide="trending-down" class="w-3 h-3"></i>
-                            <span>-0.8% Since last week</span>
+                        <p class="text-sm text-muted-foreground mb-1">Content Projects</p>
+                        <p class="text-3xl font-bold mb-2">{{ number_format($contentCount) }}</p>
+                        <div class="flex items-center gap-1 text-xs text-blue-600">
+                            <i data-lucide="check-circle" class="w-3 h-3"></i>
+                            <span>Synced to social</span>
                         </div>
                     </div>
                     <div class="w-10 h-10 bg-cyan-100 rounded-lg flex items-center justify-center">
@@ -42,20 +42,20 @@
             </div>
         </div>
 
-        <!-- System Uptime -->
+        <!-- Token Balance -->
         <div class="rounded-xl border border-border bg-card text-card-foreground shadow-sm">
             <div class="p-6">
                 <div class="flex items-start justify-between">
                     <div>
-                        <p class="text-sm text-muted-foreground mb-1">System Uptime</p>
-                        <p class="text-3xl font-bold mb-2">99.8%</p>
-                        <div class="flex items-center gap-1 text-xs text-red-600">
-                            <i data-lucide="trending-down" class="w-3 h-3"></i>
-                            <span>-0.2% Since last week</span>
+                        <p class="text-sm text-muted-foreground mb-1">Token Treasury</p>
+                        <p class="text-3xl font-bold mb-2">{{ number_format($tokenBalance) }}</p>
+                        <div class="flex items-center gap-1 text-xs text-amber-600">
+                            <i data-lucide="coins" class="w-3 h-3"></i>
+                            <span>Enterprise Allocation</span>
                         </div>
                     </div>
-                    <div class="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center">
-                        <i data-lucide="bar-chart-3" class="w-5 h-5 text-purple-600"></i>
+                    <div class="w-10 h-10 bg-amber-100 rounded-lg flex items-center justify-center">
+                        <i data-lucide="wallet" class="w-5 h-5 text-amber-600"></i>
                     </div>
                 </div>
             </div>
