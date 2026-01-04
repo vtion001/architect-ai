@@ -9,11 +9,13 @@ class ContentService
 {
     protected string $apiKey;
     protected string $model;
+    protected ?string $hikerApiKey;
 
     public function __construct()
     {
         $this->apiKey = config('services.openai.key');
         $this->model = config('services.openai.model', 'gpt-4o-mini');
+        $this->hikerApiKey = config('services.hiker_api.key');
     }
 
     public function generateText(string $topic, string $type, ?string $context = null, array $options = []): string
@@ -68,17 +70,42 @@ class ContentService
         } else {
             // Default: Post Generator
             $count = $options['count'] ?? 1;
+            // Force short length if API fails, as per requirements, but let's check API first.
             $length = $options['length'] ?? 'Standard';
             
-            $systemPrompt = "You are a relatable content creator and industry expert.
-                             TONE: $tone
-                             FORMAT: $type
-                             
-                             $humanizeInstruction
-                             - $lineBreaks
-                             - $hashtags
-                             - Make the first sentence a compelling personal hook.
-                             - Mandatory CTA: $cta";
+            $viralPosts = $this->getViralPosts($topic);
+
+            if (!empty($viralPosts)) {
+                // API Success Path
+                $examples = collect($viralPosts)->pluck('caption_text')->take(5)->implode("\n\n---\n\n");
+                
+                $systemPrompt = "You are a viral content expert.
+                                 BASED ON THESE HIGH-PERFORMING EXAMPLES:
+                                 
+                                 $examples
+                                 
+                                 Generate a new caption about \"$topic\" with a $tone tone.
+                                 Follow the patterns, hooks, and engagement styles you see in the successful captions above.
+                                 
+                                 $humanizeInstruction
+                                 - $lineBreaks
+                                 - $hashtags
+                                 - Mandatory CTA: $cta";
+            } else {
+                // Fallback / No API Path
+                $systemPrompt = "You are a top-tier viral content creator who knows how to stop the scroll.
+                                 GOAL: Create a viral post that is punchy, relatable, and highly shareable.
+                                 TONE: $tone
+                                 FORMAT: $type
+                                 LENGTH: Short and punchy
+                                 
+                                 $humanizeInstruction
+                                 - Keep the content SHORT and impactful.
+                                 - $lineBreaks
+                                 - $hashtags
+                                 - Make the first sentence a compelling personal hook or pattern interrupt.
+                                 - Mandatory CTA: $cta";
+            }
             
             $userPrompt = "Create $count $type(s) about: $topic. \nContext: $context \nTone: $tone \nLength: $length";
             if ($count > 1) {
@@ -108,6 +135,33 @@ class ContentService
             Log::error("Content generation error: " . $e->getMessage());
             throw $e;
         }
+    }
+
+    protected function getViralPosts(string $topic): array
+    {
+        if (!$this->hikerApiKey) {
+            return [];
+        }
+
+        // Simple hashtag cleanup: "Social Media Marketing" -> "socialmediamarketing"
+        $hashtag = strtolower(preg_replace('/[^a-zA-Z0-9]/', '', $topic));
+        
+        try {
+            $response = Http::withHeaders([
+                'x-access-key' => $this->hikerApiKey
+            ])->get("https://hikerapi.com/v1/instagram/hashtag/{$hashtag}/top");
+
+            if ($response->successful()) {
+                $data = $response->json();
+                // HikerAPI response structure usually contains a list of media objects.
+                // We'll return the data if it's an array, otherwise empty.
+                return is_array($data) ? $data : [];
+            }
+        } catch (\Exception $e) {
+            Log::warning("HikerAPI fetch failed: " . $e->getMessage());
+        }
+
+        return [];
     }
 
     public function generateImage(string $prompt): ?string
