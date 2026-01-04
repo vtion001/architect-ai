@@ -18,11 +18,11 @@
                     </div>
                     <div class="flex items-center gap-1 text-xs text-green-600">
                         <i data-lucide="arrow-up" class="w-3 h-3"></i>
-                        <span>+12.5%</span>
+                        <span>Live</span>
                     </div>
                 </div>
                 <p class="text-sm text-muted-foreground mb-1">Total Activities</p>
-                <p class="text-2xl font-bold">8,547</p>
+                <p class="text-2xl font-bold">{{ number_format($totalActivities) }}</p>
             </div>
         </div>
 
@@ -30,33 +30,33 @@
         <div class="rounded-xl border border-border bg-card text-card-foreground shadow-sm">
             <div class="p-4">
                 <div class="flex items-start justify-between mb-2">
-                    <div class="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
-                        <i data-lucide="users" class="w-5 h-5 text-blue-600"></i>
+                    <div class="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center">
+                        <i data-lucide="users" class="w-5 h-5 text-purple-600"></i>
                     </div>
                     <div class="flex items-center gap-1 text-xs text-green-600">
-                        <i data-lucide="arrow-up" class="w-3 h-3"></i>
-                        <span>+8.3%</span>
+                        <i data-lucide="shield-check" class="w-3 h-3"></i>
+                        <span>Verified</span>
                     </div>
                 </div>
-                <p class="text-sm text-muted-foreground mb-1">Active Users</p>
-                <p class="text-2xl font-bold">342</p>
+                <p class="text-sm text-muted-foreground mb-1">Active Identities</p>
+                <p class="text-2xl font-bold">{{ number_format($activeUsersCount) }}</p>
             </div>
         </div>
 
-        <!-- Avg. Processing Time -->
+        <!-- Token Consumption -->
         <div class="rounded-xl border border-border bg-card text-card-foreground shadow-sm">
             <div class="p-4">
                 <div class="flex items-start justify-between mb-2">
-                    <div class="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
-                        <i data-lucide="clock" class="w-5 h-5 text-blue-600"></i>
+                    <div class="w-10 h-10 bg-amber-100 rounded-lg flex items-center justify-center">
+                        <i data-lucide="coins" class="w-5 h-5 text-amber-600"></i>
                     </div>
-                    <div class="flex items-center gap-1 text-xs text-green-600">
-                        <i data-lucide="arrow-up" class="w-3 h-3"></i>
-                        <span>-15.2%</span>
+                    <div class="flex items-center gap-1 text-xs text-amber-600">
+                        <i data-lucide="zap" class="w-3 h-3"></i>
+                        <span>Usage</span>
                     </div>
                 </div>
-                <p class="text-sm text-muted-foreground mb-1">Avg. Processing Time</p>
-                <p class="text-2xl font-bold">2.4s</p>
+                <p class="text-sm text-muted-foreground mb-1">Tokens Consumed</p>
+                <p class="text-2xl font-bold">{{ number_format($tokensConsumed) }}</p>
             </div>
         </div>
 
@@ -64,16 +64,16 @@
         <div class="rounded-xl border border-border bg-card text-card-foreground shadow-sm">
             <div class="p-4">
                 <div class="flex items-start justify-between mb-2">
-                    <div class="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
-                        <i data-lucide="trending-up" class="w-5 h-5 text-blue-600"></i>
+                    <div class="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
+                        <i data-lucide="trending-up" class="w-5 h-5 text-green-600"></i>
                     </div>
                     <div class="flex items-center gap-1 text-xs text-green-600">
-                        <i data-lucide="arrow-up" class="w-3 h-3"></i>
-                        <span>+2.1%</span>
+                        <i data-lucide="check" class="w-3 h-3"></i>
+                        <span>Stable</span>
                     </div>
                 </div>
-                <p class="text-sm text-muted-foreground mb-1">Success Rate</p>
-                <p class="text-2xl font-bold">98.7%</p>
+                <p class="text-sm text-muted-foreground mb-1">System Success Rate</p>
+                <p class="text-2xl font-bold">{{ $successRate }}%</p>
             </div>
         </div>
     </div>
@@ -84,6 +84,7 @@
         <div class="rounded-xl border border-border bg-card text-card-foreground shadow-sm">
             <div class="flex flex-col space-y-1.5 p-6">
                 <h3 class="text-2xl font-semibold leading-none tracking-tight">Module Activity Trends</h3>
+                <p class="text-xs text-muted-foreground italic">Volume of actions performed across the platform over 6 months.</p>
             </div>
             <div class="p-6 pt-0">
                 <div class="w-full h-[300px]">
@@ -92,10 +93,11 @@
             </div>
         </div>
 
-        <!-- Monthly Comparison -->
+        <!-- Platform Distribution -->
         <div class="rounded-xl border border-border bg-card text-card-foreground shadow-sm">
             <div class="flex flex-col space-y-1.5 p-6">
-                <h3 class="text-2xl font-semibold leading-none tracking-tight">Monthly Comparison</h3>
+                <h3 class="text-2xl font-semibold leading-none tracking-tight">Activity Distribution</h3>
+                <p class="text-xs text-muted-foreground italic">Comparative volume of Research vs Content vs Social actions.</p>
             </div>
             <div class="p-6 pt-0">
                 <div class="w-full h-[300px]">
@@ -108,13 +110,13 @@
 
 <script type="module">
     document.addEventListener('DOMContentLoaded', function() {
-        const labels = ["Jan", "Feb", "Mar", "Apr", "May", "Jun"];
+        const labels = @js($labels);
         
-        // Data
-        const researchData = [145, 167, 189, 201, 223, 245];
-        const contentData = [234, 256, 298, 312, 334, 367];
-        const socialData = [187, 201, 223, 245, 267, 289];
-        const kbData = [98, 112, 134, 145, 167, 178];
+        // Data from Controller
+        const researchData = @js($researchTrend);
+        const contentData = @js($contentTrend);
+        const socialData = @js($socialTrend);
+        const kbData = @js($kbTrend);
 
         // Module Activity Trends (Line Chart)
         const lineCtx = document.getElementById('moduleActivityChart').getContext('2d');
@@ -124,51 +126,58 @@
                 labels: labels,
                 datasets: [
                     {
-                        label: 'Research',
+                        label: 'Research Engine',
                         data: researchData,
                         borderColor: '#3b82f6',
                         backgroundColor: '#3b82f6',
-                        tension: 0.4
+                        tension: 0.4,
+                        pointRadius: 4
                     },
                     {
-                        label: 'Content',
+                        label: 'Content Creator',
                         data: contentData,
                         borderColor: '#8b5cf6',
                         backgroundColor: '#8b5cf6',
-                        tension: 0.4
+                        tension: 0.4,
+                        pointRadius: 4
                     },
                     {
-                        label: 'Social',
+                        label: 'Social Planner',
                         data: socialData,
                         borderColor: '#10b981',
                         backgroundColor: '#10b981',
-                        tension: 0.4
+                        tension: 0.4,
+                        pointRadius: 4
                     },
                     {
                         label: 'Knowledge Base',
                         data: kbData,
                         borderColor: '#f59e0b',
                         backgroundColor: '#f59e0b',
-                        tension: 0.4
+                        tension: 0.4,
+                        pointRadius: 4
                     }
                 ]
             },
             options: {
+                responsive: true,
+                maintainAspectRatio: false,
                 plugins: {
                     legend: {
                         display: true,
-                        position: 'top'
+                        position: 'top',
+                        labels: { boxWidth: 8, usePointStyle: true, font: { size: 10, weight: 'bold' } }
                     }
                 },
                 scales: {
                     y: {
                         beginAtZero: true,
-                        grid: { color: 'oklch(0.90 0.01 264)' },
-                        ticks: { color: 'oklch(0.52 0.015 264)' }
+                        grid: { color: 'rgba(0,0,0,0.05)' },
+                        ticks: { font: { size: 10 } }
                     },
                     x: {
-                        grid: { color: 'oklch(0.90 0.01 264)' },
-                        ticks: { color: 'oklch(0.52 0.015 264)' }
+                        grid: { display: false },
+                        ticks: { font: { size: 10 } }
                     }
                 }
             }
@@ -184,41 +193,48 @@
                     {
                         label: 'Research',
                         data: researchData,
-                        backgroundColor: '#3b82f6'
+                        backgroundColor: '#3b82f6',
+                        borderRadius: 4
                     },
                     {
                         label: 'Content',
                         data: contentData,
-                        backgroundColor: '#8b5cf6'
+                        backgroundColor: '#8b5cf6',
+                        borderRadius: 4
                     },
                     {
                         label: 'Social',
                         data: socialData,
-                        backgroundColor: '#10b981'
+                        backgroundColor: '#10b981',
+                        borderRadius: 4
                     },
                     {
-                        label: 'KB',
+                        label: 'Knowledge',
                         data: kbData,
-                        backgroundColor: '#f59e0b'
+                        backgroundColor: '#f59e0b',
+                        borderRadius: 4
                     }
                 ]
             },
             options: {
+                responsive: true,
+                maintainAspectRatio: false,
                 plugins: {
                     legend: {
                         display: true,
-                        position: 'top'
+                        position: 'top',
+                        labels: { boxWidth: 8, usePointStyle: true, font: { size: 10, weight: 'bold' } }
                     }
                 },
                 scales: {
                     y: {
                         beginAtZero: true,
-                        grid: { color: 'oklch(0.90 0.01 264)' },
-                        ticks: { color: 'oklch(0.52 0.015 264)' }
+                        grid: { color: 'rgba(0,0,0,0.05)' },
+                        ticks: { font: { size: 10 } }
                     },
                     x: {
-                        grid: { color: 'oklch(0.90 0.01 264)' },
-                        ticks: { color: 'oklch(0.52 0.015 264)' }
+                        grid: { display: false },
+                        ticks: { font: { size: 10 } }
                     }
                 }
             }

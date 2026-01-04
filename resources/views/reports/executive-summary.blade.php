@@ -51,6 +51,6 @@
     </div>
 
     <div class="footer">
-        Architect AI | Strategy & Intelligence Portal
+        ArchitGrid | Strategy & Intelligence Portal
     </div>
 @endsection

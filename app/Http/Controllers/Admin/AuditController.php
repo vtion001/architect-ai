@@ -10,7 +10,7 @@ class AuditController extends Controller
 {
     public function index(Request $request)
     {
-        $query = AuditLog::with(['actor', 'tenant'])->latest();
+        $query = AuditLog::with(['actor', 'tenant'])->orderBy('timestamp', 'desc');
 
         if ($request->filled('tenant_id')) {
             $query->where('tenant_id', $request->tenant_id);

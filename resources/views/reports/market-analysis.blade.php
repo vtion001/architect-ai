@@ -50,6 +50,6 @@
     </div>
 
     <div class="footer">
-        Architect AI | Market Intelligence Division
+        ArchitGrid | Market Intelligence Division
     </div>
 @endsection

@@ -460,7 +460,7 @@
                         <i data-lucide="bot" class="w-5 h-5 text-primary"></i>
                     </div>
                     <div>
-                        <h4 class="text-sm font-bold text-foreground leading-tight">Architect AI</h4>
+                        <h4 class="text-sm font-bold text-foreground leading-tight">ArchitGrid</h4>
                         <div class="flex items-center gap-1.5 text-[10px] text-muted-foreground font-medium">
                             <span class="text-primary font-bold">Recommended for you</span>
                             <span class="text-muted-foreground/50">•</span>

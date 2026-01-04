@@ -66,15 +66,15 @@
             <div class="p-6">
                 <div class="flex items-start justify-between">
                     <div>
-                        <p class="text-sm text-muted-foreground mb-1">Active Modules</p>
-                        <p class="text-3xl font-bold mb-2">4/4</p>
+                        <p class="text-sm text-muted-foreground mb-1">Online Modules</p>
+                        <p class="text-3xl font-bold mb-2">{{ count($moduleUsageData) }}/{{ count($moduleUsageData) }}</p>
                         <div class="flex items-center gap-1 text-xs text-green-600">
-                            <i data-lucide="trending-up" class="w-3 h-3"></i>
-                            <span>+100% Since last week</span>
+                            <i data-lucide="shield-check" class="w-3 h-3"></i>
+                            <span>All Systems Operational</span>
                         </div>
                     </div>
-                    <div class="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
-                        <i data-lucide="database" class="w-5 h-5 text-blue-600"></i>
+                    <div class="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
+                        <i data-lucide="server" class="w-5 h-5 text-green-600"></i>
                     </div>
                 </div>
             </div>
@@ -96,33 +96,21 @@
                     <div class="relative w-48 h-48">
                         <canvas id="moduleUsageChart"></canvas>
                         <div class="absolute inset-0 flex items-center justify-center flex-col pointer-events-none">
-                            <p class="text-3xl font-bold">2,228</p>
-                            <p class="text-xs text-muted-foreground">Total</p>
+                            <p class="text-3xl font-bold">{{ number_format(collect($moduleUsageData)->sum('value')) }}</p>
+                            <p class="text-xs text-muted-foreground">Total Actions</p>
                         </div>
                     </div>
 
                     <div class="space-y-4">
+                        @foreach($moduleUsageData as $module)
                         <div>
                             <div class="flex items-center gap-2 mb-1">
-                                <div class="w-2 h-2 rounded-full bg-[oklch(0.55_0.22_264)]"></div>
-                                <p class="text-sm font-medium">Research Engine</p>
+                                <div class="w-2 h-2 rounded-full" style="background-color: {{ $module['color'] }}"></div>
+                                <p class="text-sm font-medium">{{ $module['name'] }}</p>
                             </div>
-                            <p class="text-2xl font-bold ml-4">1,135</p>
+                            <p class="text-2xl font-bold ml-4">{{ number_format($module['value']) }}</p>
                         </div>
-                        <div>
-                            <div class="flex items-center gap-2 mb-1">
-                                <div class="w-2 h-2 rounded-full bg-[oklch(0.35_0.12_264)]"></div>
-                                <p class="text-sm font-medium">Content Creator</p>
-                            </div>
-                            <p class="text-2xl font-bold ml-4">514</p>
-                        </div>
-                        <div>
-                            <div class="flex items-center gap-2 mb-1">
-                                <div class="w-2 h-2 rounded-full bg-[oklch(0.75_0.15_264)]"></div>
-                                <p class="text-sm font-medium">Social Planner</p>
-                            </div>
-                            <p class="text-2xl font-bold ml-4">345</p>
-                        </div>
+                        @endforeach
                     </div>
                 </div>
             </div>
@@ -147,14 +135,11 @@
     <!-- Recent Activities Table -->
     <div class="rounded-xl border border-border bg-card text-card-foreground shadow-sm">
         <div class="flex flex-row items-center justify-between p-6">
-            <h3 class="text-base font-semibold">Recent Activities</h3>
+            <h3 class="text-base font-semibold">Recent Platform Protocol Events</h3>
             <div class="flex gap-2">
-                <button class="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-9 px-3">
-                    Filter
-                </button>
-                <button class="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 hover:bg-accent hover:text-accent-foreground h-9 w-9">
-                    <i data-lucide="more-vertical" class="w-4 h-4"></i>
-                </button>
+                <a href="{{ route('analytics.index') }}" class="inline-flex items-center justify-center rounded-md text-sm font-medium border border-input bg-background hover:bg-accent hover:text-accent-foreground h-9 px-3">
+                    Analyze All
+                </a>
             </div>
         </div>
         <div class="p-6 pt-0">
@@ -162,105 +147,50 @@
                 <table class="w-full">
                     <thead>
                         <tr class="border-b border-border">
-                            <th class="text-left py-3 px-4 text-xs font-medium text-muted-foreground">No</th>
-                            <th class="text-left py-3 px-4 text-xs font-medium text-muted-foreground">Activity ID</th>
-                            <th class="text-left py-3 px-4 text-xs font-medium text-muted-foreground">User / Agent</th>
-                            <th class="text-left py-3 px-4 text-xs font-medium text-muted-foreground">Module</th>
-                            <th class="text-left py-3 px-4 text-xs font-medium text-muted-foreground">Topic</th>
-                            <th class="text-left py-3 px-4 text-xs font-medium text-muted-foreground">Order Date</th>
-                            <th class="text-left py-3 px-4 text-xs font-medium text-muted-foreground">Status</th>
-                            <th class="text-left py-3 px-4 text-xs font-medium text-muted-foreground">Output</th>
+                            <th class="text-left py-3 px-4 text-xs font-black uppercase tracking-widest text-muted-foreground">ID</th>
+                            <th class="text-left py-3 px-4 text-xs font-black uppercase tracking-widest text-muted-foreground">Identity</th>
+                            <th class="text-left py-3 px-4 text-xs font-black uppercase tracking-widest text-muted-foreground">Module</th>
+                            <th class="text-left py-3 px-4 text-xs font-black uppercase tracking-widest text-muted-foreground">Context / Topic</th>
+                            <th class="text-left py-3 px-4 text-xs font-black uppercase tracking-widest text-muted-foreground">Timestamp</th>
+                            <th class="text-left py-3 px-4 text-xs font-black uppercase tracking-widest text-muted-foreground">Protocol</th>
+                            <th class="text-left py-3 px-4 text-xs font-black uppercase tracking-widest text-muted-foreground">Result</th>
                         </tr>
                     </thead>
                     <tbody>
-                        @php
-                        $activities = [
-                            [
-                                'id' => 1,
-                                'activityId' => '#065499',
-                                'user' => ['name' => 'Sarah Chen', 'avatar' => null],
-                                'module' => 'Research Engine',
-                                'topic' => 'Market Analysis Q4',
-                                'date' => '21/07/2025 05:21',
-                                'status' => 'Completed',
-                                'output' => 847,
-                            ],
-                            [
-                                'id' => 2,
-                                'activityId' => '#065498',
-                                'user' => ['name' => 'Marcus Rodriguez', 'avatar' => null],
-                                'module' => 'Content Creator',
-                                'topic' => 'LinkedIn Campaign',
-                                'date' => '21/07/2025 04:15',
-                                'status' => 'In Progress',
-                                'output' => 523,
-                            ],
-                            [
-                                'id' => 3,
-                                'activityId' => '#065497',
-                                'user' => ['name' => 'Aisha Patel', 'avatar' => null],
-                                'module' => 'Social Planner',
-                                'topic' => 'Weekly Schedule',
-                                'date' => '21/07/2025 03:42',
-                                'status' => 'Completed',
-                                'output' => 312,
-                            ],
-                            [
-                                'id' => 4,
-                                'activityId' => '#065496',
-                                'user' => ['name' => 'James Kim', 'avatar' => null],
-                                'module' => 'Knowledge Base',
-                                'topic' => 'Brand Guidelines Update',
-                                'date' => '21/07/2025 02:18',
-                                'status' => 'Pending',
-                                'output' => 1247,
-                            ],
-                        ];
-                        @endphp
-                        @foreach($activities as $activity)
-                        <tr class="border-b border-border hover:bg-muted/50">
-                            <td class="py-4 px-4 text-sm">{{ $activity['id'] }}</td>
-                            <td class="py-4 px-4 text-sm font-medium">{{ $activity['activityId'] }}</td>
+                        @foreach($recentActivities as $activity)
+                        <tr class="border-b border-border/50 hover:bg-muted/30 transition-colors">
+                            <td class="py-4 px-4 text-[10px] font-mono text-muted-foreground uppercase">{{ $activity['activityId'] }}</td>
                             <td class="py-4 px-4">
                                 <div class="flex items-center gap-2">
-                                    <div class="h-6 w-6 rounded-full bg-muted flex items-center justify-center overflow-hidden">
-                                        @if($activity['user']['avatar'])
-                                            <img src="{{ $activity['user']['avatar'] }}" alt="{{ $activity['user']['name'] }}" class="h-full w-full object-cover">
-                                        @else
-                                            <span class="text-xs font-medium">{{ substr($activity['user']['name'], 0, 1) }}</span>
-                                        @endif
+                                    <div class="h-6 w-6 rounded-full bg-primary/10 flex items-center justify-center overflow-hidden border border-primary/20">
+                                        <span class="text-[10px] font-black text-primary">{{ substr($activity['user']['name'], 0, 1) }}</span>
                                     </div>
-                                    <span class="text-sm">{{ $activity['user']['name'] }}</span>
+                                    <span class="text-xs font-bold text-foreground">{{ $activity['user']['name'] }}</span>
                                 </div>
                             </td>
                             <td class="py-4 px-4">
                                 <div class="flex items-center gap-2">
-                                    @if($activity['module'] === 'Research Engine')
-                                        <i data-lucide="brain" class="w-4 h-4"></i>
-                                    @elseif($activity['module'] === 'Content Creator')
-                                        <i data-lucide="pencil" class="w-4 h-4"></i>
-                                    @else
-                                        <i data-lucide="database" class="w-4 h-4"></i>
-                                    @endif
-                                    <span class="text-sm">{{ $activity['module'] }}</span>
+                                    <span class="text-xs font-medium">{{ $activity['module'] }}</span>
                                 </div>
                             </td>
-                            <td class="py-4 px-4 text-sm">{{ $activity['topic'] }}</td>
-                            <td class="py-4 px-4 text-sm text-muted-foreground">{{ $activity['date'] }}</td>
+                            <td class="py-4 px-4 text-xs font-medium max-w-[200px] truncate" title="{{ $activity['topic'] }}">{{ $activity['topic'] }}</td>
+                            <td class="py-4 px-4 text-[10px] font-bold text-muted-foreground uppercase tracking-tight">{{ $activity['date'] }}</td>
+                            <td class="py-4 px-4">
+                                <span class="text-[10px] font-black uppercase tracking-widest text-primary/70">IA-Protocol</span>
+                            </td>
                             <td class="py-4 px-4">
                                 @php
                                     $statusClass = match($activity['status']) {
-                                        'Completed' => 'bg-blue-100 text-blue-700 hover:bg-blue-100',
-                                        'In Progress' => 'bg-amber-100 text-amber-700 hover:bg-amber-100',
-                                        'Pending' => 'bg-red-100 text-red-700 hover:bg-red-100',
-                                        default => 'bg-secondary text-secondary-foreground'
+                                        'Success' => 'bg-green-100 text-green-700',
+                                        'Failure' => 'bg-red-100 text-red-700',
+                                        'Denied' => 'bg-orange-100 text-orange-700',
+                                        default => 'bg-slate-100 text-slate-700'
                                     };
                                 @endphp
-                                <span class="inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 {{ $statusClass }}">
+                                <span class="inline-flex items-center rounded-full border px-2 py-0.5 text-[9px] font-black uppercase tracking-widest {{ $statusClass }}">
                                     {{ $activity['status'] }}
                                 </span>
                             </td>
-                            <td class="py-4 px-4 text-sm font-medium">${{ $activity['output'] }}</td>
                         </tr>
                         @endforeach
                     </tbody>
@@ -274,18 +204,14 @@
     document.addEventListener('DOMContentLoaded', function() {
         // Module Usage Chart (Pie)
         const moduleCtx = document.getElementById('moduleUsageChart').getContext('2d');
+        const moduleData = @js($moduleUsageData);
         window.createChart(moduleCtx, {
             type: 'doughnut',
             data: {
-                labels: ['Research Engine', 'Content Creator', 'Social Planner', 'Knowledge Base'],
+                labels: moduleData.map(m => m.name),
                 datasets: [{
-                    data: [1135, 514, 345, 234],
-                    backgroundColor: [
-                        'oklch(0.55 0.22 264)',
-                        'oklch(0.35 0.12 264)',
-                        'oklch(0.75 0.15 264)',
-                        'oklch(0.88 0.08 264)'
-                    ],
+                    data: moduleData.map(m => m.value),
+                    backgroundColor: moduleData.map(m => m.color),
                     borderWidth: 0,
                     hoverOffset: 4
                 }]
@@ -300,9 +226,10 @@
 
         // Content Trends Chart (Line)
         const trendsCtx = document.getElementById('contentTrendsChart').getContext('2d');
-        const labels = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-        const requests = [45, 52, 61, 75, 68, 73, 82, 79, 88, 85, 92, 88];
-        const generated = [38, 45, 55, 68, 62, 67, 76, 71, 82, 78, 86, 82];
+        const trendData = @js($contentTrendsData);
+        const labels = trendData.map(d => d.month);
+        const requests = trendData.map(d => d.requests);
+        const generated = trendData.map(d => d.generated);
 
         window.createChart(trendsCtx, {
             type: 'line',

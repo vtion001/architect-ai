@@ -5,7 +5,7 @@
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <meta name="csrf-token" content="{{ csrf_token() }}">
 
-        <title>{{ config('app.name', 'Architect AI') }}</title>
+        <title>{{ config('app.name', 'ArchitGrid') }}</title>
 
         <!-- Fonts -->
         <link rel="preconnect" href="https://fonts.bunny.net">
@@ -22,13 +22,13 @@
             <!-- Sidebar -->
             <aside class="w-64 bg-sidebar text-sidebar-foreground flex flex-col">
                 <div class="p-6 border-b border-sidebar-border">
-                    <a href="/dashboard" class="flex items-center gap-2">
-                        <div class="w-8 h-8 bg-sidebar-primary rounded-lg flex items-center justify-center">
-                            <i data-lucide="brain" class="w-5 h-5 text-sidebar-primary-foreground"></i>
+                    <a href="/dashboard" class="flex items-center gap-3">
+                        <div class="w-10 h-10 shrink-0">
+                            <img src="https://res.cloudinary.com/dbviya1rj/image/upload/v1767554289/xe54y8zsvhursjrpbnvm.png" class="w-full h-full object-contain" alt="ArchitGrid Logo">
                         </div>
                         <div>
-                            <h1 class="text-sm font-semibold">AI ARCHITECT</h1>
-                            <p class="text-xs text-sidebar-foreground/60">Business Operations Hub</p>
+                            <h1 class="text-sm font-black tracking-tight text-white uppercase">ArchitGrid</h1>
+                            <p class="text-[10px] font-bold text-primary uppercase tracking-widest">Digital Architect</p>
                         </div>
                     </a>
                 </div>
@@ -125,7 +125,7 @@
             <main class="flex-1 flex flex-col overflow-hidden">
                 <header class="bg-card border-b border-border px-8 py-4 flex items-center justify-between">
                     <div>
-                        <h2 class="text-xl font-semibold text-foreground">Welcome Back, AI Architect</h2>
+                        <h2 class="text-xl font-semibold text-foreground">Welcome Back to ArchitGrid</h2>
                     </div>
 
                     <div class="flex items-center gap-4">

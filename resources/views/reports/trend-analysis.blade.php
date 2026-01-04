@@ -31,6 +31,6 @@
     </div>
 
     <div class="footer">
-        Architect AI Research
+        ArchitGrid Research
     </div>
 @endsection

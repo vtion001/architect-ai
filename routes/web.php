@@ -82,7 +82,12 @@ Route::middleware(['auth', 'tenant', 'mfa', 'session_security'])->group(function
     Route::get('/social/callback/{platform}', [SocialPlannerController::class, 'handleCallback'])->name('social.callback');
 
     Route::get('/knowledge-base', [KnowledgeBaseController::class, 'index'])->name('knowledge-base.index');
+    Route::post('/knowledge-base', [KnowledgeBaseController::class, 'store'])->name('knowledge-base.store');
+    Route::delete('/knowledge-base/{asset}', [KnowledgeBaseController::class, 'destroy'])->name('knowledge-base.destroy');
+
     Route::get('/documents', [DocumentsController::class, 'index'])->name('documents.index');
+    Route::get('/documents/{document}', [DocumentsController::class, 'show'])->name('documents.show');
+    Route::delete('/documents/{document}', [DocumentsController::class, 'destroy'])->name('documents.destroy');
     Route::get('/analytics', [AnalyticsController::class, 'index'])->name('analytics.index');
 
     Route::get('/research-engine', [ResearchEngineController::class, 'index'])->name('research-engine.index');

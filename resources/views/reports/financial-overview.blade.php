@@ -34,6 +34,6 @@
     </div>
 
     <div class="footer">
-        Architect AI | Financial Advisory
+        ArchitGrid | Financial Advisory
     </div>
 @endsection

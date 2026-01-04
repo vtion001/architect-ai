@@ -43,7 +43,31 @@ class ContentCreatorController extends Controller
             'topic' => 'required|string|max:255',
             'type' => 'required|string',
             'count' => 'nullable|integer|min:1',
-            // ...
+            'tone' => 'nullable|string',
+            'length' => 'nullable|string',
+            'context' => 'nullable|string',
+            'cta' => 'nullable|string',
+            'addLineBreaks' => 'nullable|boolean',
+            'includeHashtags' => 'nullable|boolean',
+            'generator' => 'nullable|string',
+            
+            // Video Params
+            'video_platform' => 'nullable|string',
+            'video_hook' => 'nullable|string',
+            'video_duration' => 'nullable|string',
+            'video_style' => 'nullable|string',
+            'video_description' => 'nullable|string',
+            'source_image' => 'nullable|string',
+            'ai_model' => 'nullable|string',
+            'resolution' => 'nullable|string',
+            'aspect_ratio' => 'nullable|string',
+            'generation_duration' => 'nullable|string',
+
+            // Blog Params
+            'blog_keywords' => 'nullable|string',
+            'blog_structure' => 'nullable|string',
+            'is_batch_mode' => 'nullable|boolean',
+            'featured_image_type' => 'nullable|string',
         ]);
 
         $count = $request->input('count', 1);
@@ -284,7 +308,7 @@ class ContentCreatorController extends Controller
                 'platform' => $platform,
                 'scheduled_at' => $scheduledAt,
                 'image_url' => $validated['image_url'],
-                'original_content_id' => (int)$validated['content_id'],
+                'original_content_id' => $validated['content_id'],
                 'segment_index' => (int)$validated['segment_index']
             ];
 
@@ -570,7 +594,7 @@ class ContentCreatorController extends Controller
         $token = $options['page_token'] ?? null;
 
         if (!$postId || !$token) {
-            Log::warning("Skipping Facebook removal for post ID: {$content->id} due to missing data.");
+            Log::warning("Skipping Facebook removal for post ID: {" . $content->id . "} due to missing data.");
             return;
         }
 

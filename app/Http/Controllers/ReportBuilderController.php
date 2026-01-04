@@ -9,8 +9,10 @@ use App\Enums\ReportTemplate;
 use App\Http\Requests\GenerateReportRequest;
 use App\Http\Requests\PreviewReportRequest;
 use App\Services\ReportService;
+use App\Models\Document;
 use Illuminate\Http\JsonResponse;
 use Illuminate\View\View;
+use Illuminate\Support\Str;
 
 class ReportBuilderController extends Controller
 {
@@ -40,8 +42,28 @@ class ReportBuilderController extends Controller
     {
         $data = ReportRequestData::fromArray($request->validated());
         $html = $this->reportService->generateReportHtml($data);
+
+        // Save to Documents table
+        $document = Document::create([
+            'tenant_id' => auth()->user()->tenant_id,
+            'user_id' => auth()->id(),
+            'name' => ($request->researchTopic ?? $request->analysisType ?? 'Generated Report') . ' - ' . now()->format('Y-m-d H:i'),
+            'type' => 'HTML',
+            'category' => 'Reports',
+            'size' => strlen($html),
+            'content' => $html,
+            'metadata' => [
+                'template' => $request->template,
+                'variant' => $request->variant,
+                'research_topic' => $request->researchTopic
+            ]
+        ]);
         
-        return response()->json(['html' => $html]);
+        return response()->json([
+            'html' => $html,
+            'document_id' => $document->id,
+            'success' => true
+        ]);
     }
 
     public function preview(PreviewReportRequest $request): JsonResponse

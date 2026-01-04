@@ -24,7 +24,7 @@ class SettingsController extends Controller
         // Fetch recent audit logs for this tenant
         $auditLogs = \App\Models\AuditLog::with('actor')
             ->where('tenant_id', $tenant->id)
-            ->latest()
+            ->orderBy('timestamp', 'desc')
             ->take(10)
             ->get();
 

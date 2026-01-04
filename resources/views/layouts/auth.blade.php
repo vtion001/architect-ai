@@ -5,7 +5,7 @@
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <meta name="csrf-token" content="{{ csrf_token() }}">
 
-        <title>{{ config('app.name', 'Architect AI') }} - IAM Gateway</title>
+        <title>{{ config('app.name', 'ArchitGrid') }} - IAM Gateway</title>
 
         <!-- Fonts -->
         <link rel="preconnect" href="https://fonts.bunny.net">
@@ -19,13 +19,13 @@
     </head>
     <body class="font-sans antialiased bg-background text-foreground">
         <div class="min-h-screen flex flex-col items-center justify-center p-6 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-primary/10 via-background to-background">
-            <div class="mb-8 flex items-center gap-3">
-                <div class="w-12 h-12 bg-primary rounded-xl flex items-center justify-center shadow-lg shadow-primary/20">
-                    <i data-lucide="brain" class="w-7 h-7 text-primary-foreground"></i>
+            <div class="mb-8 flex items-center gap-4">
+                <div class="w-14 h-14 shrink-0 drop-shadow-2xl">
+                    <img src="https://res.cloudinary.com/dbviya1rj/image/upload/v1767554289/xe54y8zsvhursjrpbnvm.png" class="w-full h-full object-contain" alt="ArchitGrid Logo">
                 </div>
                 <div>
-                    <h1 class="text-2xl font-black tracking-tight">AI ARCHITECT</h1>
-                    <p class="text-xs font-bold text-muted-foreground uppercase tracking-widest">Secure IAM Gateway</p>
+                    <h1 class="text-2xl font-black tracking-tighter text-foreground uppercase">ArchitGrid</h1>
+                    <p class="text-[10px] font-bold text-primary uppercase tracking-widest">Secure IAM Gateway</p>
                 </div>
             </div>
 
@@ -33,7 +33,7 @@
 
             <div class="mt-8 text-center">
                 <p class="text-xs text-muted-foreground font-medium">
-                    &copy; 2026 Architect AI. All rights reserved.<br>
+                    &copy; 2026 ArchitGrid. All rights reserved.<br>
                     Secure multi-tenant infrastructure powered by IAM Architecture.
                 </p>
             </div>
