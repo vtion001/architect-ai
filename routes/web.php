@@ -13,9 +13,22 @@ use App\Http\Controllers\AnalyticsController;
 use App\Http\Controllers\Auth\AuthController;
 use App\Http\Controllers\Auth\DeveloperController;
 
-Route::get('/', function () {
-    return redirect('/dashboard');
-});
+use App\Http\Controllers\LandingPageController;
+
+use App\Http\Controllers\Auth\InvitationController;
+
+Route::get('/', [LandingPageController::class, 'index'])->name('landing');
+Route::get('/waitlist', [LandingPageController::class, 'waitlist'])->name('waitlist');
+Route::post('/waitlist', [LandingPageController::class, 'joinWaitlist'])->name('waitlist.join');
+
+// Invitation Protocol
+Route::get('/auth/join/{token}', [InvitationController::class, 'show'])->name('invitation.show');
+Route::post('/auth/join/{token}', [InvitationController::class, 'accept'])->name('invitation.accept');
+
+// Redirect from old root if needed, but the user wants the landing page at /
+// Route::get('/', function () {
+//     return redirect('/dashboard');
+// });
 
 // Auth Routes
 Route::prefix('auth')->group(function () {
@@ -41,7 +54,16 @@ Route::prefix('auth')->group(function () {
 // Protected Workspace Routes
 Route::middleware(['auth', 'tenant', 'mfa', 'session_security'])->group(function () {
     
+    // Content & Intelligence Registry
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
+    Route::post('/notifications/read-all', function () {
+        auth()->user()->unreadNotifications->markAsRead();
+        return response()->json(['success' => true]);
+    })->name('notifications.read-all');
+    
+    Route::get('/tenant/switch/{tenant}', [\App\Http\Controllers\Auth\TenantController::class, 'switch'])->name('tenant.switch');
+    Route::post('/agency/impersonate', [\App\Http\Controllers\Auth\AgencyImpersonationController::class, 'impersonate'])->name('agency.impersonate');
+    Route::get('/agency/impersonate/stop', [\App\Http\Controllers\Auth\AgencyImpersonationController::class, 'stop'])->name('agency.impersonate.stop');
 
     // Tenant/Agency Management
     Route::prefix('settings')->group(function () {
@@ -109,10 +131,21 @@ Route::middleware(['auth', 'tenant', 'mfa', 'session_security'])->group(function
     Route::middleware('can:is-developer')->prefix('admin')->group(function () {
         Route::get('/', [\App\Http\Controllers\Admin\AdminController::class, 'index'])->name('admin.dashboard');
         Route::post('/toggle-observability', [\App\Http\Controllers\Admin\AdminController::class, 'toggleObservability'])->name('admin.toggle-observability');
+        Route::post('/waitlist/{lead}/convert', [\App\Http\Controllers\Admin\AdminController::class, 'convertLead'])->name('admin.waitlist.convert');
         
         Route::get('/audit', [\App\Http\Controllers\Admin\AuditController::class, 'index'])->name('admin.audit.index');
         
         Route::get('/tenants', [\App\Http\Controllers\Admin\TenantExplorerController::class, 'index'])->name('admin.tenants.index');
         Route::get('/tenants/{tenant}', [\App\Http\Controllers\Admin\TenantExplorerController::class, 'show'])->name('admin.tenants.show');
+        Route::post('/tenants/{tenant}/grant', [\App\Http\Controllers\Admin\TenantExplorerController::class, 'grantTokens'])->name('admin.tenants.grant');
+    });
+
+    // God View - Waitlist Management (admin@archit-ai.io only)
+    Route::prefix('god-view')->group(function () {
+        Route::get('/', [\App\Http\Controllers\GodViewController::class, 'index'])->name('god-view.index');
+        Route::post('/approve/{waitlist}', [\App\Http\Controllers\GodViewController::class, 'approve'])->name('god-view.approve');
+        Route::post('/reject/{waitlist}', [\App\Http\Controllers\GodViewController::class, 'reject'])->name('god-view.reject');
+        Route::delete('/{waitlist}', [\App\Http\Controllers\GodViewController::class, 'destroy'])->name('god-view.destroy');
+        Route::post('/bulk-approve', [\App\Http\Controllers\GodViewController::class, 'bulkApprove'])->name('god-view.bulk-approve');
     });
 });

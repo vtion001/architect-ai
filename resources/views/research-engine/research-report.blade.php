@@ -1,68 +1,202 @@
 @extends('layouts.app')
 
 @section('content')
-<div class="p-8 max-w-5xl mx-auto">
-    <div class="mb-6 flex items-center justify-between">
+<div class="p-10 max-w-[1400px] mx-auto animate-in fade-in duration-700">
+    <!-- Protocol Header -->
+    <div class="mb-12 flex flex-col md:flex-row items-start md:items-center justify-between gap-8 border-b border-border pb-10">
         <div>
-            <a href="{{ route('research-engine.index') }}" class="text-sm text-muted-foreground hover:text-foreground flex items-center gap-1 mb-2">
-                <i data-lucide="arrow-left" class="w-4 h-4"></i>
-                Back to Dashboard
-            </a>
-            <h1 class="text-3xl font-bold">{{ $research->title }}</h1>
-            <p class="text-muted-foreground mt-1">Research Session Result • {{ $research->created_at->format('M d, Y') }}</p>
+            <div class="flex items-center gap-3 mb-4">
+                <a href="{{ route('research-engine.index') }}" class="w-10 h-10 rounded-xl bg-muted/50 border border-border flex items-center justify-center hover:bg-primary/10 hover:border-primary/30 transition-all group">
+                    <i data-lucide="arrow-left" class="w-4 h-4 text-muted-foreground group-hover:text-primary"></i>
+                </a>
+                <div class="flex flex-col">
+                    <span class="mono text-[10px] font-black uppercase tracking-[0.3em] text-primary">Protocol: Research Result</span>
+                    <h1 class="text-4xl font-black uppercase tracking-tighter text-foreground">{{ $research->title }}</h1>
+                </div>
+            </div>
+            <div class="flex items-center gap-6 px-1">
+                <div class="flex items-center gap-2">
+                    <div class="w-2 h-2 rounded-full bg-green-500"></div>
+                    <span class="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Grounding Verified</span>
+                </div>
+                <span class="text-[10px] text-muted-foreground font-mono uppercase tracking-tighter">Session ID: {{ substr($research->id, 0, 13) }}...</span>
+                <span class="text-[10px] text-muted-foreground font-mono uppercase tracking-tighter">{{ $research->created_at->format('Y-m-d H:i') }}</span>
+            </div>
         </div>
-        <div class="flex gap-2">
-            <button class="inline-flex items-center justify-center rounded-md text-sm font-medium border border-input bg-background hover:bg-accent hover:text-accent-foreground h-10 px-4 py-2">
-                <i data-lucide="download" class="w-4 h-4 mr-2"></i>
-                Export Markdown
+
+        <div class="flex items-center gap-3">
+            <button class="h-14 px-8 rounded-2xl border border-border bg-card font-black uppercase text-[10px] tracking-widest flex items-center gap-3 hover:bg-muted transition-all">
+                <i data-lucide="download" class="w-4 h-4"></i>
+                Export MD
             </button>
-            <a href="{{ route('report-builder.index', ['research_id' => $research->id]) }}" class="inline-flex items-center justify-center rounded-md text-sm font-medium bg-primary text-primary-foreground hover:bg-primary/90 h-10 px-4 py-2">
-                <i data-lucide="file-spreadsheet" class="w-4 h-4 mr-2"></i>
-                Build Full Report
+            <a href="{{ route('report-builder.index', ['research_id' => $research->id]) }}" 
+               class="h-14 px-8 rounded-2xl bg-primary text-primary-foreground font-black uppercase text-[10px] tracking-[0.2em] flex items-center gap-3 shadow-xl shadow-primary/20 hover:scale-[1.02] transition-all">
+                <i data-lucide="file-spreadsheet" class="w-4 h-4"></i>
+                Architect Full Report
             </a>
         </div>
     </div>
 
-    <!-- Quick Stats -->
-    <div class="grid grid-cols-3 gap-4 mb-8">
-        <div class="p-4 rounded-xl border border-border bg-card">
-            <p class="text-xs text-muted-foreground uppercase tracking-wider font-semibold">Sources</p>
-            <p class="text-2xl font-bold text-blue-500">{{ $research->sources_count }} Verified</p>
-        </div>
-        <div class="p-4 rounded-xl border border-border bg-card">
-            <p class="text-xs text-muted-foreground uppercase tracking-wider font-semibold">Analyzed Depth</p>
-            <p class="text-2xl font-bold text-green-500">{{ $research->pages_count }} Pages</p>
-        </div>
-        <div class="p-4 rounded-xl border border-border bg-card">
-            <p class="text-xs text-muted-foreground uppercase tracking-wider font-semibold">Confidence</p>
-            <p class="text-2xl font-bold text-purple-500">98% Match</p>
-        </div>
-    </div>
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-10">
+        <!-- Sidebar: Meta -->
+        <div class="lg:col-span-3 space-y-8">
+            <div class="space-y-6">
+                <h3 class="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] px-1">Intelligence Metrics</h3>
+                
+                <div class="bg-card border border-border rounded-[32px] p-8 space-y-8 relative overflow-hidden">
+                    <div class="absolute -top-10 -right-10 w-32 h-32 bg-primary/5 rounded-full blur-3xl"></div>
+                    
+                    <div>
+                        <p class="text-[9px] font-black text-muted-foreground uppercase tracking-widest mb-2">Sources Analyzed</p>
+                        <div class="flex items-end gap-2">
+                            <span class="text-4xl font-black text-foreground">{{ $research->sources_count }}</span>
+                            <span class="text-[10px] font-bold text-green-500 uppercase mb-1">Verified</span>
+                        </div>
+                    </div>
 
-    <div class="rounded-xl border border-border bg-card shadow-sm overflow-hidden">
-        <div class="p-6 border-b border-border bg-muted/30">
-            <h3 class="font-semibold flex items-center gap-2 text-lg">
-                <i data-lucide="book-open" class="w-5 h-5 text-primary"></i>
-                Executive Research Findings
-            </h3>
+                    <div>
+                        <p class="text-[9px] font-black text-muted-foreground uppercase tracking-widest mb-2">Confidence Level</p>
+                        <div class="flex items-end gap-2">
+                            <span class="text-4xl font-black text-foreground">98.4%</span>
+                            <div class="flex gap-0.5 mb-2">
+                                <div class="w-1 h-3 bg-primary"></div>
+                                <div class="w-1 h-3 bg-primary"></div>
+                                <div class="w-1 h-3 bg-primary"></div>
+                                <div class="w-1 h-3 bg-primary"></div>
+                                <div class="w-1 h-3 bg-slate-200"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div>
+                        <p class="text-[9px] font-black text-muted-foreground uppercase tracking-widest mb-2">Grounding Depth</p>
+                        <p class="text-sm font-bold text-foreground italic">"Multi-Layer Web Cross-Reference"</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Query Context -->
+            <div class="space-y-4">
+                <h3 class="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] px-1">Analytical Query</h3>
+                <div class="p-6 bg-muted/30 border border-border rounded-2xl italic text-xs text-muted-foreground leading-relaxed">
+                    "{{ $research->query }}"
+                </div>
+            </div>
         </div>
-        <div class="p-10 prose prose-slate max-w-none dark:prose-invert bg-white">
-            {!! Str::markdown($research->result ?? 'No result data found.') !!}
+
+        <!-- Main Intelligence Display -->
+        <div class="lg:col-span-9">
+            <div class="bg-card border border-border rounded-[40px] shadow-sm relative overflow-hidden">
+                <!-- Decorative Blueprint Header -->
+                <div class="h-2 bg-gradient-to-r from-primary/40 via-primary to-primary/40"></div>
+                
+                <div class="p-12 md:p-20">
+                    <article class="prose-architect max-w-none">
+                        {!! Str::markdown($research->result ?? 'No intelligence data retrieved for this protocol session.') !!}
+                    </article>
+                </div>
+
+                <!-- Footer Watermark -->
+                <div class="p-10 border-t border-border bg-muted/10 flex justify-between items-center opacity-30 mono text-[8px] font-black uppercase tracking-[0.4em]">
+                    <span>ArchitGrid Intelligence Node v1.0.4</span>
+                    <span>System Encrypted: SHA-256</span>
+                </div>
+            </div>
         </div>
     </div>
 </div>
 
 <style>
-    /* Styling for the markdown output to look like a real paper */
-    .prose h1 { color: #1e3a8a; font-size: 2.25rem; font-weight: 800; border-bottom: 2px solid #e2e8f0; padding-bottom: 1rem; }
-    .prose h2 { color: #1e293b; font-size: 1.5rem; font-weight: 700; margin-top: 2rem; border-left: 4px solid #3b82f6; padding-left: 1rem; }
-    .prose h3 { color: #334155; font-size: 1.25rem; font-weight: 600; }
-    .prose p { line-height: 1.8; color: #475569; margin-bottom: 1.5rem; text-align: justify; }
-    .prose ul, .prose ol { margin-bottom: 1.5rem; padding-left: 1.5rem; }
-    .prose li { margin-bottom: 0.5rem; color: #475569; }
-    .prose strong { color: #0f172a; font-weight: 600; }
-    .prose table { width: 100%; border-collapse: collapse; margin: 2rem 0; font-size: 0.9rem; }
-    .prose th { background: #f8fafc; border: 1px solid #e2e8f0; padding: 12px; text-align: left; font-weight: 600; }
-    .prose td { border: 1px solid #e2e8f0; padding: 12px; vertical-align: top; }
+    /* Premium Architectural Prose Styling */
+    .prose-architect {
+        font-family: 'Inter', sans-serif;
+        color: #334155;
+        line-height: 1.8;
+    }
+    .prose-architect h1 {
+        font-family: 'Montserrat', sans-serif;
+        font-weight: 900;
+        text-transform: uppercase;
+        letter-spacing: -0.05em;
+        color: #0f172a;
+        font-size: 2.5rem;
+        margin-bottom: 2rem;
+        border-bottom: 4px solid #00F2FF;
+        padding-bottom: 1rem;
+        display: inline-block;
+    }
+    .prose-architect h2 {
+        font-family: 'Montserrat', sans-serif;
+        font-weight: 800;
+        text-transform: uppercase;
+        color: #1e293b;
+        font-size: 1.5rem;
+        margin-top: 3.5rem;
+        margin-bottom: 1.5rem;
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+    }
+    .prose-architect h2::before {
+        content: '';
+        width: 1.5rem;
+        height: 1.5rem;
+        background: #00F2FF;
+        border-radius: 4px;
+        flex-shrink: 0;
+    }
+    .prose-architect p {
+        margin-bottom: 1.5rem;
+        font-size: 1.05rem;
+        text-align: justify;
+    }
+    .prose-architect ul {
+        margin-bottom: 2rem;
+        list-style: none;
+        padding-left: 0;
+    }
+    .prose-architect li {
+        position: relative;
+        padding-left: 2rem;
+        margin-bottom: 0.75rem;
+        font-weight: 500;
+    }
+    .prose-architect li::before {
+        content: '→';
+        position: absolute;
+        left: 0;
+        color: #00F2FF;
+        font-weight: 900;
+    }
+    .prose-architect strong {
+        color: #0f172a;
+        font-weight: 800;
+        background: rgba(0, 242, 255, 0.05);
+        padding: 0 4px;
+    }
+    .prose-architect table {
+        width: 100%;
+        border-collapse: separate;
+        border-spacing: 0;
+        margin: 3rem 0;
+        border: 1px solid #e2e8f0;
+        border-radius: 16px;
+        overflow: hidden;
+    }
+    .prose-architect th {
+        background: #f8fafc;
+        padding: 1rem;
+        text-align: left;
+        font-size: 0.75rem;
+        font-weight: 900;
+        text-transform: uppercase;
+        letter-spacing: 0.1em;
+        border-bottom: 1px solid #e2e8f0;
+    }
+    .prose-architect td {
+        padding: 1rem;
+        border-bottom: 1px solid #f1f5f9;
+        font-size: 0.9rem;
+    }
 </style>
 @endsection

@@ -10,27 +10,40 @@ use App\Models\AuditLog;
 use App\Models\Tenant;
 use Illuminate\Http\Request;
 use Carbon\Carbon;
+use Illuminate\Support\Str;
+
+use App\Services\TokenService;
 
 class DashboardController extends Controller
 {
+    public function __construct(protected TokenService $tokenService) {}
+
     public function index()
     {
         $tenant = app(Tenant::class);
 
+        // 1. Grid Telemetry
         $researchCount = Research::count();
         $contentCount = Content::where('type', '!=', 'social-post')->count();
         $socialCount = Content::where('type', 'social-post')->count();
         $kbCount = KnowledgeBaseAsset::count();
-        $tokenBalance = TokenAllocation::where('tenant_id', $tenant->id)->sum('balance');
+        $tokenBalance = $this->tokenService->getBalance($tenant);
 
-        $moduleUsageData = [
-            ['name' => "Research Engine", 'value' => $researchCount, 'color' => "#3b82f6"],
-            ['name' => "Content Creator", 'value' => $contentCount, 'color' => "#8b5cf6"],
-            ['name' => "Social Planner", 'value' => $socialCount, 'color' => "#10b981"],
-            ['name' => "Knowledge Base", 'value' => $kbCount, 'color' => "#f59e0b"],
-        ];
+        // 2. Intelligence Sync Status
+        $lastSync = AuditLog::where('tenant_id', $tenant->id)->latest('timestamp')->first()?->timestamp;
+        $gridStatus = $lastSync && $lastSync->isAfter(now()->subHours(6)) ? 'Synchronized' : 'Idle';
 
-        // Real activities from audit logs
+        // 3. Network Intensity (7-Day Heatmap)
+        $intensityData = [];
+        for ($i = 6; $i >= 0; $i--) {
+            $day = Carbon::now()->subDays($i);
+            $intensityData[] = [
+                'label' => $day->format('D'),
+                'value' => AuditLog::where('tenant_id', $tenant->id)->whereDate('timestamp', $day->toDateString())->count()
+            ];
+        }
+
+        // 4. Industrial Activity Feed
         $recentActivities = AuditLog::with('actor')
             ->where('tenant_id', $tenant->id)
             ->orderBy('timestamp', 'desc')
@@ -39,36 +52,25 @@ class DashboardController extends Controller
             ->map(function ($log) {
                 return [
                     'id' => $log->id,
-                    'activityId' => "#" . strtoupper(substr($log->id, 0, 6)),
-                    'user' => [
-                        'name' => $log->actor?->email ?? 'System',
-                        'avatar' => null
-                    ],
-                    'module' => $this->getModuleFromAction($log->action),
-                    'topic' => $log->metadata['topic'] ?? $log->metadata['query'] ?? $log->action,
-                    'date' => $log->timestamp->diffForHumans(),
-                    'status' => $log->result === 'success' ? 'Success' : ($log->result === 'denied' ? 'Denied' : 'Failure'),
-                    'output' => $log->metadata['amount'] ?? 0,
+                    'node' => $this->getModuleFromAction($log->action),
+                    'actor' => $log->actor?->email ?? 'SYSTEM_CORE',
+                    'protocol' => strtoupper($log->action),
+                    'result' => $log->result,
+                    'time' => $log->timestamp->diffForHumans(),
+                    'context' => Str::limit($log->justification ?? $log->metadata['topic'] ?? $log->metadata['query'] ?? 'No metadata provided', 40),
                 ];
             });
 
-        // 6-Month Trend Data
-        $contentTrendsData = [];
-        for ($i = 5; $i >= 0; $i--) {
-            $month = Carbon::now()->subMonths($i);
-            $contentTrendsData[] = [
-                'month' => $month->format('M'),
-                'requests' => AuditLog::where('tenant_id', $tenant->id)
-                    ->whereMonth('timestamp', $month->month)
-                    ->whereYear('timestamp', $month->year)
-                    ->count(),
-                'generated' => Content::whereMonth('created_at', $month->month)
-                    ->whereYear('created_at', $month->year)
-                    ->count(),
-            ];
-        }
-
-        return view('dashboard', compact('moduleUsageData', 'contentTrendsData', 'recentActivities', 'researchCount', 'contentCount', 'tokenBalance'));
+        return view('dashboard', compact(
+            'researchCount', 
+            'contentCount', 
+            'socialCount', 
+            'kbCount', 
+            'tokenBalance',
+            'gridStatus',
+            'intensityData',
+            'recentActivities'
+        ));
     }
 
     protected function getModuleFromAction(string $action): string

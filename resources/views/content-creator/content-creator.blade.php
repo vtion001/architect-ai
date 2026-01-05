@@ -72,11 +72,13 @@
     duration: '60s',
     
     suggestions: '',
+    kbDiscovered: 0,
     isLoadingSuggestions: false,
     fetchSuggestions() {
         if (!this.topic || this.isLoadingSuggestions) return;
         this.isLoadingSuggestions = true;
         this.suggestions = '';
+        this.kbDiscovered = 0;
         fetch('{{ route('content-creator.suggestions') }}', {
             method: 'POST',
             headers: {
@@ -88,6 +90,7 @@
         .then(res => res.json())
         .then(data => {
             this.suggestions = data.suggestions;
+            this.kbDiscovered = data.kb_count || 0;
             this.isLoadingSuggestions = false;
         })
         .catch(err => {
@@ -321,7 +324,17 @@
                             <button @click="suggestions = ''" class="absolute top-2 right-2 text-muted-foreground hover:text-foreground">
                                 <i data-lucide="x" class="w-3 h-3"></i>
                             </button>
-                            <h4 class="text-xs font-bold uppercase mb-2 text-primary">OpenAI Ideas:</h4>
+                            
+                            <div class="flex items-center justify-between mb-3">
+                                <h4 class="text-xs font-bold uppercase text-primary">OpenAI Ideas:</h4>
+                                <template x-if="kbDiscovered > 0">
+                                    <div class="flex items-center gap-1.5 px-2 py-1 rounded-md bg-green-500/10 border border-green-500/20 text-green-600 animate-pulse">
+                                        <i data-lucide="database" class="w-3 h-3"></i>
+                                        <span class="text-[9px] font-black uppercase tracking-widest" x-text="kbDiscovered + ' Context Assets Discovered'"></span>
+                                    </div>
+                                </template>
+                            </div>
+
                             <div class="prose prose-sm max-w-none text-muted-foreground whitespace-pre-wrap text-sm" x-text="suggestions"></div>
                         </div>
                     </div>

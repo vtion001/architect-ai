@@ -16,22 +16,46 @@ class TenantMiddleware
      */
     public function handle(Request $request, Closure $next): Response
     {
-        // 1. Identify Tenant from Domain, Slug, or Header
-        $host = $request->getHost();
-        $slug = $request->route('tenant_slug') ?? $request->header('X-Tenant-Slug');
+        $tenant = null;
+        $user = auth()->user();
 
-        if ($host && !in_array($host, [config('app.url'), 'localhost', '127.0.0.1'])) {
-            // Attempt to find tenant by custom domain in metadata
-            $tenant = Tenant::where('metadata->custom_domain', $host)->first();
+        // 1. Prioritize Session Hot-Swap Context
+        if ($user && session()->has('current_tenant_id')) {
+            $sessionId = session('current_tenant_id');
+            $potentialTenant = Tenant::withoutGlobalScope('tenant')->find($sessionId);
+
+            if ($potentialTenant) {
+                // Verify the user is authorized for this SPECIFIC node
+                $isAuthorized = $user->tenant_id === $potentialTenant->id || 
+                                $user->is_developer || 
+                                ($user->tenant->type === 'agency' && $potentialTenant->parent_id === $user->tenant_id);
+
+                if ($isAuthorized) {
+                    $tenant = $potentialTenant;
+                } else {
+                    // Security Violation: Revoke session context
+                    session()->forget('current_tenant_id');
+                    $this->authService->audit($user, 'security.session_revoked', $potentialTenant, 'denied', "Illegal session context detected. Access revoked.");
+                }
+            }
         }
 
-        if (!isset($tenant) && !$slug && auth()->check()) {
-            // Fallback to user's tenant if authenticated
-            $tenant = auth()->user()->tenant;
-        } elseif (!isset($tenant) && $slug) {
-            $tenant = Tenant::where('slug', $slug)->first();
-        } elseif (!isset($tenant)) {
-            $tenant = null;
+        // 2. Fallback to Domain, Slug, or native tenant if no hot-swap is active
+        if (!$tenant) {
+            $host = $request->getHost();
+            $slug = $request->route('tenant_slug') ?? $request->header('X-Tenant-Slug');
+
+            if ($host && !in_array($host, [config('app.url'), 'localhost', '127.0.0.1'])) {
+                $tenant = Tenant::where('metadata->custom_domain', $host)->first();
+            }
+
+            if (!$tenant && $slug) {
+                $tenant = Tenant::where('slug', $slug)->first();
+            }
+
+            if (!$tenant && $user) {
+                $tenant = $user->tenant;
+            }
         }
 
         if (!$tenant && $this->requiresTenant($request)) {
@@ -39,21 +63,12 @@ class TenantMiddleware
         }
 
         if ($tenant) {
-            // 2. Validate user belongs to tenant (if logged in)
-            if (auth()->check() && !auth()->user()->is_developer && auth()->user()->tenant_id !== $tenant->id) {
-                // Log cross-tenant attempt
-                $this->authService->audit(
-                    auth()->user(),
-                    'tenant.isolation_violation',
-                    $tenant,
-                    'denied',
-                    "User attempted to access unauthorized tenant: {$tenant->slug}"
-                );
-
+            // 3. Final Isolation Verification
+            if ($user && !$user->is_developer && $user->tenant_id !== $tenant->id && $tenant->parent_id !== $user->tenant_id) {
+                $this->authService->audit($user, 'tenant.isolation_violation', $tenant, 'denied', "Unauthorized access attempt to: {$tenant->slug}");
                 return response()->json(['error' => 'Unauthorized for this workspace'], 403);
             }
 
-            // 3. Set global tenant context for the request
             app()->instance(Tenant::class, $tenant);
             session(['current_tenant_id' => $tenant->id]);
         }

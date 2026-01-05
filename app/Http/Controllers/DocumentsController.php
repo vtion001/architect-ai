@@ -16,12 +16,18 @@ class DocumentsController extends Controller
         
         $documents = Document::latest()->get();
 
-        return view('documents.documents', compact('documents'));
+        $stats = [
+            'total_assets' => $documents->count(),
+            'report_count' => $documents->where('category', 'Reports')->count(),
+            'storage_used' => round($documents->sum('size') / 1024, 1) . ' KB',
+        ];
+
+        return view('documents.index', compact('documents', 'stats'));
     }
 
     public function show(Document $document)
     {
-        return response($document->content)->header('Content-Type', 'text/html');
+        return view('documents.viewer', compact('document'));
     }
 
     public function destroy(Document $document)

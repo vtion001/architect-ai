@@ -75,33 +75,45 @@ class AuthController extends Controller
             'password' => 'required|min:12', // NIST minimum
         ]);
 
-        // 1. Create Tenant
-        $tenant = Tenant::create([
-            'type' => 'agency',
-            'name' => $request->company_name,
-            'slug' => Str::slug($request->slug),
-            'status' => 'active',
-        ]);
+        return \Illuminate\Support\Facades\DB::transaction(function () use ($request) {
+            // 1. Create Tenant
+            $tenant = Tenant::create([
+                'type' => 'agency',
+                'name' => $request->company_name,
+                'slug' => Str::slug($request->slug),
+                'status' => 'active',
+            ]);
 
-        // 2. Create Owner
-        $user = User::create([
-            'tenant_id' => $tenant->id,
-            'email' => $request->email,
-            'password' => Hash::make($request->password),
-            'status' => 'active',
-            'mfa_enabled' => true, // Force MFA for owners
-        ]);
+            // 2. Create Owner
+            $user = User::create([
+                'tenant_id' => $tenant->id,
+                'email' => $request->email,
+                'password' => Hash::make($request->password),
+                'status' => 'active',
+                'mfa_enabled' => true, // Force MFA for owners
+            ]);
 
-        // 3. Assign Role
-        $role = Role::where('name', 'Agency Owner')->first();
-        if ($role) {
-            $user->roles()->attach($role->id, ['scope_type' => 'tenant']);
-        }
+            // 3. Assign Role
+            $role = Role::where('name', 'Agency Owner')->first();
+            if ($role) {
+                $user->roles()->attach($role->id, ['scope_type' => 'tenant']);
+            }
 
-        return response()->json([
-            'message' => 'Agency registered successfully',
-            'tenant_id' => $tenant->id,
-            'login_url' => url("/login/{$tenant->slug}"),
-        ], 201);
+            // 4. Initial Token Grant (Provisioning)
+            app(\App\Services\TokenService::class)->grant($tenant, 1000, 'initial_provisioning');
+
+            \Illuminate\Support\Facades\Log::info("NEW AGENCY PROVISIONED: {$tenant->name} ({$tenant->slug}) by {$user->email}");
+
+            if ($request->wantsJson()) {
+                return response()->json([
+                    'message' => 'Agency registered successfully',
+                    'tenant_id' => $tenant->id,
+                    'login_url' => url("/auth/login/{$tenant->slug}"),
+                ], 201);
+            }
+
+            return redirect()->route('login', ['tenant_slug' => $tenant->slug])
+                ->with('success', 'Workspace provisioned. Please sign in to establish your identity.');
+        });
     }
 }

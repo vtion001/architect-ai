@@ -21,7 +21,15 @@ class UserManagementController extends Controller
         $invitations = Invitation::with('role')->whereNull('accepted_at')->get();
         $roles = Role::whereNull('tenant_id')->orWhere('tenant_id', auth()->user()->tenant_id)->get();
 
-        return view('tenant.users.index', compact('users', 'roles', 'invitations'));
+        $stats = [
+            'total_identities' => $users->count() + $invitations->count(),
+            'active_sessions' => $users->where('last_login_at', '>=', now()->subDay())->count(),
+            'security_health' => $users->count() > 0 
+                ? round(($users->where('mfa_enabled', true)->count() / $users->count()) * 100) 
+                : 100,
+        ];
+
+        return view('tenant.users.index', compact('users', 'roles', 'invitations', 'stats'));
     }
 
     /**

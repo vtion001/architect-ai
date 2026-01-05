@@ -5,6 +5,9 @@
     researchTitle: '',
     researchQuery: '',
     isResearching: false,
+    showSuccessModal: false,
+    createdResearchId: null,
+
     startResearch() {
         if (!this.researchTitle || !this.researchQuery) {
             alert('Please fill in both title and query.');
@@ -25,7 +28,9 @@
         .then(res => res.json())
         .then(data => {
             if (data.success) {
-                window.location.reload();
+                this.createdResearchId = data.research.id;
+                this.showSuccessModal = true;
+                this.isResearching = false;
             } else {
                 alert('Research failed: ' + (data.message || 'Unknown error'));
                 this.isResearching = false;
@@ -37,173 +42,179 @@
         });
     }
 }">
-    <div class="mb-8">
-        <h1 class="text-3xl font-bold mb-2">Deep Research & Report Engine</h1>
-        <p class="text-muted-foreground">
-            AI-powered comprehensive research tool that gathers information from multiple sources
+    <div class="mb-12">
+        <h1 class="text-3xl font-black uppercase tracking-tighter text-foreground mb-2">Deep Research Protocol</h1>
+        <p class="text-muted-foreground font-medium italic">
+            Industrial-grade intelligence engine with real-time web grounding.
         </p>
     </div>
 
     <!-- Stats Cards -->
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-        <div class="rounded-xl border border-border bg-card text-card-foreground shadow-sm">
-            <div class="p-4">
-                <div class="flex items-center justify-between">
-                    <div>
-                        <p class="text-sm text-muted-foreground">Total Reports</p>
-                        <p class="text-2xl font-bold">{{ number_format($stats['total_reports']) }}</p>
-                    </div>
-                    <i data-lucide="file-text" class="w-8 h-8 text-blue-500"></i>
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
+        <div class="rounded-[32px] border border-border bg-card p-6 shadow-sm relative overflow-hidden group">
+            <div class="flex items-center justify-between mb-4">
+                <div class="w-10 h-10 rounded-xl bg-blue-500/10 flex items-center justify-center text-blue-500">
+                    <i data-lucide="file-text" class="w-5 h-5"></i>
                 </div>
+                <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Reports</span>
             </div>
+            <p class="text-3xl font-black text-white">{{ number_format($stats['total_reports']) }}</p>
+            <p class="text-[10px] text-slate-500 font-bold uppercase mt-1">Total Architected</p>
         </div>
-        <div class="rounded-xl border border-border bg-card text-card-foreground shadow-sm">
-            <div class="p-4">
-                <div class="flex items-center justify-between">
-                    <div>
-                        <p class="text-sm text-muted-foreground">Active Research</p>
-                        <p class="text-2xl font-bold">{{ $stats['active_research'] }}</p>
-                    </div>
-                    <i data-lucide="clock" class="w-8 h-8 text-amber-500"></i>
+        
+        <div class="rounded-[32px] border border-border bg-card p-6 shadow-sm relative overflow-hidden group">
+            <div class="flex items-center justify-between mb-4">
+                <div class="w-10 h-10 rounded-xl bg-amber-500/10 flex items-center justify-center text-amber-500">
+                    <i data-lucide="clock" class="w-5 h-5"></i>
                 </div>
+                <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Processing</span>
             </div>
+            <p class="text-3xl font-black text-white">{{ $stats['active_research'] }}</p>
+            <p class="text-[10px] text-slate-500 font-bold uppercase mt-1">Active Protocols</p>
         </div>
-        <div class="rounded-xl border border-border bg-card text-card-foreground shadow-sm">
-            <div class="p-4">
-                <div class="flex items-center justify-between">
-                    <div>
-                        <p class="text-sm text-muted-foreground">Sources Analyzed</p>
-                        <p class="text-2xl font-bold">{{ number_format($stats['sources_analyzed']) }}</p>
-                    </div>
-                    <i data-lucide="globe" class="w-8 h-8 text-green-500"></i>
+
+        <div class="rounded-[32px] border border-border bg-card p-6 shadow-sm relative overflow-hidden group">
+            <div class="flex items-center justify-between mb-4">
+                <div class="w-10 h-10 rounded-xl bg-green-500/10 flex items-center justify-center text-green-500">
+                    <i data-lucide="globe" class="w-5 h-5"></i>
                 </div>
+                <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Grounding</span>
             </div>
+            <p class="text-3xl font-black text-white">{{ number_format($stats['sources_analyzed']) }}</p>
+            <p class="text-[10px] text-slate-500 font-bold uppercase mt-1">Sources Indexed</p>
         </div>
-        <div class="rounded-xl border border-border bg-card text-card-foreground shadow-sm">
-            <div class="p-4">
-                <div class="flex items-center justify-between">
-                    <div>
-                        <p class="text-sm text-muted-foreground">Success Rate</p>
-                        <p class="text-2xl font-bold">{{ $stats['success_rate'] }}%</p>
-                    </div>
-                    <i data-lucide="trending-up" class="w-8 h-8 text-purple-500"></i>
+
+        <div class="rounded-[32px] border border-border bg-card p-6 shadow-sm relative overflow-hidden group">
+            <div class="flex items-center justify-between mb-4">
+                <div class="w-10 h-10 rounded-xl bg-purple-500/10 flex items-center justify-center text-purple-500">
+                    <i data-lucide="zap" class="w-5 h-5"></i>
                 </div>
+                <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Accuracy</span>
             </div>
+            <p class="text-3xl font-black text-white">{{ $stats['success_rate'] }}%</p>
+            <p class="text-[10px] text-slate-500 font-bold uppercase mt-1">Protocol Success</p>
         </div>
     </div>
 
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+    <div class="grid grid-cols-1 lg:grid-cols-5 gap-10">
         <!-- New Research Form -->
-        <div class="rounded-xl border border-border bg-card text-card-foreground shadow-sm">
-            <div class="flex flex-col space-y-1.5 p-6">
-                <h3 class="text-2xl font-semibold leading-none tracking-tight flex items-center gap-2">
-                    <i data-lucide="brain" class="w-5 h-5"></i>
-                    Start New Research
-                </h3>
-                <p class="text-sm text-muted-foreground">OpenAI-powered deep research engine with real-time web grounding</p>
-            </div>
-            <div class="p-6 pt-0 space-y-4">
-                <div>
-                    <label for="research-title" class="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">Research Title</label>
-                    <input 
-                        x-model="researchTitle"
-                        type="text" id="research-title" placeholder="e.g., AI Trends in Healthcare 2025" 
-                        class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 mt-1.5" />
+        <div class="lg:col-span-2 space-y-8">
+            <div class="rounded-[40px] border border-border bg-card p-10 shadow-xl relative overflow-hidden">
+                <div class="absolute -top-20 -right-20 w-40 h-40 bg-primary/5 rounded-full blur-3xl"></div>
+                
+                <div class="flex items-center gap-3 mb-8">
+                    <i data-lucide="brain" class="w-6 h-6 text-primary"></i>
+                    <h3 class="text-xl font-black uppercase tracking-tighter">Initiate Research</h3>
                 </div>
-                <div>
-                    <label for="research-query" class="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">Research Query</label>
-                    <textarea 
-                        x-model="researchQuery"
-                        id="research-query" placeholder="Describe what you want to research in detail..." rows="6" 
-                        class="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 mt-1.5"></textarea>
-                </div>
-                <div class="flex gap-2">
-                    <button 
-                        @click="startResearch"
-                        :disabled="isResearching"
-                        class="flex-1 inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground hover:bg-primary/90 h-10 px-4 py-2">
-                        <template x-if="!isResearching">
-                            <i data-lucide="search" class="w-4 h-4 mr-2"></i>
-                        </template>
-                        <template x-if="isResearching">
-                            <i data-lucide="loader-2" class="w-4 h-4 mr-2 animate-spin"></i>
-                        </template>
-                        <span x-text="isResearching ? 'OpenAI is Architecting...' : 'Start Deep Research (OpenAI)'"></span>
-                    </button>
+
+                <div class="space-y-6">
+                    <div class="space-y-2">
+                        <label class="text-[10px] font-black uppercase tracking-widest text-slate-500 italic px-1">Research Title</label>
+                        <input x-model="researchTitle" type="text" placeholder="e.g., Q3 Market Intelligence"
+                               class="w-full h-14 bg-muted/20 border border-border rounded-2xl px-5 text-sm font-bold focus:ring-2 focus:ring-primary/20 outline-none transition-all">
+                    </div>
+
+                    <div class="space-y-2">
+                        <label class="text-[10px] font-black uppercase tracking-widest text-slate-500 italic px-1">Analytical Query</label>
+                        <textarea x-model="researchQuery" rows="8" placeholder="Describe the investigative parameters..."
+                                  class="w-full bg-muted/20 border border-border rounded-2xl p-5 text-sm font-medium focus:ring-2 focus:ring-primary/20 outline-none transition-all"></textarea>
+                    </div>
+
+                    <div class="pt-4">
+                        <button @click="startResearch" :disabled="isResearching" 
+                                class="w-full h-16 bg-primary text-primary-foreground rounded-2xl font-black uppercase tracking-[0.3em] text-xs shadow-xl shadow-primary/20 hover:bg-primary/90 transition-all flex items-center justify-center gap-3">
+                            <template x-if="!isResearching">
+                                <div class="flex items-center gap-2">
+                                    <i data-lucide="search" class="w-5 h-5"></i>
+                                    <span>Initiate Sweep</span>
+                                </div>
+                            </template>
+                            <template x-if="isResearching">
+                                <div class="flex items-center gap-2">
+                                    <i data-lucide="loader-2" class="w-5 h-5 animate-spin"></i>
+                                    <span>Grounding Data...</span>
+                                </div>
+                            </template>
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>
 
         <!-- Recent Research -->
-        <div class="rounded-xl border border-border bg-card text-card-foreground shadow-sm">
-            <div class="flex flex-row items-center justify-between p-6">
-                <h3 class="text-2xl font-semibold leading-none tracking-tight">Recent Research</h3>
-                <button class="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 hover:bg-accent hover:text-accent-foreground h-9 px-3">
-                    <i data-lucide="filter" class="w-4 h-4 mr-2"></i>
-                    Filter
-                </button>
-            </div>
-            <div class="p-6 pt-0">
-                <div class="space-y-4">
-                    @forelse($recentResearches as $research)
-                    <div class="p-4 border border-border rounded-lg hover:bg-muted/50 transition-colors">
-                        <div class="flex items-start justify-between mb-2">
-                            <h3 class="font-semibold text-sm">{{ $research->title }}</h3>
+        <div class="lg:col-span-3 space-y-6">
+            <h3 class="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] px-1">Protocol History</h3>
+            <div class="grid grid-cols-1 gap-4">
+                @forelse($recentResearches as $research)
+                    <div class="p-6 bg-card border border-border rounded-[32px] hover:border-primary/30 transition-all group">
+                        <div class="flex items-start justify-between mb-4">
+                            <div>
+                                <h3 class="font-black text-lg text-foreground uppercase tracking-tight">{{ $research->title }}</h3>
+                                <p class="text-[10px] text-muted-foreground font-mono mt-1">{{ $research->created_at->diffForHumans() }}</p>
+                            </div>
                             @php
-                                $statusClasses = [
-                                    'completed' => 'bg-green-100 text-green-700',
-                                    'researching' => 'bg-amber-100 text-amber-700',
-                                    'failed' => 'bg-red-100 text-red-700',
-                                    'pending' => 'bg-slate-100 text-slate-700'
+                                $statusColors = [
+                                    'completed' => 'text-green-600 bg-green-50 border-green-100',
+                                    'researching' => 'text-amber-600 bg-amber-50 border-amber-100',
+                                    'failed' => 'text-red-600 bg-red-50 border-red-100'
                                 ];
-                                $currentStatusClass = $statusClasses[$research->status] ?? 'bg-slate-100 text-slate-700';
+                                $statusColor = $statusColors[$research->status] ?? 'text-slate-600 bg-slate-50 border-slate-100';
                             @endphp
-                            <span class="inline-flex items-center rounded-full border px-2.5 py-1 text-[10px] font-black uppercase tracking-wider transition-colors {{ $currentStatusClass }}">
-                                <span class="w-1.5 h-1.5 rounded-full bg-current mr-1.5 animate-pulse"></span>
+                            <span class="px-2.5 py-1 rounded-lg {{ $statusColor }} text-[9px] font-black uppercase tracking-widest border">
                                 {{ $research->status }}
                             </span>
                         </div>
-                        <div class="flex items-center gap-4 text-xs text-muted-foreground mb-3">
-                            <span class="flex items-center gap-1">
-                                <i data-lucide="globe" class="w-3 h-3"></i>
-                                {{ $research->sources_count }} sources
-                            </span>
-                            <span class="flex items-center gap-1">
-                                <i data-lucide="file-text" class="w-3 h-3"></i>
-                                {{ $research->pages_count }} pages
-                            </span>
-                            <span>{{ $research->created_at->format('Y-m-d') }}</span>
+
+                        <div class="flex items-center gap-6 mb-6">
+                            <div class="flex items-center gap-2">
+                                <i data-lucide="globe" class="w-3.5 h-3.5 text-slate-400"></i>
+                                <span class="text-[10px] font-bold text-slate-500 uppercase">{{ $research->sources_count }} Sources</span>
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <i data-lucide="file-text" class="w-3.5 h-3.5 text-slate-400"></i>
+                                <span class="text-[10px] font-bold text-slate-500 uppercase">{{ $research->pages_count }} Pages</span>
+                            </div>
                         </div>
                         
-                        <div class="flex gap-2">
-                            <a 
-                                href="{{ route('research-engine.show', $research) }}"
-                                class="flex-1 inline-flex items-center justify-center rounded-lg text-xs font-black uppercase tracking-wider border border-border bg-white hover:bg-muted transition-all h-9 px-3">
-                                <i data-lucide="eye" class="w-3.5 h-3.5 mr-2 text-primary"></i>
-                                Preview Research
+                        <div class="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <a href="{{ route('research-engine.show', $research) }}" 
+                               class="flex-1 h-10 bg-primary text-primary-foreground rounded-xl flex items-center justify-center text-[9px] font-black uppercase tracking-widest shadow-lg shadow-primary/20 hover:scale-[1.02] transition-all">
+                                Preview Intelligence
                             </a>
-                            <button 
-                                @click="if(confirm('Are you sure you want to stop/delete this research?')) { 
-                                    fetch('{{ route('research-engine.destroy', $research) }}', {
-                                        method: 'DELETE',
-                                        headers: {
-                                            'X-CSRF-TOKEN': '{{ csrf_token() }}'
-                                        }
-                                    }).then(() => window.location.reload());
-                                }"
-                                class="inline-flex items-center justify-center rounded-lg text-sm font-medium border border-border bg-white text-destructive hover:bg-destructive/10 h-9 w-9 transition-colors"
-                            >
-                                <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+                            <button @click="if(confirm('Purge this protocol record?')) { fetch('{{ route('research-engine.destroy', $research) }}', { method: 'DELETE', headers: { 'X-CSRF-TOKEN': '{{ csrf_token() }}' } }).then(() => window.location.reload()); }"
+                                    class="w-10 h-10 rounded-xl bg-red-50 text-red-600 border border-red-100 flex items-center justify-center hover:bg-red-600 hover:text-white transition-all">
+                                <i data-lucide="trash-2" class="w-4 h-4"></i>
                             </button>
                         </div>
                     </div>
-                    @empty
-                    <div class="text-center py-8 text-muted-foreground">
-                        <i data-lucide="search" class="w-8 h-8 mx-auto mb-2 opacity-20"></i>
-                        <p>No research sessions found.</p>
+                @empty
+                    <div class="text-center py-20 bg-muted/5 rounded-[40px] border-2 border-dashed border-border opacity-50">
+                        <i data-lucide="search" class="w-12 h-12 mx-auto mb-4 text-slate-300"></i>
+                        <p class="text-sm font-medium italic">No active research protocols found.</p>
                     </div>
-                    @endforelse
-                </div>
+                @endforelse
+            </div>
+        </div>
+    </div>
+
+    <!-- Success Modal -->
+    <div x-show="showSuccessModal" x-cloak class="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+        <div @click.away="showSuccessModal = false" class="bg-card w-full max-w-sm rounded-[40px] shadow-2xl border border-border p-10 text-center animate-in zoom-in-95 duration-300 relative overflow-hidden">
+            <div class="absolute inset-0 bg-primary/5 pointer-events-none"></div>
+            <div class="w-20 h-20 rounded-full bg-green-100 flex items-center justify-center mx-auto mb-6 shadow-sm">
+                <i data-lucide="check" class="w-10 h-10 text-green-600"></i>
+            </div>
+            <h2 class="text-2xl font-black text-foreground mb-2 uppercase tracking-tighter">Protocol Success</h2>
+            <p class="text-muted-foreground mb-10 leading-relaxed text-sm font-medium italic">
+                The research protocol has been finalized and grounded.
+            </p>
+            <div class="flex flex-col gap-3">
+                <a :href="'/research-engine/' + createdResearchId" 
+                   class="w-full h-14 rounded-2xl bg-primary text-primary-foreground font-black uppercase tracking-[0.2em] text-xs hover:bg-primary/90 transition-all shadow-lg shadow-primary/20 flex items-center justify-center gap-2">
+                    <i data-lucide="eye" class="w-4 h-4"></i>
+                    Preview Intelligence
+                </a>
+                <button @click="showSuccessModal = false" class="w-full h-14 rounded-2xl bg-muted text-muted-foreground font-black uppercase tracking-[0.2em] text-xs hover:bg-muted/80 transition-all">Dismiss</button>
             </div>
         </div>
     </div>

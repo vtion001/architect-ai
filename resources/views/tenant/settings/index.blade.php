@@ -1,216 +1,238 @@
 @extends('layouts.app')
 
 @section('content')
-<div class="p-8 max-w-6xl mx-auto" x-data="{ activeTab: '{{ $activeTab }}' }">
-    <div class="mb-8">
-        <h1 class="text-3xl font-bold mb-2">Control Plane</h1>
-        <p class="text-muted-foreground font-medium">Manage your identity, workspace branding, and security protocols.</p>
+<div class="p-8 max-w-7xl mx-auto" x-data="{ 
+    activeTab: '{{ $activeTab }}',
+    brandColor: '{{ $tenant->metadata['primary_color'] ?? '#00F2FF' }}',
+    tempColor: '{{ $tenant->metadata['primary_color'] ?? '#00F2FF' }}'
+}">
+    <div class="mb-12 flex items-center justify-between">
+        <div>
+            <h1 class="text-3xl font-black uppercase tracking-tighter text-foreground mb-2">Grid Configuration</h1>
+            <p class="text-muted-foreground font-medium italic">Adjust the identity, resources, and security protocols of your agency workspace.</p>
+        </div>
+        <div class="px-4 py-2 rounded-xl bg-primary/10 border border-primary/20 flex items-center gap-3">
+            <i data-lucide="coins" class="w-4 h-4 text-primary"></i>
+            <span class="text-xs font-black uppercase text-primary tracking-widest">{{ number_format($tokenBalance) }} Tokens</span>
+        </div>
     </div>
 
-    <div class="flex flex-col lg:flex-row gap-8">
-        <!-- Tab Sidebar -->
-        <div class="w-full lg:w-64 shrink-0">
-            <nav class="space-y-1">
-                <button @click="activeTab = 'profile'" :class="activeTab === 'profile' ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:bg-muted'" class="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold transition-all">
-                    <i data-lucide="user" class="w-4 h-4"></i>
-                    My Profile
-                </button>
-                <button @click="activeTab = 'branding'" :class="activeTab === 'branding' ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:bg-muted'" class="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold transition-all">
-                    <i data-lucide="palette" class="w-4 h-4"></i>
-                    Workspace Branding
-                </button>
-                <button @click="activeTab = 'integrations'" :class="activeTab === 'integrations' ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:bg-muted'" class="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold transition-all">
-                    <i data-lucide="plug" class="w-4 h-4"></i>
-                    Integrations
-                </button>
-                <button @click="activeTab = 'billing'" :class="activeTab === 'billing' ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:bg-muted'" class="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold transition-all">
-                    <i data-lucide="credit-card" class="w-4 h-4"></i>
-                    Billing & Tokens
-                </button>
-                <button @click="activeTab = 'security'" :class="activeTab === 'security' ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:bg-muted'" class="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold transition-all">
-                    <i data-lucide="shield" class="w-4 h-4"></i>
-                    Security & Audit
-                </button>
-            </nav>
+    @if(session('success'))
+        <div class="mb-8 p-4 rounded-xl bg-green-50 border border-green-100 text-green-600 text-[10px] font-black uppercase tracking-widest flex items-center gap-3 animate-in slide-in-from-top-2">
+            <i data-lucide="check-circle" class="w-4 h-4"></i>
+            <span>{{ session('success') }}</span>
+        </div>
+    @endif
+
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-10">
+        <!-- Navigation Nodes -->
+        <div class="lg:col-span-3 space-y-2">
+            <button @click="activeTab = 'profile'" :class="activeTab === 'profile' ? 'bg-primary text-primary-foreground' : 'hover:bg-muted text-muted-foreground'" class="w-full flex items-center gap-3 px-6 py-4 rounded-2xl text-xs font-black uppercase tracking-widest transition-all">
+                <i data-lucide="user" class="w-4 h-4"></i>
+                Personal Identity
+            </button>
+            
+            @if(auth()->user()->tenant->type === 'agency')
+            <button @click="activeTab = 'branding'" :class="activeTab === 'branding' ? 'bg-primary text-primary-foreground' : 'hover:bg-muted text-muted-foreground'" class="w-full flex items-center gap-3 px-6 py-4 rounded-2xl text-xs font-black uppercase tracking-widest transition-all">
+                <i data-lucide="palette" class="w-4 h-4"></i>
+                Visual DNA
+            </button>
+            <button @click="activeTab = 'billing'" :class="activeTab === 'billing' ? 'bg-primary text-primary-foreground' : 'hover:bg-muted text-muted-foreground'" class="w-full flex items-center gap-3 px-6 py-4 rounded-2xl text-xs font-black uppercase tracking-widest transition-all">
+                <i data-lucide="credit-card" class="w-4 h-4"></i>
+                Resource Treasury
+            </button>
+            @endif
+
+            <button @click="activeTab = 'security'" :class="activeTab === 'security' ? 'bg-primary text-primary-foreground' : 'hover:bg-muted text-muted-foreground'" class="w-full flex items-center gap-3 px-6 py-4 rounded-2xl text-xs font-black uppercase tracking-widest transition-all">
+                <i data-lucide="shield-check" class="w-4 h-4"></i>
+                Security Hub
+            </button>
         </div>
 
-        <!-- Tab Content -->
-        <div class="flex-1">
-            <div class="bg-card border border-border rounded-3xl p-8 shadow-sm">
+        <!-- Configuration Panel -->
+        <div class="lg:col-span-9">
+            <!-- Profile Identity -->
+            <div x-show="activeTab === 'profile'" class="bg-card border border-border rounded-[40px] p-10 shadow-sm animate-in fade-in duration-300">
+                <h2 class="text-2xl font-black uppercase tracking-tighter mb-8">Personal Identity</h2>
+                <form action="{{ route('settings.profile') }}" method="POST" class="space-y-8">
+                    @csrf
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                        <div class="space-y-2">
+                            <label class="text-[10px] font-black uppercase tracking-widest text-slate-500 italic px-1">Authorized Email</label>
+                            <input type="email" name="email" value="{{ $user->email }}" required
+                                   class="w-full h-14 bg-muted/20 border border-border rounded-2xl px-5 text-sm font-bold focus:ring-2 focus:ring-primary/20 outline-none">
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-8 pt-4">
+                        <div class="space-y-2">
+                            <label class="text-[10px] font-black uppercase tracking-widest text-slate-500 italic px-1">New Passphrase</label>
+                            <input type="password" name="password" placeholder="••••••••••••"
+                                   class="w-full h-14 bg-muted/20 border border-border rounded-2xl px-5 text-sm font-bold focus:ring-2 focus:ring-primary/20 outline-none">
+                        </div>
+                        <div class="space-y-2">
+                            <label class="text-[10px] font-black uppercase tracking-widest text-slate-500 italic px-1">Confirm Passphrase</label>
+                            <input type="password" name="password_confirmation" placeholder="••••••••••••"
+                                   class="w-full h-14 bg-muted/20 border border-border rounded-2xl px-5 text-sm font-bold focus:ring-2 focus:ring-primary/20 outline-none">
+                        </div>
+                    </div>
+                    <div class="pt-6 border-t border-border">
+                        <button type="submit" class="h-14 px-10 bg-primary text-primary-foreground rounded-2xl font-black uppercase text-[10px] tracking-widest shadow-lg shadow-primary/20 transition-all hover:scale-[1.02]">Update Identity</button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Visual DNA (Branding) -->
+            <div x-show="activeTab === 'branding'" class="bg-card border border-border rounded-[40px] p-10 shadow-sm animate-in fade-in duration-300">
+                <div class="flex items-center justify-between mb-10">
+                    <h2 class="text-2xl font-black uppercase tracking-tighter">Visual DNA</h2>
+                    <div class="flex items-center gap-3 px-4 py-2 rounded-xl border border-border bg-muted/30">
+                        <div class="w-4 h-4 rounded-full" :style="'background-color: ' + tempColor"></div>
+                        <span class="text-[10px] font-black uppercase text-slate-500 tracking-widest">Active Preview</span>
+                    </div>
+                </div>
+
+                <form action="{{ route('settings.branding') }}" method="POST" class="space-y-10">
+                    @csrf
+                    <div class="space-y-8">
+                        <div class="space-y-2">
+                            <label class="text-[10px] font-black uppercase tracking-widest text-slate-500 italic px-1">Workspace Label</label>
+                            <input type="text" name="name" value="{{ $tenant->name }}" required
+                                   class="w-full h-14 bg-muted/20 border border-border rounded-2xl px-5 text-lg font-black uppercase tracking-tight focus:ring-2 focus:ring-primary/20 outline-none">
+                        </div>
+
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                            <div class="space-y-2">
+                                <label class="text-[10px] font-black uppercase tracking-widest text-slate-500 italic px-1">Primary Grid Color</label>
+                                <div class="flex gap-4">
+                                    <input type="color" x-model="tempColor" name="metadata[primary_color]"
+                                           class="w-20 h-14 bg-muted/20 border border-border rounded-2xl p-1 cursor-pointer">
+                                    <input type="text" x-model="tempColor" class="flex-1 h-14 bg-muted/20 border border-border rounded-2xl px-5 mono text-sm font-bold focus:ring-2 focus:ring-primary/20 outline-none">
+                                </div>
+                                <p class="text-[9px] text-muted-foreground mt-2 italic">This color will drive the primary accents, sidebars, and active states across your grid nodes.</p>
+                            </div>
+                            
+                            <div class="space-y-2">
+                                <label class="text-[10px] font-black uppercase tracking-widest text-slate-500 italic px-1">Custom Domain</label>
+                                <div class="relative">
+                                    <i data-lucide="globe" class="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400"></i>
+                                    <input type="text" name="metadata[custom_domain]" value="{{ $tenant->metadata['custom_domain'] ?? '' }}" placeholder="grid.youragency.com"
+                                           class="w-full h-14 bg-muted/20 border border-border rounded-2xl pl-11 pr-5 text-sm font-bold focus:ring-2 focus:ring-primary/20 outline-none">
+                                </div>
+                                <p class="text-[9px] text-muted-foreground mt-2 italic">Whitelist your agency domain for a seamless white-label experience.</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="pt-6 border-t border-border">
+                        <button type="submit" class="h-14 px-10 bg-primary text-primary-foreground rounded-2xl font-black uppercase text-[10px] tracking-widest shadow-lg shadow-primary/20 transition-all hover:scale-[1.02]">Persist Visual DNA</button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Billing & Treasury -->
+            <div x-show="activeTab === 'billing'" class="bg-card border border-border rounded-[40px] p-10 shadow-sm animate-in fade-in duration-300">
+                <h2 class="text-2xl font-black uppercase tracking-tighter mb-8">Resource Treasury</h2>
                 
-                <!-- Profile Section -->
-                <div x-show="activeTab === 'profile'" x-cloak class="space-y-8 animate-in fade-in slide-in-from-right-4 duration-300">
-                    <div>
-                        <h3 class="text-xl font-bold mb-1">Identity Intelligence</h3>
-                        <p class="text-sm text-muted-foreground font-medium">Manage your personal profile and account credentials.</p>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-8 mb-12">
+                    <div class="p-8 rounded-[32px] bg-primary/5 border border-primary/10 relative overflow-hidden group">
+                        <p class="text-[10px] font-black text-primary uppercase tracking-[0.2em] mb-4">Current Balance</p>
+                        <p class="text-5xl font-black text-primary">{{ number_format($tokenBalance) }}</p>
+                        <div class="mt-8 flex items-center gap-2">
+                            <span class="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
+                            <span class="text-[9px] font-bold text-slate-500 uppercase">Treasury Node Healthy</span>
+                        </div>
+                        <i data-lucide="coins" class="absolute -right-4 -bottom-4 w-24 h-24 text-primary/5 group-hover:scale-110 transition-transform"></i>
                     </div>
-                    
-                    <form action="{{ route('settings.profile') }}" method="POST" class="space-y-6">
-                        @csrf
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            <div class="space-y-2">
-                                <label class="text-[10px] font-black uppercase tracking-widest text-muted-foreground italic px-1">Email Address</label>
-                                <input type="email" name="email" value="{{ $user->email }}" required class="w-full h-12 bg-muted/20 border border-border rounded-xl px-4 text-sm font-medium focus:ring-2 focus:ring-primary/20 outline-none">
-                            </div>
-                            <div class="space-y-2">
-                                <label class="text-[10px] font-black uppercase tracking-widest text-muted-foreground italic px-1">Current Role</label>
-                                <input type="text" value="{{ $user->roles()->first()?->name }}" disabled class="w-full h-12 bg-muted/50 border border-border rounded-xl px-4 text-sm font-medium opacity-60">
-                            </div>
-                        </div>
-
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            <div class="space-y-2">
-                                <label class="text-[10px] font-black uppercase tracking-widest text-muted-foreground italic px-1">New Passphrase (Optional)</label>
-                                <input type="password" name="password" placeholder="••••••••••••" class="w-full h-12 bg-muted/20 border border-border rounded-xl px-4 text-sm font-medium focus:ring-2 focus:ring-primary/20 outline-none">
-                            </div>
-                            <div class="space-y-2">
-                                <label class="text-[10px] font-black uppercase tracking-widest text-muted-foreground italic px-1">Confirm Passphrase</label>
-                                <input type="password" name="password_confirmation" placeholder="••••••••••••" class="w-full h-12 bg-muted/20 border border-border rounded-xl px-4 text-sm font-medium focus:ring-2 focus:ring-primary/20 outline-none">
-                            </div>
-                        </div>
-
-                        <button type="submit" class="bg-primary text-primary-foreground px-6 py-2.5 rounded-xl font-bold text-xs uppercase tracking-widest shadow-lg shadow-primary/20 transition-all hover:scale-[1.02]">Save Identity Changes</button>
-                    </form>
-                </div>
-
-                <!-- Branding Section -->
-                <div x-show="activeTab === 'branding'" x-cloak class="space-y-8 animate-in fade-in slide-in-from-right-4 duration-300">
-                    <div>
-                        <h3 class="text-xl font-bold mb-1">Brand DNA</h3>
-                        <p class="text-sm text-muted-foreground font-medium">Customize the look and feel of this workspace.</p>
-                    </div>
-
-                    <form action="{{ route('settings.branding') }}" method="POST" class="space-y-6">
-                        @csrf
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            <div class="space-y-2">
-                                <label class="text-[10px] font-black uppercase tracking-widest text-muted-foreground italic px-1">Workspace Name</label>
-                                <input type="text" name="name" value="{{ $tenant->name }}" class="w-full h-12 bg-muted/20 border border-border rounded-xl px-4 text-sm font-medium focus:ring-2 focus:ring-primary/20 outline-none">
-                            </div>
-                            <div class="space-y-2">
-                                <label class="text-[10px] font-black uppercase tracking-widest text-muted-foreground italic px-1 flex items-center justify-between">
-                                    Custom Domain (Whitelabel)
-                                    <span class="text-primary font-bold">Pro Feature</span>
-                                </label>
-                                <input type="text" name="metadata[custom_domain]" value="{{ $tenant->metadata['custom_domain'] ?? '' }}" placeholder="app.youragency.com" class="w-full h-12 bg-muted/20 border border-border rounded-xl px-4 text-sm font-medium focus:ring-2 focus:ring-primary/20 outline-none">
-                            </div>
-                        </div>
-
-                        <div class="grid grid-cols-2 gap-6">
-                            <div class="space-y-2">
-                                <label class="text-[10px] font-black uppercase tracking-widest text-muted-foreground italic px-1">Primary Color</label>
-                                <div class="flex gap-3">
-                                    <input type="color" name="metadata[primary_color]" value="{{ $tenant->metadata['primary_color'] ?? '#000000' }}" class="h-12 w-12 rounded-xl bg-muted/20 border border-border p-1">
-                                    <input type="text" value="{{ $tenant->metadata['primary_color'] ?? '#000000' }}" class="flex-1 h-12 bg-muted/20 border border-border rounded-xl px-4 text-sm font-mono uppercase">
-                                </div>
-                            </div>
-                            <div class="space-y-2">
-                                <label class="text-[10px] font-black uppercase tracking-widest text-muted-foreground italic px-1">Timezone</label>
-                                <select name="metadata[timezone]" class="w-full h-12 bg-muted/20 border border-border rounded-xl px-4 text-sm font-medium">
-                                    <option value="UTC" {{ ($tenant->metadata['timezone'] ?? 'UTC') === 'UTC' ? 'selected' : '' }}>UTC</option>
-                                    <option value="Asia/Manila" {{ ($tenant->metadata['timezone'] ?? '') === 'Asia/Manila' ? 'selected' : '' }}>Manila (PHT)</option>
-                                    <option value="America/New_York" {{ ($tenant->metadata['timezone'] ?? '') === 'America/New_York' ? 'selected' : '' }}>New York (EST)</option>
-                                </select>
-                            </div>
-                        </div>
-
-                        <button type="submit" class="bg-primary text-primary-foreground px-6 py-2.5 rounded-xl font-bold text-xs uppercase tracking-widest shadow-lg shadow-primary/20 transition-all hover:scale-[1.02]">Sync Brand DNA</button>
-                    </form>
-                </div>
-
-                <!-- Integrations Section -->
-                <div x-show="activeTab === 'integrations'" x-cloak class="space-y-8 animate-in fade-in slide-in-from-right-4 duration-300">
-                    <div>
-                        <h3 class="text-xl font-bold mb-1">Connection Hub</h3>
-                        <p class="text-sm text-muted-foreground font-medium">Manage API connections for Social Planner and AI Modules.</p>
-                    </div>
-
-                    <div class="grid grid-cols-1 gap-4">
-                        @foreach(['Facebook', 'Instagram', 'LinkedIn', 'Twitter'] as $platform)
-                        <div class="flex items-center justify-between p-4 rounded-2xl border border-border bg-muted/10">
-                            <div class="flex items-center gap-4">
-                                <div class="w-10 h-10 rounded-xl bg-card flex items-center justify-center border border-border shadow-sm font-black text-xs uppercase">
-                                    {{ substr($platform, 0, 2) }}
-                                </div>
-                                <div>
-                                    <p class="text-sm font-bold">{{ $platform }}</p>
-                                    <p class="text-[10px] text-muted-foreground font-medium italic">Requires professional account</p>
-                                </div>
-                            </div>
-                            <a href="{{ route('social-planner.index') }}" class="px-4 py-1.5 rounded-lg bg-muted border border-border text-[10px] font-black uppercase tracking-widest transition-all hover:bg-primary hover:text-white hover:border-primary">Configure</a>
-                        </div>
-                        @endforeach
-                    </div>
-                </div>
-
-                <!-- Billing Section -->
-                <div x-show="activeTab === 'billing'" x-cloak class="space-y-8 animate-in fade-in slide-in-from-right-4 duration-300">
-                    <div class="flex items-center justify-between">
+                    <div class="p-8 rounded-[32px] border border-border flex flex-col justify-between">
                         <div>
-                            <h3 class="text-xl font-bold mb-1">Token Treasury</h3>
-                            <p class="text-sm text-muted-foreground font-medium">Resource management and subscription tiers.</p>
+                            <p class="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2">Usage Analysis</p>
+                            <p class="text-sm font-medium text-muted-foreground leading-relaxed italic">Your resource consumption has been stable. Automated top-ups are disabled.</p>
                         </div>
-                        <span class="px-3 py-1 rounded-full bg-amber-50 text-amber-600 border border-amber-100 text-[10px] font-black uppercase tracking-widest animate-pulse">Enterprise Plan</span>
-                    </div>
-
-                    <div class="bg-primary/5 border border-primary/10 rounded-3xl p-8 text-center">
-                        <p class="text-[10px] font-black text-primary uppercase tracking-[0.2em] mb-4">Total Tokens Remaining</p>
-                        <p class="text-6xl font-black text-foreground tracking-tighter mb-6">{{ number_format($tokenBalance) }}</p>
-                        <button class="bg-primary text-primary-foreground px-8 py-3 rounded-2xl font-black uppercase tracking-widest text-xs shadow-xl shadow-primary/20 hover:bg-primary/90 transition-all">Buy More Tokens</button>
+                        <button class="w-full h-12 bg-white text-black rounded-xl font-black uppercase text-[9px] tracking-widest shadow-lg hover:bg-primary hover:text-white transition-all">Acquire Tokens</button>
                     </div>
                 </div>
 
-                <!-- Security Section -->
-                <div x-show="activeTab === 'security'" x-cloak class="space-y-8 animate-in fade-in slide-in-from-right-4 duration-300">
-                    <div>
-                        <h3 class="text-xl font-bold mb-1">Security Protocols</h3>
-                        <p class="text-sm text-muted-foreground font-medium">Verify login history and manage Multi-Factor Authentication.</p>
+                <div class="space-y-6">
+                    <h3 class="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] px-1">Registry Audit Trail</h3>
+                    <div class="bg-muted/10 border border-border rounded-3xl overflow-hidden">
+                        <table class="w-full text-left text-[10px]">
+                            <thead class="bg-muted/50 border-b border-border text-slate-500 font-black uppercase tracking-widest">
+                                <tr>
+                                    <th class="p-4 px-6">Timestamp</th>
+                                    <th class="p-4">Action Protocol</th>
+                                    <th class="p-4">Identity</th>
+                                    <th class="p-4 text-right">Result</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-border/50">
+                                @foreach($auditLogs as $log)
+                                    <tr class="hover:bg-muted/30 transition-colors">
+                                        <td class="p-4 px-6 font-medium text-slate-500">{{ $log->timestamp->format('Y-m-d H:i') }}</td>
+                                        <td class="p-4 font-bold text-foreground uppercase tracking-tight">{{ $log->action }}</td>
+                                        <td class="p-4 text-slate-500 italic">{{ $log->actor?->email ?? 'SYSTEM' }}</td>
+                                        <td class="p-4 text-right">
+                                            <span class="px-2 py-0.5 rounded-md font-black uppercase tracking-widest {{ $log->result === 'success' ? 'text-green-500 bg-green-500/5' : 'text-red-500 bg-red-500/5' }}">
+                                                {{ $log->result }}
+                                            </span>
+                                        </td>
+                                    </tr>
+                                @endforeach
+                            </tbody>
+                        </table>
                     </div>
+                </div>
+            </div>
 
-                    <div class="space-y-4">
-                        <div class="flex items-center justify-between p-6 rounded-3xl border border-border bg-card">
-                            <div class="flex items-center gap-4">
-                                <div class="w-12 h-12 rounded-2xl {{ $user->mfa_enabled ? 'bg-green-50 text-green-600' : 'bg-red-50 text-red-600' }} flex items-center justify-center">
-                                    <i data-lucide="{{ $user->mfa_enabled ? 'shield-check' : 'shield-off' }}" class="w-6 h-6"></i>
-                                </div>
-                                <div>
-                                    <p class="text-sm font-bold">Two-Factor Authentication</p>
-                                    <p class="text-xs text-muted-foreground italic">
-                                        {{ $user->mfa_enabled ? 'Currently enabled for your account.' : 'Enhance your security by enabling MFA.' }}
-                                    </p>
-                                </div>
+            <!-- Security Hub -->
+            <div x-show="activeTab === 'security'" class="bg-card border border-border rounded-[40px] p-10 shadow-sm animate-in fade-in duration-300">
+                <h2 class="text-2xl font-black uppercase tracking-tighter mb-8">Security Protocols</h2>
+                
+                <div class="space-y-8">
+                    <!-- MFA Protocol -->
+                    <div class="p-8 rounded-[32px] border border-border flex items-center justify-between relative overflow-hidden group">
+                        <div class="flex items-center gap-6">
+                            <div class="w-16 h-16 rounded-2xl bg-purple-500/10 flex items-center justify-center text-purple-500">
+                                <i data-lucide="shield-check" class="w-8 h-8"></i>
                             </div>
-                            @if($user->mfa_enabled)
+                            <div>
+                                <h3 class="text-lg font-black uppercase tracking-tight">Multi-Factor Authentication</h3>
+                                <p class="text-xs text-muted-foreground font-medium italic">Requirement level: High. Protect your agency identity.</p>
+                            </div>
+                        </div>
+                        
+                        @if($user->mfa_enabled)
+                            <div class="flex items-center gap-4">
+                                <span class="text-[9px] font-black text-green-500 uppercase tracking-widest">Protocol Active</span>
                                 <form action="{{ route('settings.mfa.disable') }}" method="POST">
                                     @csrf
-                                    <button type="submit" class="px-4 py-2 rounded-xl bg-red-50 text-red-600 text-[10px] font-black uppercase tracking-widest hover:bg-red-100 transition-all">Disable</button>
+                                    <button class="h-10 px-6 rounded-xl border border-red-100 bg-red-50 text-red-600 font-black uppercase text-[9px] tracking-widest hover:bg-red-600 hover:text-white transition-all">Deactivate</button>
                                 </form>
-                            @else
-                                <a href="{{ route('mfa.setup') }}" class="px-4 py-2 rounded-xl bg-primary text-primary-foreground text-[10px] font-black uppercase tracking-widest shadow-lg shadow-primary/20 hover:bg-primary/90 transition-all">Enable</a>
-                            @endif
-                        </div>
+                            </div>
+                        @else
+                            <a href="{{ route('mfa.setup') }}" class="h-12 px-8 bg-purple-600 text-white rounded-xl font-black uppercase text-[9px] tracking-widest shadow-lg shadow-purple-900/20 hover:scale-[1.02] transition-all">Initialize MFA</a>
+                        @endif
+                    </div>
 
-                        <div class="p-6 rounded-3xl border border-border bg-muted/5">
-                            <h4 class="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-4">Recent Access Protocol Logs</h4>
-                            <div class="space-y-3">
-                                @forelse($auditLogs as $log)
-                                <div class="flex items-center justify-between text-xs">
-                                    <div class="flex items-center gap-2">
-                                        <span class="font-mono text-muted-foreground">{{ strtoupper($log->action) }}</span>
-                                        @if($log->actor)
-                                            <span class="text-[10px] text-slate-400">({{ $log->actor->email }})</span>
-                                        @endif
+                    <!-- Session Registry -->
+                    <div class="p-8 rounded-[32px] border border-border">
+                        <div class="flex items-center gap-3 mb-6">
+                            <i data-lucide="monitor" class="w-5 h-5 text-slate-400"></i>
+                            <h3 class="text-sm font-black uppercase tracking-widest">Active Identity Sessions</h3>
+                        </div>
+                        <div class="space-y-4">
+                            <div class="flex items-center justify-between p-4 rounded-2xl bg-muted/20 border border-border">
+                                <div class="flex items-center gap-4">
+                                    <i data-lucide="chrome" class="w-5 h-5 text-blue-500"></i>
+                                    <div>
+                                        <p class="text-xs font-bold text-foreground">Chrome on MacOS (This Session)</p>
+                                        <p class="text-[9px] text-slate-500 font-mono">{{ request()->ip() }}</p>
                                     </div>
-                                    <span class="font-medium italic text-slate-400">{{ $log->timestamp->diffForHumans() }}</span>
                                 </div>
-                                @empty
-                                <p class="text-xs text-muted-foreground italic text-center py-4">No recent security events recorded.</p>
-                                @endforelse
+                                <span class="text-[8px] font-black text-primary uppercase tracking-widest">Current</span>
                             </div>
                         </div>
                     </div>
                 </div>
-
             </div>
         </div>
     </div>

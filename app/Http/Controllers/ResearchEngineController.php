@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Research;
 use App\Services\ResearchService;
 use App\Services\TokenService;
+use App\Notifications\IntelligenceAlert;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 
@@ -75,6 +76,14 @@ class ResearchEngineController extends Controller
                 'sources_count' => $sourceCount,
                 'pages_count' => max(2, (int)(strlen($resultMarkdown) / 3000)),
             ]);
+
+            // Dispatch Intelligence Alert
+            auth()->user()->notify(new IntelligenceAlert(
+                'Research Protocol Finalized',
+                "Intelligence for '{$research->title}' has been grounded.",
+                'brain',
+                route('research-engine.show', $research->id)
+            ));
 
             return response()->json([
                 'success' => true,

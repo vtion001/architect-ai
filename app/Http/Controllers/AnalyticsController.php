@@ -18,7 +18,7 @@ class AnalyticsController extends Controller
     {
         $tenant = app(Tenant::class);
 
-        // 1. Top Level Metrics
+        // 1. Core Grid Telemetry
         $totalActivities = AuditLog::where('tenant_id', $tenant->id)->count();
         $activeUsersCount = User::where('tenant_id', $tenant->id)->where('status', 'active')->count();
         
@@ -27,39 +27,23 @@ class AnalyticsController extends Controller
 
         $tokensConsumed = abs(TokenTransaction::where('tenant_id', $tenant->id)->where('amount', '<', 0)->sum('amount'));
 
-        // 2. Chart Data: Last 6 Months Trends
+        // 2. Productivity Analytics
+        $totalContent = Content::where('tenant_id', $tenant->id)->count();
+        $productivityIndex = $activeUsersCount > 0 ? round($totalContent / $activeUsersCount, 1) : 0;
+        
+        $totalResearch = Research::where('tenant_id', $tenant->id)->count();
+        $intelDensity = $totalResearch > 0 ? round($totalContent / $totalResearch, 1) : $totalContent;
+
+        // 3. Chart Data: Last 7 Days Intensity
         $labels = [];
-        $researchTrend = [];
-        $contentTrend = [];
-        $socialTrend = [];
-        $kbTrend = [];
+        $intensityTrend = [];
 
-        for ($i = 5; $i >= 0; $i--) {
-            $month = Carbon::now()->subMonths($i);
-            $labels[] = $month->format('M');
+        for ($i = 6; $i >= 0; $i--) {
+            $day = Carbon::now()->subDays($i);
+            $labels[] = $day->format('D');
 
-            $researchTrend[] = AuditLog::where('tenant_id', $tenant->id)
-                ->where('action', 'like', '%research%')
-                ->whereMonth('timestamp', $month->month)
-                ->whereYear('timestamp', $month->year)
-                ->count();
-
-            $contentTrend[] = AuditLog::where('tenant_id', $tenant->id)
-                ->where('action', 'like', '%content%')
-                ->whereMonth('timestamp', $month->month)
-                ->whereYear('timestamp', $month->year)
-                ->count();
-
-            $socialTrend[] = AuditLog::where('tenant_id', $tenant->id)
-                ->where('action', 'like', '%social%')
-                ->whereMonth('timestamp', $month->month)
-                ->whereYear('timestamp', $month->year)
-                ->count();
-
-            $kbTrend[] = AuditLog::where('tenant_id', $tenant->id)
-                ->where('action', 'like', '%knowledge%')
-                ->whereMonth('timestamp', $month->month)
-                ->whereYear('timestamp', $month->year)
+            $intensityTrend[] = AuditLog::where('tenant_id', $tenant->id)
+                ->whereDate('timestamp', $day->toDateString())
                 ->count();
         }
 
@@ -68,11 +52,10 @@ class AnalyticsController extends Controller
             'activeUsersCount', 
             'successRate', 
             'tokensConsumed',
+            'productivityIndex',
+            'intelDensity',
             'labels',
-            'researchTrend',
-            'contentTrend',
-            'socialTrend',
-            'kbTrend'
+            'intensityTrend'
         ));
     }
 }

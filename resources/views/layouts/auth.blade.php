@@ -7,6 +7,23 @@
 
         <title>{{ config('app.name', 'ArchitGrid') }} - IAM Gateway</title>
 
+        <!-- Dynamic Branding -->
+        @php
+            $brandColor = '#00F2FF';
+            // Attempt to resolve tenant from route for login page context
+            $slug = request()->route('tenant_slug');
+            if ($slug) {
+                $tenant = \App\Models\Tenant::where('slug', $slug)->first();
+                if ($tenant) $brandColor = $tenant->metadata['primary_color'] ?? '#00F2FF';
+            }
+        @endphp
+        <style>
+            :root {
+                --primary: {{ $brandColor }};
+            }
+            [x-cloak] { display: none !important; }
+        </style>
+
         <!-- Fonts -->
         <link rel="preconnect" href="https://fonts.bunny.net">
         <link href="https://fonts.bunny.net/css?family=figtree:400,500,600&display=swap" rel="stylesheet" />
@@ -15,7 +32,6 @@
         @vite(['resources/css/app.css', 'resources/js/app.js'])
         <script src="https://unpkg.com/lucide@latest"></script>
         <script src="https://unpkg.com/alpinejs" defer></script>
-        <style>[x-cloak] { display: none !important; }</style>
     </head>
     <body class="font-sans antialiased bg-background text-foreground">
         <div class="min-h-screen flex flex-col items-center justify-center p-6 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-primary/10 via-background to-background">
@@ -39,7 +55,9 @@
             </div>
         </div>
         <script>
-            lucide.createIcons();
+            if (window.lucide) {
+                lucide.createIcons();
+            }
         </script>
     </body>
 </html>

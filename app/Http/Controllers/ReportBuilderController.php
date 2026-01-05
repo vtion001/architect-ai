@@ -10,6 +10,7 @@ use App\Http\Requests\GenerateReportRequest;
 use App\Http\Requests\PreviewReportRequest;
 use App\Services\ReportService;
 use App\Models\Document;
+use App\Services\TokenService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\View\View;
 use Illuminate\Support\Str;
@@ -17,7 +18,8 @@ use Illuminate\Support\Str;
 class ReportBuilderController extends Controller
 {
     public function __construct(
-        protected ReportService $reportService
+        protected ReportService $reportService,
+        protected TokenService $tokenService
     ) {}
 
     public function index(\Illuminate\Http\Request $request): View
@@ -40,30 +42,51 @@ class ReportBuilderController extends Controller
 
     public function generate(GenerateReportRequest $request): JsonResponse
     {
-        $data = ReportRequestData::fromArray($request->validated());
-        $html = $this->reportService->generateReportHtml($data);
+        $tokenCost = 30;
 
-        // Save to Documents table
-        $document = Document::create([
-            'tenant_id' => auth()->user()->tenant_id,
-            'user_id' => auth()->id(),
-            'name' => ($request->researchTopic ?? $request->analysisType ?? 'Generated Report') . ' - ' . now()->format('Y-m-d H:i'),
-            'type' => 'HTML',
-            'category' => 'Reports',
-            'size' => strlen($html),
-            'content' => $html,
-            'metadata' => [
-                'template' => $request->template,
-                'variant' => $request->variant,
-                'research_topic' => $request->researchTopic
-            ]
-        ]);
+        // 1. Check & Consume Tokens
+        if (!$this->tokenService->consume(auth()->user(), $tokenCost, 'report_generation', ['topic' => $request->researchTopic])) {
+            return response()->json([
+                'success' => false,
+                'message' => "Insufficient tokens. Report architecture requires $tokenCost tokens."
+            ], 402);
+        }
+
+        $data = ReportRequestData::fromArray($request->validated());
         
-        return response()->json([
-            'html' => $html,
-            'document_id' => $document->id,
-            'success' => true
-        ]);
+        try {
+            $html = $this->reportService->generateReportHtml($data);
+
+            // Save to Documents table
+            $document = Document::create([
+                'tenant_id' => auth()->user()->tenant_id,
+                'user_id' => auth()->id(),
+                'name' => ($request->researchTopic ?? $request->analysisType ?? 'Generated Report') . ' - ' . now()->format('Y-m-d H:i'),
+                'type' => 'HTML',
+                'category' => 'Reports',
+                'size' => strlen($html),
+                'content' => $html,
+                'metadata' => [
+                    'template' => $request->template,
+                    'variant' => $request->variant,
+                    'research_topic' => $request->researchTopic
+                ]
+            ]);
+            
+            return response()->json([
+                'html' => $html,
+                'document_id' => $document->id,
+                'success' => true
+            ]);
+        } catch (\Exception $e) {
+            // Refund on failure
+            $this->tokenService->grant(auth()->user()->tenant, $tokenCost, 'refund_failed_report');
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'Report generation failed. Tokens refunded.'
+            ], 500);
+        }
     }
 
     public function preview(PreviewReportRequest $request): JsonResponse

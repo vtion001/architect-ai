@@ -1,283 +1,184 @@
 @extends('layouts.app')
 
 @section('content')
-<div class="p-8">
-    <!-- Metric Cards -->
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
-        <!-- Research Requests -->
-        <div class="rounded-xl border border-border bg-card text-card-foreground shadow-sm">
-            <div class="p-6">
-                <div class="flex items-start justify-between">
-                    <div>
-                        <p class="text-sm text-muted-foreground mb-1">Research Reports</p>
-                        <p class="text-3xl font-bold mb-2">{{ number_format($researchCount) }}</p>
-                        <div class="flex items-center gap-1 text-xs text-green-600">
-                            <i data-lucide="activity" class="w-3 h-3"></i>
-                            <span>Live Telemetry</span>
-                        </div>
-                    </div>
-                    <div class="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
-                        <i data-lucide="brain" class="w-5 h-5 text-blue-600"></i>
-                    </div>
+<div class="p-8 max-w-[1600px] mx-auto animate-in fade-in duration-700">
+    <!-- Grid Identification Header -->
+    <div class="mb-12 flex flex-col md:flex-row items-start md:items-center justify-between gap-8">
+        <div>
+            <h1 class="text-4xl font-black uppercase tracking-tighter text-foreground mb-2">Agency Grid Overview</h1>
+            <div class="flex items-center gap-6">
+                <div class="flex items-center gap-2">
+                    <div class="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div>
+                    <span class="text-[10px] font-black uppercase text-slate-500 tracking-widest">Protocol Sync: {{ $gridStatus }}</span>
                 </div>
+                <span class="text-[10px] font-mono text-slate-400 uppercase tracking-tighter italic">Workspace Node: {{ app(\App\Models\Tenant::class)->slug }}</span>
+            </div>
+        </div>
+        <div class="flex gap-4">
+            <button @click="showCommandPalette = true" class="h-14 px-8 rounded-2xl border border-border bg-card font-black uppercase text-[10px] tracking-widest flex items-center gap-3 hover:bg-muted transition-all">
+                <i data-lucide="command" class="w-4 h-4"></i>
+                Command Palette
+            </button>
+            <a href="/research-engine" class="h-14 px-8 rounded-2xl bg-primary text-primary-foreground font-black uppercase text-[10px] tracking-[0.2em] flex items-center gap-3 shadow-xl shadow-primary/20 hover:scale-[1.02] transition-all">
+                <i data-lucide="zap" class="w-4 h-4"></i>
+                Initiate Protocol
+            </a>
+        </div>
+    </div>
+
+    <!-- Core Intelligence Matrix -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
+        <div class="bg-card border border-border rounded-[32px] p-8 shadow-sm relative overflow-hidden group hover:border-primary/30 transition-all">
+            <div class="flex items-center justify-between mb-6">
+                <div class="w-12 h-12 rounded-2xl bg-blue-500/10 flex items-center justify-center text-blue-500 border border-blue-500/20 group-hover:bg-blue-500 group-hover:text-white transition-all">
+                    <i data-lucide="search" class="w-6 h-6"></i>
+                </div>
+                <span class="text-[9px] font-black text-slate-500 uppercase tracking-widest">Research Node</span>
+            </div>
+            <p class="text-4xl font-black text-foreground">{{ $researchCount }}</p>
+            <p class="text-[10px] font-bold text-slate-500 uppercase mt-2 italic">Intelligence Sessions</p>
+            <div class="absolute -right-4 -bottom-4 opacity-5 group-hover:scale-110 transition-transform">
+                <i data-lucide="search" class="w-24 h-24 text-blue-500"></i>
             </div>
         </div>
 
-        <!-- Content Generated -->
-        <div class="rounded-xl border border-border bg-card text-card-foreground shadow-sm">
-            <div class="p-6">
-                <div class="flex items-start justify-between">
-                    <div>
-                        <p class="text-sm text-muted-foreground mb-1">Content Projects</p>
-                        <p class="text-3xl font-bold mb-2">{{ number_format($contentCount) }}</p>
-                        <div class="flex items-center gap-1 text-xs text-blue-600">
-                            <i data-lucide="check-circle" class="w-3 h-3"></i>
-                            <span>Synced to social</span>
-                        </div>
-                    </div>
-                    <div class="w-10 h-10 bg-cyan-100 rounded-lg flex items-center justify-center">
-                        <i data-lucide="pencil" class="w-5 h-5 text-cyan-600"></i>
-                    </div>
+        <div class="bg-card border border-border rounded-[32px] p-8 shadow-sm relative overflow-hidden group hover:border-primary/30 transition-all">
+            <div class="flex items-center justify-between mb-6">
+                <div class="w-12 h-12 rounded-2xl bg-primary/10 flex items-center justify-center text-primary border border-primary/20 group-hover:bg-primary group-hover:text-black transition-all">
+                    <i data-lucide="pencil" class="w-6 h-6"></i>
                 </div>
+                <span class="text-[9px] font-black text-slate-500 uppercase tracking-widest">Architect Node</span>
+            </div>
+            <p class="text-4xl font-black text-foreground">{{ $contentCount }}</p>
+            <p class="text-[10px] font-bold text-slate-500 uppercase mt-2 italic">Assets Provisions</p>
+            <div class="absolute -right-4 -bottom-4 opacity-5 group-hover:scale-110 transition-transform">
+                <i data-lucide="pencil" class="w-24 h-24 text-primary"></i>
             </div>
         </div>
 
-        <!-- Token Balance -->
-        <div class="rounded-xl border border-border bg-card text-card-foreground shadow-sm">
-            <div class="p-6">
-                <div class="flex items-start justify-between">
-                    <div>
-                        <p class="text-sm text-muted-foreground mb-1">Token Treasury</p>
-                        <p class="text-3xl font-bold mb-2">{{ number_format($tokenBalance) }}</p>
-                        <div class="flex items-center gap-1 text-xs text-amber-600">
-                            <i data-lucide="coins" class="w-3 h-3"></i>
-                            <span>Enterprise Allocation</span>
-                        </div>
-                    </div>
-                    <div class="w-10 h-10 bg-amber-100 rounded-lg flex items-center justify-center">
-                        <i data-lucide="wallet" class="w-5 h-5 text-amber-600"></i>
-                    </div>
+        <div class="bg-card border border-border rounded-[32px] p-8 shadow-sm relative overflow-hidden group hover:border-primary/30 transition-all">
+            <div class="flex items-center justify-between mb-6">
+                <div class="w-12 h-12 rounded-2xl bg-purple-500/10 flex items-center justify-center text-purple-500 border border-purple-500/20 group-hover:bg-purple-500 group-hover:text-white transition-all">
+                    <i data-lucide="share-2" class="w-6 h-6"></i>
                 </div>
+                <span class="text-[9px] font-black text-slate-500 uppercase tracking-widest">Social Node</span>
+            </div>
+            <p class="text-4xl font-black text-foreground">{{ $socialCount }}</p>
+            <p class="text-[10px] font-bold text-slate-500 uppercase mt-2 italic">Platform Deployments</p>
+            <div class="absolute -right-4 -bottom-4 opacity-5 group-hover:scale-110 transition-transform">
+                <i data-lucide="share-2" class="w-24 h-24 text-purple-500"></i>
             </div>
         </div>
 
-        <!-- Active Modules -->
-        <div class="rounded-xl border border-border bg-card text-card-foreground shadow-sm">
-            <div class="p-6">
-                <div class="flex items-start justify-between">
-                    <div>
-                        <p class="text-sm text-muted-foreground mb-1">Online Modules</p>
-                        <p class="text-3xl font-bold mb-2">{{ count($moduleUsageData) }}/{{ count($moduleUsageData) }}</p>
-                        <div class="flex items-center gap-1 text-xs text-green-600">
-                            <i data-lucide="shield-check" class="w-3 h-3"></i>
-                            <span>All Systems Operational</span>
-                        </div>
-                    </div>
-                    <div class="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
-                        <i data-lucide="server" class="w-5 h-5 text-green-600"></i>
-                    </div>
+        <div class="bg-card border border-border rounded-[32px] p-8 shadow-sm relative overflow-hidden group hover:border-primary/30 transition-all">
+            <div class="flex items-center justify-between mb-6">
+                <div class="w-12 h-12 rounded-2xl bg-cyan-500/10 flex items-center justify-center text-cyan-500 border border-cyan-500/20 group-hover:bg-cyan-500 group-hover:text-black transition-all">
+                    <i data-lucide="coins" class="w-6 h-6"></i>
                 </div>
+                <span class="text-[9px] font-black text-slate-500 uppercase tracking-widest">Treasury Node</span>
+            </div>
+            <p class="text-4xl font-black text-primary">{{ number_format($tokenBalance) }}</p>
+            <p class="text-[10px] font-bold text-slate-500 uppercase mt-2 italic">Grid Credits</p>
+            <div class="absolute -right-4 -bottom-4 opacity-5 group-hover:scale-110 transition-transform">
+                <i data-lucide="coins" class="w-24 h-24 text-cyan-500"></i>
             </div>
         </div>
     </div>
 
-    <!-- Charts Row -->
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-        <!-- Module Usage Statistics -->
-        <div class="rounded-xl border border-border bg-card text-card-foreground shadow-sm">
-            <div class="flex flex-row items-center justify-between p-6 pb-2">
-                <h3 class="text-base font-semibold">Module Usage Statistics</h3>
-                <button class="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 hover:bg-accent hover:text-accent-foreground h-9 w-9">
-                    <i data-lucide="more-vertical" class="w-4 h-4"></i>
-                </button>
-            </div>
-            <div class="p-6">
-                <div class="flex items-center justify-between">
-                    <div class="relative w-48 h-48">
-                        <canvas id="moduleUsageChart"></canvas>
-                        <div class="absolute inset-0 flex items-center justify-center flex-col pointer-events-none">
-                            <p class="text-3xl font-bold">{{ number_format(collect($moduleUsageData)->sum('value')) }}</p>
-                            <p class="text-xs text-muted-foreground">Total Actions</p>
-                        </div>
-                    </div>
-
-                    <div class="space-y-4">
-                        @foreach($moduleUsageData as $module)
-                        <div>
-                            <div class="flex items-center gap-2 mb-1">
-                                <div class="w-2 h-2 rounded-full" style="background-color: {{ $module['color'] }}"></div>
-                                <p class="text-sm font-medium">{{ $module['name'] }}</p>
+    <!-- Telemetry Visualization & Knowledge -->
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 mb-12">
+        <div class="lg:col-span-8 space-y-6">
+            <h3 class="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] px-1">Network Intensity Heatmap</h3>
+            <div class="bg-card border border-border rounded-[40px] p-10 h-[400px] flex flex-col justify-between group">
+                <div class="flex-1 flex items-end gap-6">
+                    @foreach($intensityData as $data)
+                        <div class="flex-1 flex flex-col items-center gap-4 group/bar">
+                            <div class="w-full bg-muted/20 rounded-2xl relative overflow-hidden transition-all group-hover/bar:bg-primary/5 border border-transparent group-hover/bar:border-primary/20" 
+                                 style="height: {{ max(10, ($data['value'] / max(1, max(array_column($intensityData, 'value')))) * 100) }}%">
+                                <div class="absolute inset-0 bg-gradient-to-t from-primary/40 to-transparent opacity-0 group-hover/bar:opacity-100 transition-opacity"></div>
                             </div>
-                            <p class="text-2xl font-bold ml-4">{{ number_format($module['value']) }}</p>
+                            <span class="mono text-[10px] font-black text-slate-500 uppercase tracking-widest group-hover/bar:text-primary transition-colors">{{ $data['label'] }}</span>
                         </div>
-                        @endforeach
+                    @endforeach
+                </div>
+            </div>
+        </div>
+
+        <div class="lg:col-span-4 space-y-6">
+            <h3 class="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] px-1">Intelligence Assets</h3>
+            <div class="bg-card border border-border rounded-[40px] p-8 h-[400px] flex flex-col justify-between relative overflow-hidden">
+                <div class="absolute -top-20 -right-20 w-40 h-40 bg-primary/5 rounded-full blur-3xl"></div>
+                
+                <div class="space-y-6 flex-1">
+                    <div class="w-16 h-16 rounded-3xl bg-muted border border-border flex items-center justify-center text-primary">
+                        <i data-lucide="database" class="w-8 h-8"></i>
+                    </div>
+                    <div class="space-y-2">
+                        <h4 class="text-2xl font-black uppercase tracking-tight">RAG Context</h4>
+                        <p class="text-xs text-muted-foreground font-medium italic leading-relaxed">
+                            Your grid currently stores <span class="text-foreground font-bold">{{ $kbCount }} validated intelligence assets</span>. These documents are used to ground all AI generations in your agency's proprietary data.
+                        </p>
                     </div>
                 </div>
-            </div>
-        </div>
 
-        <!-- Content Generation Trends -->
-        <div class="rounded-xl border border-border bg-card text-card-foreground shadow-sm">
-            <div class="flex flex-row items-center justify-between p-6 pb-2">
-                <h3 class="text-base font-semibold">Content Generation Trends</h3>
-                <button class="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 hover:bg-accent hover:text-accent-foreground h-9 w-9">
-                    <i data-lucide="more-vertical" class="w-4 h-4"></i>
-                </button>
-            </div>
-            <div class="p-6">
-                <div class="w-full h-[240px]">
-                    <canvas id="contentTrendsChart"></canvas>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Recent Activities Table -->
-    <div class="rounded-xl border border-border bg-card text-card-foreground shadow-sm">
-        <div class="flex flex-row items-center justify-between p-6">
-            <h3 class="text-base font-semibold">Recent Platform Protocol Events</h3>
-            <div class="flex gap-2">
-                <a href="{{ route('analytics.index') }}" class="inline-flex items-center justify-center rounded-md text-sm font-medium border border-input bg-background hover:bg-accent hover:text-accent-foreground h-9 px-3">
-                    Analyze All
+                <a href="/knowledge-base" class="w-full h-14 bg-muted border border-border rounded-2xl font-black uppercase text-[10px] tracking-widest hover:bg-white hover:text-black transition-all flex items-center justify-center gap-3">
+                    Access Hub
+                    <i data-lucide="arrow-right" class="w-4 h-4"></i>
                 </a>
             </div>
         </div>
-        <div class="p-6 pt-0">
-            <div class="overflow-x-auto">
-                <table class="w-full">
-                    <thead>
-                        <tr class="border-b border-border">
-                            <th class="text-left py-3 px-4 text-xs font-black uppercase tracking-widest text-muted-foreground">ID</th>
-                            <th class="text-left py-3 px-4 text-xs font-black uppercase tracking-widest text-muted-foreground">Identity</th>
-                            <th class="text-left py-3 px-4 text-xs font-black uppercase tracking-widest text-muted-foreground">Module</th>
-                            <th class="text-left py-3 px-4 text-xs font-black uppercase tracking-widest text-muted-foreground">Context / Topic</th>
-                            <th class="text-left py-3 px-4 text-xs font-black uppercase tracking-widest text-muted-foreground">Timestamp</th>
-                            <th class="text-left py-3 px-4 text-xs font-black uppercase tracking-widest text-muted-foreground">Protocol</th>
-                            <th class="text-left py-3 px-4 text-xs font-black uppercase tracking-widest text-muted-foreground">Result</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @foreach($recentActivities as $activity)
-                        <tr class="border-b border-border/50 hover:bg-muted/30 transition-colors">
-                            <td class="py-4 px-4 text-[10px] font-mono text-muted-foreground uppercase">{{ $activity['activityId'] }}</td>
-                            <td class="py-4 px-4">
-                                <div class="flex items-center gap-2">
-                                    <div class="h-6 w-6 rounded-full bg-primary/10 flex items-center justify-center overflow-hidden border border-primary/20">
-                                        <span class="text-[10px] font-black text-primary">{{ substr($activity['user']['name'], 0, 1) }}</span>
+    </div>
+
+    <!-- Industrial Activity Registry -->
+    <div class="space-y-6">
+        <h3 class="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] px-1">Global Activity Registry</h3>
+        <div class="bg-card border border-border rounded-[40px] overflow-hidden shadow-sm">
+            <table class="w-full text-left text-xs border-collapse">
+                <thead class="bg-muted/50 text-slate-500 font-black uppercase tracking-widest border-b border-border">
+                    <tr>
+                        <th class="p-6">Execution Identity</th>
+                        <th class="p-6">Active Node</th>
+                        <th class="p-6">Protocol Action</th>
+                        <th class="p-6">Contextual Snippet</th>
+                        <th class="p-6 text-right">Registry Cycle</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-border/50">
+                    @foreach($recentActivities as $activity)
+                        <tr class="hover:bg-muted/30 transition-colors group">
+                            <td class="p-6">
+                                <div class="flex items-center gap-3">
+                                    <div class="w-8 h-8 rounded-full bg-muted border border-border flex items-center justify-center text-[10px] font-black text-slate-500 uppercase">
+                                        {{ substr($activity['actor'], 0, 1) }}
                                     </div>
-                                    <span class="text-xs font-bold text-foreground">{{ $activity['user']['name'] }}</span>
+                                    <span class="font-bold text-foreground">{{ $activity['actor'] }}</span>
                                 </div>
                             </td>
-                            <td class="py-4 px-4">
-                                <div class="flex items-center gap-2">
-                                    <span class="text-xs font-medium">{{ $activity['module'] }}</span>
-                                </div>
-                            </td>
-                            <td class="py-4 px-4 text-xs font-medium max-w-[200px] truncate" title="{{ $activity['topic'] }}">{{ $activity['topic'] }}</td>
-                            <td class="py-4 px-4 text-[10px] font-bold text-muted-foreground uppercase tracking-tight">{{ $activity['date'] }}</td>
-                            <td class="py-4 px-4">
-                                <span class="text-[10px] font-black uppercase tracking-widest text-primary/70">IA-Protocol</span>
-                            </td>
-                            <td class="py-4 px-4">
-                                @php
-                                    $statusClass = match($activity['status']) {
-                                        'Success' => 'bg-green-100 text-green-700',
-                                        'Failure' => 'bg-red-100 text-red-700',
-                                        'Denied' => 'bg-orange-100 text-orange-700',
-                                        default => 'bg-slate-100 text-slate-700'
-                                    };
-                                @endphp
-                                <span class="inline-flex items-center rounded-full border px-2 py-0.5 text-[9px] font-black uppercase tracking-widest {{ $statusClass }}">
-                                    {{ $activity['status'] }}
+                            <td class="p-6">
+                                <span class="px-2.5 py-1 rounded-lg bg-muted text-muted-foreground text-[9px] font-black uppercase tracking-widest border border-border">
+                                    {{ $activity['node'] }}
                                 </span>
                             </td>
+                            <td class="p-6 font-mono text-primary font-bold tracking-tighter">
+                                {{ $activity['protocol'] }}
+                            </td>
+                            <td class="p-6 text-slate-500 italic truncate max-w-xs">
+                                "{{ $activity['context'] }}"
+                            </td>
+                            <td class="p-6 text-right text-slate-400 font-medium">
+                                {{ $activity['time'] }}
+                            </td>
                         </tr>
-                        @endforeach
-                    </tbody>
-                </table>
-            </div>
+                    @endforeach
+                </tbody>
+            </table>
+            @if(empty($recentActivities))
+                <div class="p-20 text-center opacity-30 italic">
+                    <i data-lucide="clipboard-list" class="w-12 h-12 mx-auto mb-4"></i>
+                    <p class="text-sm font-bold uppercase tracking-widest">Registry empty</p>
+                </div>
+            @endif
         </div>
     </div>
 </div>
-
-<script type="module">
-    document.addEventListener('DOMContentLoaded', function() {
-        // Module Usage Chart (Pie)
-        const moduleCtx = document.getElementById('moduleUsageChart').getContext('2d');
-        const moduleData = @js($moduleUsageData);
-        window.createChart(moduleCtx, {
-            type: 'doughnut',
-            data: {
-                labels: moduleData.map(m => m.name),
-                datasets: [{
-                    data: moduleData.map(m => m.value),
-                    backgroundColor: moduleData.map(m => m.color),
-                    borderWidth: 0,
-                    hoverOffset: 4
-                }]
-            },
-            options: {
-                cutout: '75%',
-                plugins: {
-                    legend: { display: false }
-                }
-            }
-        });
-
-        // Content Trends Chart (Line)
-        const trendsCtx = document.getElementById('contentTrendsChart').getContext('2d');
-        const trendData = @js($contentTrendsData);
-        const labels = trendData.map(d => d.month);
-        const requests = trendData.map(d => d.requests);
-        const generated = trendData.map(d => d.generated);
-
-        window.createChart(trendsCtx, {
-            type: 'line',
-            data: {
-                labels: labels,
-                datasets: [
-                    {
-                        label: 'Requests',
-                        data: requests,
-                        borderColor: 'oklch(0.55 0.22 264)',
-                        backgroundColor: 'oklch(0.55 0.22 264)',
-                        tension: 0.4,
-                        pointRadius: 4,
-                        pointHoverRadius: 6
-                    },
-                    {
-                        label: 'Generated',
-                        data: generated,
-                        borderColor: 'oklch(0.75 0.15 264)',
-                        backgroundColor: 'oklch(0.75 0.15 264)',
-                        tension: 0.4,
-                        pointRadius: 4,
-                        pointHoverRadius: 6
-                    }
-                ]
-            },
-            options: {
-                scales: {
-                    y: {
-                        beginAtZero: true,
-                        grid: {
-                            color: 'oklch(0.90 0.01 264)'
-                        },
-                        ticks: {
-                            color: 'oklch(0.52 0.015 264)'
-                        }
-                    },
-                    x: {
-                        grid: {
-                            display: false
-                        },
-                        ticks: {
-                            color: 'oklch(0.52 0.015 264)'
-                        }
-                    }
-                }
-            }
-        });
-    });
-</script>
 @endsection

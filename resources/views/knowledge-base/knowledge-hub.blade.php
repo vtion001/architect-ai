@@ -2,24 +2,23 @@
 
 @section('content')
 <div class="p-8 max-w-7xl mx-auto" x-data="{
-    showUploadModal: false,
+    showAddModal: false,
     showViewModal: false,
-    viewingAsset: null,
-    assetTitle: '',
-    assetType: 'text',
-    assetContent: '',
-    assetCategory: 'General',
-    assetUrl: '',
+    selectedAsset: null,
+    
+    // New Asset Form
+    newAsset: {
+        title: '',
+        type: 'text',
+        category: 'Market Intelligence',
+        content: '',
+        source_url: ''
+    },
     isSaving: false,
 
-    viewAsset(asset) {
-        this.viewingAsset = asset;
-        this.showViewModal = true;
-    },
-
     saveAsset() {
-        if (!this.assetTitle || !this.assetContent) {
-            alert('Please fill in both title and content.');
+        if (!this.newAsset.title || !this.newAsset.content) {
+            alert('Title and Content are mandatory.');
             return;
         }
         this.isSaving = true;
@@ -27,22 +26,17 @@
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                'Accept': 'application/json'
             },
-            body: JSON.stringify({
-                title: this.assetTitle,
-                type: this.assetType,
-                content: this.assetContent,
-                category: this.assetCategory,
-                source_url: this.assetUrl
-            })
+            body: JSON.stringify(this.newAsset)
         })
         .then(res => res.json())
         .then(data => {
             if (data.success) {
                 window.location.reload();
             } else {
-                alert('Failed to save asset.');
+                alert('Save failed.');
                 this.isSaving = false;
             }
         })
@@ -50,230 +44,192 @@
             console.error(err);
             this.isSaving = false;
         });
-    },
-
-    deleteAsset(id) {
-        if (confirm('Are you sure you want to delete this asset?')) {
-            fetch(`/knowledge-base/${id}`, {
-                method: 'DELETE',
-                headers: {
-                    'X-CSRF-TOKEN': '{{ csrf_token() }}'
-                }
-            }).then(() => window.location.reload());
-        }
     }
 }">
-    <div class="mb-8">
-        <h1 class="text-3xl font-bold mb-2">Global Knowledge Base (RAG)</h1>
-        <p class="text-muted-foreground">Centralized repository for business documents and AI sources.</p>
-    </div>
-
-    <!-- Stats -->
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-        <div class="rounded-xl border border-border bg-card text-card-foreground shadow-sm">
-            <div class="p-4">
-                <div class="flex items-center justify-between">
-                    <div>
-                        <p class="text-sm text-muted-foreground">Total Assets</p>
-                        <p class="text-2xl font-bold">{{ number_format($stats['total_docs']) }}</p>
-                    </div>
-                    <i data-lucide="database" class="w-8 h-8 text-blue-500"></i>
-                </div>
-            </div>
+    <div class="mb-12 flex items-center justify-between">
+        <div>
+            <h1 class="text-3xl font-black uppercase tracking-tighter text-foreground mb-2">Global Knowledge Hub</h1>
+            <p class="text-muted-foreground font-medium italic">Your agency's central intelligence repository for RAG-driven AI grounding.</p>
         </div>
-        <div class="rounded-xl border border-border bg-card text-card-foreground shadow-sm">
-            <div class="p-4">
-                <div class="flex items-center justify-between">
-                    <div>
-                        <p class="text-sm text-muted-foreground">Categories</p>
-                        <p class="text-2xl font-bold">{{ $stats['categories'] }}</p>
-                    </div>
-                    <i data-lucide="folder" class="w-8 h-8 text-purple-500"></i>
-                </div>
-            </div>
-        </div>
-        <div class="rounded-xl border border-border bg-card text-card-foreground shadow-sm">
-            <div class="p-4">
-                <div class="flex items-center justify-between">
-                    <div>
-                        <p class="text-sm text-muted-foreground">Vector Status</p>
-                        <p class="text-2xl font-bold">Synced</p>
-                    </div>
-                    <i data-lucide="zap" class="w-8 h-8 text-green-500"></i>
-                </div>
-            </div>
-        </div>
-        <div class="rounded-xl border border-border bg-card text-card-foreground shadow-sm">
-            <div class="p-4">
-                <div class="flex items-center justify-between">
-                    <div>
-                        <p class="text-sm text-muted-foreground">Recent Updates</p>
-                        <p class="text-2xl font-bold">{{ $stats['recent_updates'] }}</p>
-                    </div>
-                    <i data-lucide="clock" class="w-8 h-8 text-amber-500"></i>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Actions -->
-    <div class="flex gap-4 mb-8">
-        <div class="relative flex-1">
-            <i data-lucide="search" class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground"></i>
-            <input type="search" placeholder="Search knowledge assets..." class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 pl-9" />
-        </div>
-        <button @click="showUploadModal = true" class="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground hover:bg-primary/90 h-10 px-4 py-2 uppercase font-black tracking-widest text-[10px]">
-            <i data-lucide="plus" class="w-4 h-4 mr-2"></i>
-            Add Source Asset
+        <button @click="showAddModal = true" class="bg-primary text-primary-foreground px-6 py-2.5 rounded-xl font-black text-xs uppercase tracking-widest shadow-lg shadow-primary/20 flex items-center gap-2 transition-all hover:scale-[1.02]">
+            <i data-lucide="plus-circle" class="w-4 h-4"></i>
+            Index New Asset
         </button>
     </div>
 
-    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <!-- Asset List -->
-        <div class="rounded-xl border border-border bg-card text-card-foreground shadow-sm lg:col-span-2">
-            <div class="flex flex-col space-y-1.5 p-6 border-b border-border">
-                <h3 class="text-lg font-black uppercase tracking-widest flex items-center gap-2">
-                    <i data-lucide="layers" class="w-5 h-5 text-primary"></i>
-                    Stored Intelligence
-                </h3>
+    <!-- Stats Grid -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
+        <div class="bg-card border border-border rounded-3xl p-6 flex items-center gap-4 shadow-sm">
+            <div class="w-12 h-12 bg-blue-500/10 rounded-2xl flex items-center justify-center text-blue-500">
+                <i data-lucide="database" class="w-6 h-6"></i>
             </div>
-            <div class="p-6">
-                <div class="space-y-4">
-                    @forelse($assets as $asset)
-                    <div class="p-4 border border-border rounded-xl hover:bg-muted/30 transition-colors group">
-                        <div class="flex items-start justify-between">
-                            <div class="flex items-start gap-4">
-                                <div class="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0 border border-primary/20">
-                                    @if($asset->type === 'website') <i data-lucide="globe" class="w-5 h-5 text-primary"></i>
-                                    @elseif($asset->type === 'youtube') <i data-lucide="youtube" class="w-5 h-5 text-primary"></i>
-                                    @elseif($asset->type === 'file') <i data-lucide="file-text" class="w-5 h-5 text-primary"></i>
-                                    @else <i data-lucide="align-left" class="w-5 h-5 text-primary"></i>
-                                    @endif
-                                </div>
-                                <div>
-                                    <h4 class="font-bold text-sm text-foreground">{{ $asset->title }}</h4>
-                                    <div class="flex items-center gap-3 mt-1">
-                                        <span class="text-[10px] font-black uppercase tracking-widest text-muted-foreground">{{ $asset->category }}</span>
-                                        <span class="text-[10px] text-slate-400 italic">Added {{ $asset->created_at->diffForHumans() }}</span>
-                                    </div>
-                                    <p class="mt-2 text-xs text-muted-foreground line-clamp-2 italic">
-                                        {{ Str::limit(strip_tags($asset->content), 150) }}
-                                    </p>
-                                </div>
-                            </div>
-                            <div class="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                <button @click="viewAsset({{ $asset }})" class="p-2 text-primary hover:bg-primary/5 rounded-lg">
-                                    <i data-lucide="eye" class="w-4 h-4"></i>
-                                </button>
-                                <button @click="deleteAsset('{{ $asset->id }}')" class="p-2 text-destructive hover:bg-red-50 rounded-lg">
-                                    <i data-lucide="trash-2" class="w-4 h-4"></i>
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                    @empty
-                    <div class="text-center py-12 text-muted-foreground">
-                        <i data-lucide="inbox" class="w-12 h-12 mx-auto mb-4 opacity-20"></i>
-                        <p>No knowledge assets found. Add sources to power your RAG system.</p>
-                    </div>
-                    @endforelse
-                </div>
+            <div>
+                <p class="text-[10px] font-black text-slate-500 uppercase tracking-widest">Total Assets</p>
+                <p class="text-2xl font-black text-white">{{ $stats['total_docs'] }}</p>
             </div>
         </div>
+        <div class="bg-card border border-border rounded-3xl p-6 flex items-center gap-4 shadow-sm">
+            <div class="w-12 h-12 bg-green-500/10 rounded-2xl flex items-center justify-center text-green-500">
+                <i data-lucide="tag" class="w-6 h-6"></i>
+            </div>
+            <div>
+                <p class="text-[10px] font-black text-slate-500 uppercase tracking-widest">Categories</p>
+                <p class="text-2xl font-black text-white">{{ $stats['categories'] }}</p>
+            </div>
+        </div>
+        <div class="bg-card border border-border rounded-3xl p-6 flex items-center gap-4 shadow-sm">
+            <div class="w-12 h-12 bg-purple-500/10 rounded-2xl flex items-center justify-center text-purple-500">
+                <i data-lucide="refresh-ccw" class="w-6 h-6"></i>
+            </div>
+            <div>
+                <p class="text-[10px] font-black text-slate-500 uppercase tracking-widest">Active Syncs</p>
+                <p class="text-2xl font-black text-white">{{ $stats['recent_updates'] }}</p>
+            </div>
+        </div>
+    </div>
 
-        <!-- Recent Events / Info -->
-        <div class="space-y-6">
-            <div class="rounded-xl border border-border bg-primary/5 p-6">
-                <h3 class="text-sm font-black uppercase tracking-widest text-primary mb-4">RAG System Protocol</h3>
-                <p class="text-xs text-muted-foreground leading-relaxed italic mb-4">
-                    Assets stored in the Global Knowledge Base are automatically indexed into the vector database. AI modules (Research, Content Creator) will prioritize these sources for context-aware generation.
-                </p>
-                <div class="space-y-3">
-                    <div class="flex items-center gap-3">
-                        <i data-lucide="check-circle" class="w-4 h-4 text-green-500"></i>
-                        <span class="text-[10px] font-bold">Auto-Contextualization Enabled</span>
+    <!-- Assets Grid -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+        @forelse($assets as $asset)
+            <div class="bg-card border border-border rounded-[40px] p-8 shadow-sm hover:border-primary/30 transition-all group relative overflow-hidden flex flex-col">
+                <!-- Type Badge -->
+                <div class="flex items-center justify-between mb-8">
+                    <span class="px-2.5 py-1 rounded-lg bg-primary/10 text-primary text-[9px] font-black uppercase tracking-widest border border-primary/20">
+                        {{ strtoupper($asset->type) }}
+                    </span>
+                    <div class="flex items-center gap-2">
+                        <span class="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse"></span>
+                        <span class="mono text-[8px] text-slate-500 uppercase tracking-widest">RAG Optimized</span>
                     </div>
-                    <div class="flex items-center gap-3">
-                        <i data-lucide="check-circle" class="w-4 h-4 text-green-500"></i>
-                        <span class="text-[10px] font-bold">Source Grounding Priority: 1</span>
+                </div>
+
+                <!-- Asset Identity -->
+                <div class="space-y-4 mb-8 flex-1">
+                    <h3 class="text-xl font-black text-foreground truncate uppercase tracking-tight group-hover:text-primary transition-colors">{{ $asset->title }}</h3>
+                    <p class="text-xs text-muted-foreground font-medium italic line-clamp-3 leading-relaxed">
+                        {{ Str::limit($asset->content, 150) }}
+                    </p>
+                </div>
+
+                <!-- Metadata -->
+                <div class="flex items-center gap-6 mb-8 pt-6 border-t border-border/50">
+                    <div class="flex items-center gap-2">
+                        <i data-lucide="tag" class="w-3.5 h-3.5 text-slate-400"></i>
+                        <span class="text-[10px] font-bold text-slate-500 uppercase">{{ $asset->category }}</span>
                     </div>
+                    <div class="flex items-center gap-2">
+                        <i data-lucide="clock" class="w-3.5 h-3.5 text-slate-400"></i>
+                        <span class="text-[10px] font-bold text-slate-500 uppercase">{{ $asset->created_at->diffForHumans() }}</span>
+                    </div>
+                </div>
+
+                <!-- Actions -->
+                <div class="flex gap-2">
+                    <button @click="selectedAsset = @js($asset); showViewModal = true" 
+                            class="flex-1 py-3 rounded-xl bg-muted/50 border border-border font-black uppercase text-[9px] tracking-widest hover:bg-white hover:text-black transition-all">
+                        Preview Intelligence
+                    </button>
+                    <a href="{{ route('content-creator.index', ['context_asset' => $asset->id]) }}" 
+                       title="Architect Content using this context"
+                       class="w-12 h-12 rounded-xl bg-primary/10 text-primary border border-primary/20 flex items-center justify-center hover:bg-primary hover:text-black transition-all">
+                        <i data-lucide="zap" class="w-4 h-4 fill-current"></i>
+                    </a>
+                </div>
+            </div>
+        @empty
+            <div class="col-span-full py-32 text-center space-y-6 opacity-50 italic border-2 border-dashed border-border rounded-[40px]">
+                <i data-lucide="database" class="w-16 h-16 mx-auto text-slate-300"></i>
+                <p class="text-sm font-medium">Your global knowledge base is currently empty.</p>
+            </div>
+        @endforelse
+    </div>
+
+    <!-- Asset Preview Modal -->
+    <div x-show="showViewModal" x-cloak class="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-md p-4 lg:p-10">
+        <div @click.away="showViewModal = false" 
+             class="bg-card w-full max-w-4xl h-full max-h-[85vh] rounded-[40px] shadow-2xl border border-border overflow-hidden flex flex-col animate-in zoom-in-95 duration-300">
+            
+            <div class="p-8 border-b border-border bg-muted/30 flex items-center justify-between shrink-0">
+                <div class="flex items-center gap-4">
+                    <div class="w-12 h-12 rounded-2xl bg-primary/10 flex items-center justify-center text-primary">
+                        <i data-lucide="book-open" class="w-6 h-6"></i>
+                    </div>
+                    <div>
+                        <h2 class="text-xl font-black uppercase tracking-tighter text-foreground" x-text="selectedAsset?.title"></h2>
+                        <div class="flex gap-4 mt-1">
+                            <span class="text-[9px] font-black uppercase text-primary tracking-widest" x-text="'Type: ' + selectedAsset?.type"></span>
+                            <span class="text-[9px] font-black uppercase text-muted-foreground tracking-widest" x-text="'Category: ' + selectedAsset?.category"></span>
+                        </div>
+                    </div>
+                </div>
+                <button @click="showViewModal = false" class="w-10 h-10 rounded-full hover:bg-muted transition-colors flex items-center justify-center">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+
+            <div class="flex-1 overflow-y-auto p-12 bg-white/5 custom-scrollbar">
+                <div class="prose prose-sm max-w-none text-foreground font-medium leading-relaxed whitespace-pre-wrap" x-text="selectedAsset?.content"></div>
+            </div>
+
+            <div class="p-8 border-t border-border bg-muted/30 flex justify-between items-center shrink-0">
+                <p class="mono text-[8px] font-black uppercase tracking-[0.4em] text-muted-foreground">ArchitGrid Intelligence Node v1.0.4</p>
+                <div class="flex gap-3">
+                    <button @click="showViewModal = false" class="h-12 px-8 rounded-xl border border-border font-black uppercase text-[10px] tracking-widest hover:bg-muted transition-all">Dismiss</button>
+                    <a :href="'/content-creator?topic=' + encodeURIComponent(selectedAsset?.title)" 
+                       class="h-12 px-8 rounded-xl bg-primary text-primary-foreground font-black uppercase text-[10px] tracking-widest shadow-lg shadow-primary/20 flex items-center gap-2 hover:scale-[1.02] transition-all">
+                        <i data-lucide="zap" class="w-4 h-4"></i>
+                        Architect from Context
+                    </a>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Upload Modal -->
-    <div x-show="showUploadModal" x-cloak class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-        <div @click.away="showUploadModal = false" class="bg-card w-full max-w-lg rounded-2xl shadow-2xl border border-border p-8 animate-in zoom-in-95 duration-200">
-            <div class="flex items-center justify-between mb-6">
-                <h2 class="text-xl font-black uppercase tracking-tighter">Add Source Asset</h2>
-                <button @click="showUploadModal = false"><i data-lucide="x" class="w-5 h-5"></i></button>
-            </div>
-
-            <div class="space-y-4">
-                <div class="grid grid-cols-2 gap-4">
+    <!-- Index New Asset Modal -->
+    <div x-show="showAddModal" x-cloak class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+        <div @click.away="!isSaving && (showAddModal = false)" class="bg-card w-full max-w-2xl rounded-[40px] shadow-2xl border border-border p-10 animate-in zoom-in-95 duration-200 relative overflow-hidden">
+            <h2 class="text-2xl font-black uppercase tracking-tighter mb-2">Index New Intelligence</h2>
+            <p class="text-sm text-muted-foreground mb-10 italic">Store corporate data or research to ground AI generations.</p>
+            
+            <form @submit.prevent="saveAsset" class="space-y-6 relative z-10">
+                <div class="grid grid-cols-2 gap-6">
                     <div class="space-y-2">
-                        <label class="text-[10px] font-black uppercase tracking-widest text-muted-foreground italic">Source Type</label>
-                        <select x-model="assetType" class="w-full h-10 bg-muted/20 border border-border rounded-lg px-3 text-xs font-bold">
-                            <option value="text">Raw Text</option>
-                            <option value="website">Website URL</option>
-                            <option value="file">Local File</option>
-                            <option value="youtube">YouTube Transcript</option>
+                        <label class="text-[10px] font-black uppercase tracking-widest text-muted-foreground italic px-1">Asset Title</label>
+                        <input x-model="newAsset.title" type="text" required placeholder="e.g., Q1 Strategy Brief"
+                               class="w-full h-14 bg-muted/20 border border-border rounded-2xl px-5 text-sm font-bold focus:ring-2 focus:ring-primary/20 outline-none">
+                    </div>
+                    <div class="space-y-2">
+                        <label class="text-[10px] font-black uppercase tracking-widest text-muted-foreground italic px-1">Asset Type</label>
+                        <select x-model="newAsset.type" class="w-full h-14 bg-muted/20 border border-border rounded-2xl px-5 text-sm font-bold focus:ring-2 focus:ring-primary/20 outline-none">
+                            <option value="text">Raw Intelligence</option>
+                            <option value="website">External Domain</option>
+                            <option value="file">Local Documentation</option>
                         </select>
                     </div>
-                    <div class="space-y-2">
-                        <label class="text-[10px] font-black uppercase tracking-widest text-muted-foreground italic">Category</label>
-                        <input type="text" x-model="assetCategory" class="w-full h-10 bg-muted/20 border border-border rounded-lg px-3 text-xs font-bold">
-                    </div>
                 </div>
 
                 <div class="space-y-2">
-                    <label class="text-[10px] font-black uppercase tracking-widest text-muted-foreground italic">Asset Title</label>
-                    <input type="text" x-model="assetTitle" placeholder="e.g., Brand Guidelines 2026" class="w-full h-10 bg-muted/20 border border-border rounded-lg px-3 text-xs font-bold">
-                </div>
-
-                <div x-show="assetType === 'website' || assetType === 'youtube'" class="space-y-2" x-transition>
-                    <label class="text-[10px] font-black uppercase tracking-widest text-muted-foreground italic">Source URL</label>
-                    <input type="url" x-model="assetUrl" placeholder="https://..." class="w-full h-10 bg-muted/20 border border-border rounded-lg px-3 text-xs font-bold">
+                    <label class="text-[10px] font-black uppercase tracking-widest text-muted-foreground italic px-1">Intelligence Category</label>
+                    <input x-model="newAsset.category" type="text" placeholder="e.g., Client Alpha Context"
+                           class="w-full h-14 bg-muted/20 border border-border rounded-2xl px-5 text-sm font-bold focus:ring-2 focus:ring-primary/20 outline-none">
                 </div>
 
                 <div class="space-y-2">
-                    <label class="text-[10px] font-black uppercase tracking-widest text-muted-foreground italic">Context Content</label>
-                    <textarea x-model="assetContent" rows="6" placeholder="Paste the content or notes here..." class="w-full bg-muted/20 border border-border rounded-lg px-3 py-3 text-xs font-medium"></textarea>
+                    <label class="text-[10px] font-black uppercase tracking-widest text-muted-foreground italic px-1">Source Content</label>
+                    <textarea x-model="newAsset.content" rows="8" required placeholder="Paste the intelligence data here..."
+                              class="w-full bg-muted/20 border border-border rounded-2xl p-5 text-sm font-medium focus:ring-2 focus:ring-primary/20 outline-none"></textarea>
                 </div>
 
-                <button @click="saveAsset" :disabled="isSaving" class="w-full h-12 bg-primary text-primary-foreground rounded-xl font-black uppercase tracking-widest text-xs shadow-lg shadow-primary/20 flex items-center justify-center gap-2 hover:scale-[1.02] transition-all">
-                    <template x-if="!isSaving">
-                        <div class="flex items-center gap-2">
-                            <i data-lucide="plus" class="w-4 h-4"></i>
-                            <span>Index into Knowledge Base</span>
-                        </div>
-                    </template>
-                    <template x-if="isSaving">
-                        <i data-lucide="loader-2" class="w-4 h-4 animate-spin"></i>
-                    </template>
-                </button>
-            </div>
-        </div>
-    <!-- View Asset Modal -->
-    <div x-show="showViewModal" x-cloak class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-        <div @click.away="showViewModal = false" class="bg-card w-full max-w-2xl rounded-2xl shadow-2xl border border-border p-10 animate-in zoom-in-95 duration-200">
-            <div class="flex items-center justify-between mb-8">
-                <div>
-                    <h2 class="text-2xl font-black uppercase tracking-tighter text-foreground" x-text="viewingAsset?.title"></h2>
-                    <p class="text-[10px] text-primary font-black uppercase tracking-widest mt-1" x-text="viewingAsset?.category"></p>
+                <div class="pt-6 flex flex-col gap-3">
+                    <button type="submit" :disabled="isSaving" class="w-full h-16 bg-primary text-primary-foreground rounded-2xl font-black uppercase tracking-[0.3em] text-xs shadow-xl shadow-primary/20 hover:bg-primary/90 transition-all flex items-center justify-center gap-3">
+                        <template x-if="isSaving">
+                            <i data-lucide="loader-2" class="w-5 h-5 animate-spin"></i>
+                        </template>
+                        <span x-text="isSaving ? 'INDEXING...' : 'INITIALIZE INDEXING'"></span>
+                    </button>
+                    <button type="button" @click="showAddModal = false" :disabled="isSaving" class="w-full h-14 rounded-2xl border border-border font-black uppercase text-xs tracking-widest hover:bg-muted transition-all">Abort</button>
                 </div>
-                <button @click="showViewModal = false" class="p-2 hover:bg-muted rounded-full"><i data-lucide="x" class="w-6 h-6"></i></button>
-            </div>
-
-            <div class="max-h-[500px] overflow-y-auto pr-2 custom-scrollbar">
-                <div class="prose prose-sm max-w-none text-muted-foreground whitespace-pre-wrap leading-relaxed font-medium" x-html="viewingAsset?.content"></div>
-            </div>
-
-            <div class="mt-8 pt-6 border-t border-border flex justify-end gap-3">
-                <button @click="showViewModal = false" class="px-6 py-2 rounded-xl bg-muted font-black uppercase text-[10px] tracking-widest hover:bg-muted/80 transition-all">Close Viewer</button>
-                <button @click="deleteAsset(viewingAsset.id)" class="px-6 py-2 rounded-xl bg-red-50 text-red-600 font-black uppercase text-[10px] tracking-widest hover:bg-red-100 transition-all">Purge Asset</button>
-            </div>
+            </form>
         </div>
     </div>
 </div>

@@ -1,7 +1,7 @@
 @extends('layouts.auth')
 
 @section('content')
-<div class="w-full max-w-md" x-data="{
+<div class="w-full max-w-md animate-in fade-in zoom-in-95 duration-500" x-data="{
     slug: '{{ $slug ?? '' }}',
     email: '',
     password: '',
@@ -12,9 +12,8 @@
         this.isLoading = true;
         this.errorMessage = '';
         
-        fetch('/auth/login', {
+        fetch('{{ url('/auth/login') }}', {
             method: 'POST',
-            credentials: 'include',
             headers: {
                 'Content-Type': 'application/json',
                 'X-CSRF-TOKEN': '{{ csrf_token() }}',
@@ -31,85 +30,95 @@
             if (res.ok) {
                 window.location.href = '/dashboard';
             } else {
-                this.errorMessage = data.message || 'Login failed';
+                this.errorMessage = data.message || 'Access Denied';
                 this.isLoading = false;
             }
         })
         .catch(err => {
             console.error(err);
-            this.errorMessage = 'An unexpected error occurred.';
+            this.errorMessage = 'Identity verification failed.';
             this.isLoading = false;
         });
     }
 }">
-    <div class="bg-card border border-border rounded-3xl shadow-2xl overflow-hidden shadow-primary/5">
-        <div class="p-8">
-            <h2 class="text-2xl font-bold mb-1">Sign In</h2>
-            <p class="text-sm text-muted-foreground mb-8">Access your workspace using your credentials.</p>
+    <div class="bg-card border border-border rounded-3xl shadow-2xl relative overflow-hidden">
+        <!-- Decoration -->
+        <div class="absolute -top-10 -right-10 w-32 h-32 bg-primary/10 rounded-full blur-3xl"></div>
+
+        <div class="p-10 space-y-8 relative z-10">
+            <div class="text-center">
+                <h2 class="text-2xl font-black uppercase tracking-tighter mb-1">Identity Access</h2>
+                <p class="text-sm text-muted-foreground italic font-medium">Verify your credentials to enter the grid.</p>
+            </div>
+
+            @if(session('success'))
+                <div class="p-4 rounded-xl bg-green-50 border border-green-100 text-green-600 text-[10px] font-black uppercase tracking-widest flex items-center gap-3 animate-in fade-in slide-in-from-top-2">
+                    <i data-lucide="check-circle" class="w-4 h-4"></i>
+                    <span>{{ session('success') }}</span>
+                </div>
+            @endif
 
             <template x-if="errorMessage">
-                <div class="mb-6 p-4 rounded-xl bg-red-50 border border-red-100 text-red-600 text-sm font-medium flex items-center gap-3 animate-in fade-in slide-in-from-top-2">
-                    <i data-lucide="alert-circle" class="w-4 h-4 shrink-0"></i>
+                <div class="p-4 rounded-xl bg-red-50 border border-red-100 text-red-600 text-[10px] font-black uppercase tracking-widest flex items-center gap-3 animate-in slide-in-from-top-2">
+                    <i data-lucide="shield-alert" class="w-4 h-4"></i>
                     <span x-text="errorMessage"></span>
                 </div>
             </template>
 
-            <form @submit.prevent="login" class="space-y-5">
-                <div class="space-y-2">
-                    <label class="text-[10px] font-black uppercase tracking-widest text-muted-foreground italic px-1">Workspace Slug</label>
-                    <div class="relative">
-                        <i data-lucide="hash" class="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground"></i>
-                        <input x-model="slug" type="text" placeholder="my-agency" required
-                               class="w-full h-12 pl-11 bg-muted/20 border border-border rounded-xl text-sm font-medium focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all"
-                               :readonly="'{{ $slug ?? '' }}' !== ''">
+            <form @submit.prevent="login" class="space-y-6">
+                <div class="space-y-5">
+                    <!-- Slug (Workspace Context) -->
+                    <div class="space-y-2">
+                        <label class="text-[10px] font-black uppercase tracking-widest text-muted-foreground italic px-1">Workspace Node (Slug)</label>
+                        <div class="relative">
+                            <i data-lucide="grid" class="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground"></i>
+                            <input x-model="slug" type="text" placeholder="your-agency-slug" required
+                                   class="w-full h-14 bg-muted/20 border border-border rounded-2xl pl-11 text-sm font-bold focus:ring-2 focus:ring-primary/20 outline-none transition-all">
+                        </div>
+                    </div>
+
+                    <!-- Email -->
+                    <div class="space-y-2">
+                        <label class="text-[10px] font-black uppercase tracking-widest text-muted-foreground italic px-1">Authorized Identity (Email)</label>
+                        <div class="relative">
+                            <i data-lucide="user" class="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground"></i>
+                            <input x-model="email" type="email" placeholder="name@agency.com" required
+                                   class="w-full h-14 bg-muted/20 border border-border rounded-2xl pl-11 text-sm font-bold focus:ring-2 focus:ring-primary/20 outline-none transition-all">
+                        </div>
+                    </div>
+
+                    <!-- Passphrase -->
+                    <div class="space-y-2">
+                        <label class="text-[10px] font-black uppercase tracking-widest text-muted-foreground italic px-1 flex items-center justify-between">
+                            Access Key
+                            <a href="#" class="text-primary hover:underline lowercase tracking-normal">forgot passphrase?</a>
+                        </label>
+                        <div class="relative">
+                            <i data-lucide="key" class="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground"></i>
+                            <input x-model="password" type="password" placeholder="••••••••••••" required
+                                   class="w-full h-14 bg-muted/20 border border-border rounded-2xl pl-11 text-sm font-bold focus:ring-2 focus:ring-primary/20 outline-none transition-all">
+                        </div>
                     </div>
                 </div>
 
-                <div class="space-y-2">
-                    <label class="text-[10px] font-black uppercase tracking-widest text-muted-foreground italic px-1">Email Address</label>
-                    <div class="relative">
-                        <i data-lucide="mail" class="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground"></i>
-                        <input x-model="email" type="email" placeholder="name@company.com" required
-                               class="w-full h-12 pl-11 bg-muted/20 border border-border rounded-xl text-sm font-medium focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all">
-                    </div>
+                <div class="pt-4">
+                    <button type="submit" :disabled="isLoading"
+                            class="w-full h-16 bg-primary text-primary-foreground rounded-2xl font-black uppercase tracking-[0.3em] text-xs shadow-xl shadow-primary/20 hover:bg-primary/90 transition-all hover:scale-[1.02] active:scale-[0.98] flex items-center justify-center gap-3 disabled:opacity-50">
+                        <template x-if="isLoading">
+                            <i data-lucide="loader-2" class="w-5 h-5 animate-spin"></i>
+                        </template>
+                        <span x-text="isLoading ? 'AUTHENTICATING...' : 'ESTABLISH CONNECTION'"></span>
+                    </button>
                 </div>
-
-                <div class="space-y-2">
-                    <div class="flex justify-between items-center px-1">
-                        <label class="text-[10px] font-black uppercase tracking-widest text-muted-foreground italic">Password</label>
-                        <a href="#" class="text-[10px] font-bold text-primary hover:underline">Forgot?</a>
-                    </div>
-                    <div class="relative">
-                        <i data-lucide="lock" class="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground"></i>
-                        <input x-model="password" type="password" placeholder="••••••••••••" required
-                               class="w-full h-12 pl-11 bg-muted/20 border border-border rounded-xl text-sm font-medium focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all">
-                    </div>
-                </div>
-
-                <button type="submit" :disabled="isLoading"
-                        class="w-full h-12 bg-primary text-primary-foreground rounded-xl font-bold uppercase tracking-widest text-xs shadow-lg shadow-primary/20 hover:bg-primary/90 transition-all flex items-center justify-center gap-2 disabled:opacity-50">
-                    <template x-if="isLoading">
-                        <i data-lucide="loader-2" class="w-4 h-4 animate-spin"></i>
-                    </template>
-                    <span x-text="isLoading ? 'Verifying...' : 'Sign In to Dashboard'"></span>
-                </button>
             </form>
         </div>
         
         <div class="bg-muted/30 p-6 border-t border-border text-center">
-            <p class="text-sm text-muted-foreground font-medium">
-                New to Architect? <a href="/auth/register" class="text-primary font-bold hover:underline">Create an Agency</a>
+            <p class="text-[10px] text-muted-foreground font-black uppercase tracking-widest leading-relaxed">
+                Need a new node? <br>
+                <a href="{{ url('/waitlist') }}" class="text-primary hover:underline">Apply for Beta Protocol</a>
             </p>
         </div>
     </div>
 </div>
-
-<script>
-    // Hidden Developer Entry Point: Ctrl+Shift+D
-    window.addEventListener('keydown', (e) => {
-        if (e.ctrlKey && e.shiftKey && e.code === 'KeyD') {
-            window.location.href = '{{ route('admin.dashboard') }}';
-        }
-    });
-</script>
 @endsection

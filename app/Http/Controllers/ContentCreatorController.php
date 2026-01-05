@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Content;
+use App\Models\KnowledgeBaseAsset;
 use App\Services\ContentService;
 use App\Services\TokenService;
 use Illuminate\Http\Request;
@@ -171,9 +172,19 @@ class ContentCreatorController extends Controller
         ]);
 
         $suggestions = $this->researchService->suggestSocialMediaTopics($request->topic);
+        
+        // RAG Discovery check
+        $tenant = app(\App\Models\Tenant::class);
+        $kbCount = KnowledgeBaseAsset::where('tenant_id', $tenant->id)
+            ->where(function($q) use ($request) {
+                $q->where('title', 'like', "%{$request->topic}%")
+                  ->orWhere('content', 'like', "%{$request->topic}%");
+            })
+            ->count();
 
         return response()->json([
-            'suggestions' => $suggestions
+            'suggestions' => $suggestions,
+            'kb_count' => $kbCount
         ]);
     }
 
@@ -292,7 +303,9 @@ class ContentCreatorController extends Controller
                 try {
                     $timestamp = time();
                     
+                    // Include 'file' in signature for remote URL uploads
                     $params = [
+                        'file' => $generatedUrl,
                         'timestamp' => $timestamp,
                     ];
                     ksort($params);
@@ -304,9 +317,9 @@ class ContentCreatorController extends Controller
                     $signString = implode('&', $signParts) . $apiSecret;
                     $signature = sha1($signString);
 
-                    // Use multipart for URL uploads to be consistent with file uploads
-                    $response = Http::asMultipart()->post("https://api.cloudinary.com/v1_1/$cloudName/auto/upload", [
-                        'file' => $generatedUrl, // Cloudinary accepts remote URLs in the file param!
+                    // Use asForm for remote URL uploads (not asMultipart)
+                    $response = Http::asForm()->post("https://api.cloudinary.com/v1_1/$cloudName/image/upload", [
+                        'file' => $generatedUrl,
                         'api_key' => $apiKey,
                         'timestamp' => $timestamp,
                         'signature' => $signature,
@@ -379,12 +392,23 @@ class ContentCreatorController extends Controller
         $results = [];
         $isImmediate = $validated['scheduled_at'] === 'now';
 
+        $totalPlatforms = count($validated['platforms']);
+        $totalTokenCost = $totalPlatforms * 5; // 5 tokens per platform post
+
+        // 1. Check & Consume Tokens for deployment
+        if (!$this->tokenService->consume(auth()->user(), $totalTokenCost, 'social_deployment', ['content_id' => $validated['content_id']])) {
+            return response()->json([
+                'success' => false,
+                'message' => "Insufficient tokens. This deployment requires $totalTokenCost tokens."
+            ], 402);
+        }
+
         foreach ($validated['platforms'] as $platform) {
             $options = [
                 'platform' => $platform,
                 'scheduled_at' => $scheduledAt,
                 'image_url' => $validated['image_url'],
-                'original_content_id' => (int)$validated['content_id'],
+                'original_content_id' => $validated['content_id'],
                 'segment_index' => (int)$validated['segment_index']
             ];
 

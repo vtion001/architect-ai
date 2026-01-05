@@ -506,7 +506,21 @@
             <div class="px-4 pb-4">
                  <!-- Image Display State -->
                  <div x-show="imageUrl" class="relative w-full h-auto rounded-lg overflow-hidden border border-border group min-h-[200px]" x-transition>
-                     <img :src="imageUrl" class="w-full h-auto object-cover max-h-[500px]" alt="Post Media">
+                     <img 
+                         :src="imageUrl" 
+                         class="w-full h-auto object-cover max-h-[500px]" 
+                         alt="Post Media"
+                         x-ref="postImage"
+                         @@error="$el.style.display='none'; $refs.imageErrorFallback.style.display='flex'"
+                     >
+                     <!-- Expired Image Fallback -->
+                     <div x-ref="imageErrorFallback" class="hidden w-full h-48 bg-gradient-to-br from-slate-800 to-slate-900 items-center justify-center flex-col gap-3 rounded-lg border border-red-500/20">
+                         <i data-lucide="image-off" class="w-10 h-10 text-red-400/50"></i>
+                         <p class="text-[10px] font-black uppercase text-red-400/70 tracking-widest">Image Expired</p>
+                         <button @click="showMediaOptions = true" class="px-4 py-2 bg-primary/10 hover:bg-primary/20 text-primary text-xs font-bold rounded-lg transition-colors">
+                             Regenerate Visual
+                         </button>
+                     </div>
                      <!-- Hover Overlay to Remove/Replace -->
                      <div class="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
                          <button @click="imageUrl = null" class="p-2 bg-white/10 hover:bg-white/20 text-white rounded-full backdrop-blur-md transition-colors" title="Remove Image">

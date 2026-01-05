@@ -6,6 +6,8 @@ use App\Http\Controllers\Controller;
 use App\Models\Tenant;
 use App\Models\User;
 use App\Models\Role;
+use App\Services\TokenService;
+use App\Services\AuthorizationService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Hash;
@@ -13,6 +15,11 @@ use Illuminate\Support\Facades\DB;
 
 class SubAccountController extends Controller
 {
+    public function __construct(
+        protected TokenService $tokenService,
+        protected AuthorizationService $authService
+    ) {}
+
     /**
      * List all sub-accounts for the current agency.
      */
@@ -25,6 +32,11 @@ class SubAccountController extends Controller
         }
 
         $subAccounts = $agency->subAccounts()->withCount('users')->get();
+        
+        $subAccounts->map(function($sub) {
+            $sub->token_balance = $this->tokenService->getBalance($sub);
+            return $sub;
+        });
 
         return view('tenant.sub-accounts.index', compact('subAccounts'));
     }
@@ -56,7 +68,7 @@ class SubAccountController extends Controller
             $user = User::create([
                 'tenant_id' => $subAccount->id,
                 'email' => $request->admin_email,
-                'password' => Hash::make(Str::random(16)), // Force password reset or email invite later
+                'password' => Hash::make(Str::random(16)),
                 'status' => 'active',
             ]);
 
@@ -66,8 +78,19 @@ class SubAccountController extends Controller
                 $user->roles()->attach($role->id, ['scope_type' => 'tenant']);
             }
 
+            // 4. Provision Initial Resources (500 tokens)
+            $this->tokenService->grant($subAccount, 500, 'initial_provisioning');
+
+            $this->authService->audit(
+                auth()->user(),
+                'subaccount.created',
+                $subAccount,
+                'success',
+                "Provisioned nested workspace: {$subAccount->name}"
+            );
+
             return response()->json([
-                'message' => 'Sub-account created successfully',
+                'message' => 'Sub-account and identity provisioned successfully.',
                 'sub_account' => $subAccount
             ], 201);
         });

@@ -32,4 +32,10 @@ Route::middleware(['auth:sanctum', 'tenant', 'session_security'])->group(functio
         Route::post('stop-impersonating', [DeveloperController::class, 'stopImpersonating']);
     });
 
+    // Content & Intelligence
+    Route::post('/content/generate', [ContentCreatorController::class, 'store']);
+    Route::post('/research/start', [ResearchEngineController::class, 'store']);
+    
+    // Global Grid Search (for Command Palette)
+    Route::get('/search', [\App\Http\Controllers\GlobalSearchController::class, 'index']);
 });

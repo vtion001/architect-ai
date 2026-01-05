@@ -28,7 +28,7 @@
             </div>
 
             <div class="p-6 bg-slate-950/20">
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-8">
                     <div>
                         <p class="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2">Agency Users</p>
                         <p class="text-2xl font-bold text-white">{{ $agency->users_count }}</p>
@@ -36,6 +36,10 @@
                     <div>
                         <p class="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2">Sub-Accounts</p>
                         <p class="text-2xl font-bold text-white">{{ $agency->subAccounts()->count() }}</p>
+                    </div>
+                    <div>
+                        <p class="text-[10px] font-black text-cyan-500 uppercase tracking-widest mb-2">Token Balance</p>
+                        <p class="text-2xl font-bold text-white">{{ number_format($agency->token_balance) }}</p>
                     </div>
                     <div>
                         <p class="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2">Created</p>

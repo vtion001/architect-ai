@@ -20,11 +20,11 @@ class SecurityHeadersMiddleware
         $response->headers->set('X-XSS-Protection', '1; mode=block');
         $response->headers->set('Referrer-Policy', 'strict-origin-when-cross-origin');
         $csp = "default-src 'self'; " .
-               "script-src 'self' 'unsafe-inline' 'unsafe-eval' unpkg.com fonts.bunny.net http://localhost:* https://localhost:* *.ngrok-free.app; " .
-               "script-src-elem 'self' 'unsafe-inline' unpkg.com fonts.bunny.net http://localhost:* https://localhost:* *.ngrok-free.app; " .
+               "script-src 'self' 'unsafe-inline' 'unsafe-eval' cdn.tailwindcss.com unpkg.com fonts.bunny.net http://localhost:* https://localhost:* *.ngrok-free.app; " .
+               "script-src-elem 'self' 'unsafe-inline' cdn.tailwindcss.com unpkg.com fonts.bunny.net http://localhost:* https://localhost:* *.ngrok-free.app; " .
                "style-src 'self' 'unsafe-inline' fonts.bunny.net fonts.googleapis.com http://localhost:* https://localhost:* *.ngrok-free.app; " .
                "style-src-elem 'self' 'unsafe-inline' fonts.bunny.net fonts.googleapis.com http://localhost:* https://localhost:* *.ngrok-free.app; " .
-               "img-src 'self' data: i.pravatar.cc gravatar.com *.gravatar.com images.unsplash.com res.cloudinary.com *.fbcdn.net *.facebook.com *.instagram.com *.ngrok-free.app; " .
+               "img-src 'self' data: i.pravatar.cc gravatar.com *.gravatar.com images.unsplash.com res.cloudinary.com *.blob.core.windows.net *.fbcdn.net *.facebook.com *.instagram.com *.ngrok-free.app; " .
                "font-src 'self' data: fonts.bunny.net fonts.gstatic.com; " .
                "connect-src 'self' unpkg.com *.ngrok-free.app http://localhost:* https://localhost:* ws://localhost:* wss://localhost:* wss://*.ngrok-free.app; " .
                "frame-ancestors 'none';";

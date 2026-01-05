@@ -5,9 +5,29 @@
 @section('content')
 <div class="space-y-8" x-data="{
     showImpersonateModal: false,
+    showGrantModal: false,
     selectedUser: null,
     justification: '',
     isImpersonating: false,
+    isGranting: false,
+    grantAmount: 1000,
+    grantReason: 'Beta Resource Allocation',
+
+    grantTokens() {
+        if (!this.grantAmount || !this.grantReason) return;
+        this.isGranting = true;
+        fetch('{{ route('admin.tenants.grant', $tenant->id) }}', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': '{{ csrf_token() }}', 'Accept': 'application/json' },
+            body: JSON.stringify({ amount: this.grantAmount, reason: this.grantReason })
+        })
+        .then(res => res.json())
+        .then(data => {
+            alert(data.message);
+            window.location.reload();
+        })
+        .finally(() => { this.isGranting = false; });
+    },
 
     impersonate() {
         if (!this.justification || this.justification.length < 10) {
@@ -54,7 +74,65 @@
                     <p class="text-xs font-mono text-white">{{ $tenant->id }}</p>
                 </div>
             </div>
+
+            <h3 class="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em]">Resource Economy</h3>
+            <div class="bg-slate-900 border border-slate-800 rounded-3xl p-6 space-y-6">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-[10px] font-black text-slate-500 uppercase mb-1">Current Balance</p>
+                        <p class="text-3xl font-black text-cyan-500">{{ number_format($tokenBalance) }}</p>
+                    </div>
+                    <button @click="showGrantModal = true" class="w-10 h-10 bg-cyan-500/10 border border-cyan-500/20 rounded-xl flex items-center justify-center text-cyan-500 hover:bg-cyan-500 hover:text-black transition-all">
+                        <i data-lucide="plus" class="w-5 h-5"></i>
+                    </button>
+                </div>
+                <div class="space-y-3">
+                    <p class="text-[10px] font-black text-slate-500 uppercase">Recent Transactions</p>
+                    <div class="space-y-2 max-h-64 overflow-y-auto pr-2 custom-scrollbar">
+                        @foreach($transactions as $tx)
+                            <div class="p-2.5 rounded-xl bg-slate-950/50 border border-slate-800">
+                                <div class="flex items-center justify-between mb-1">
+                                    <span class="text-[9px] font-bold {{ $tx->amount > 0 ? 'text-green-500' : 'text-red-500' }}">
+                                        {{ $tx->amount > 0 ? '+' : '' }}{{ number_format($tx->amount) }}
+                                    </span>
+                                    <span class="text-[8px] text-slate-600 uppercase">{{ $tx->created_at->diffForHumans() }}</span>
+                                </div>
+                                <p class="text-[10px] text-slate-400 font-medium truncate">{{ $tx->reason }}</p>
+                            </div>
+                        @endforeach
+                    </div>
+                </div>
+            </div>
         </div>
+
+    <!-- Grant Resources Modal -->
+    <div x-show="showGrantModal" x-cloak class="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-md p-4">
+        <div @click.away="!isGranting && (showGrantModal = false)" class="bg-slate-900 border border-slate-800 w-full max-w-sm rounded-3xl shadow-2xl p-10 animate-in zoom-in-95 duration-200">
+            <h2 class="text-2xl font-black text-white mb-2 uppercase tracking-tighter">Provision Resources</h2>
+            <p class="text-slate-400 text-sm mb-8 italic">Manually allocate tokens to this agency node.</p>
+
+            <div class="space-y-6">
+                <div class="space-y-2">
+                    <label class="text-[10px] font-black uppercase tracking-widest text-slate-500 italic px-1">Token Quantity</label>
+                    <input type="number" x-model="grantAmount" class="w-full h-14 bg-slate-950 border border-slate-800 rounded-2xl px-5 text-xl font-black text-cyan-500 outline-none focus:ring-1 focus:ring-cyan-500 transition-all">
+                </div>
+                <div class="space-y-2">
+                    <label class="text-[10px] font-black uppercase tracking-widest text-slate-500 italic px-1">Allocation Reason</label>
+                    <input type="text" x-model="grantReason" class="w-full h-14 bg-slate-950 border border-slate-800 rounded-2xl px-5 text-sm font-bold text-white outline-none focus:ring-1 focus:ring-cyan-500 transition-all">
+                </div>
+                
+                <div class="flex flex-col gap-3 pt-4">
+                    <button @click="grantTokens" :disabled="isGranting" class="w-full h-16 bg-cyan-500 text-black font-black uppercase tracking-[0.2em] text-xs rounded-2xl shadow-lg shadow-cyan-900/40 hover:bg-white transition-all flex items-center justify-center gap-3">
+                        <template x-if="isGranting">
+                            <i data-lucide="loader-2" class="w-5 h-5 animate-spin"></i>
+                        </template>
+                        <span x-text="isGranting ? 'DISPATCHING...' : 'AUTHORIZE GRANT'"></span>
+                    </button>
+                    <button @click="showGrantModal = false" :disabled="isGranting" class="w-full h-14 bg-slate-800 text-slate-400 font-bold uppercase tracking-widest text-[10px] rounded-2xl hover:bg-slate-700 transition-all">Abort</button>
+                </div>
+            </div>
+        </div>
+    </div>
 
         <!-- Main: Users & Hierarchy -->
         <div class="lg:col-span-2 space-y-8">
