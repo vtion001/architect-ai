@@ -7,6 +7,10 @@
 
         <title>{{ config('app.name', 'ArchitGrid') }} - IAM Gateway</title>
 
+        <!-- Favicon -->
+        <link rel="icon" type="image/png" href="https://res.cloudinary.com/dbviya1rj/image/upload/v1767554289/xe54y8zsvhursjrpbnvm.png">
+        <link rel="apple-touch-icon" href="https://res.cloudinary.com/dbviya1rj/image/upload/v1767554289/xe54y8zsvhursjrpbnvm.png">
+
         <!-- Dynamic Branding -->
         @php
             $brandColor = '#00F2FF';

@@ -3,7 +3,64 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    
+    <!-- Primary SEO -->
     <title>ArchitGrid | The Content Infrastructure for Agencies</title>
+    <meta name="description" content="The operating system for high-scale agencies. Architect industrial-grade content strategies grounded in Deep Research and AI. Multi-tenant infrastructure for automated growth.">
+    <meta name="keywords" content="AI Content Infrastructure, Agency Operating System, Deep Research RAG, Automated Content Architecture, Multi-tenant Agency Grid, Content Operations, Enterprise AI">
+    <meta name="author" content="ArchitGrid Protocol">
+    <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1">
+    <link rel="canonical" href="{{ url()->current() }}">
+
+    <!-- Answer Engine Optimization (AEO) & GEO -->
+    <meta name="geo.region" content="US">
+    <meta name="geo.placename" content="Global Grid">
+    <meta name="audience" content="Agencies, Enterprise, Developers">
+
+    <!-- Favicon & Icons -->
+    <link rel="icon" type="image/png" href="https://res.cloudinary.com/dbviya1rj/image/upload/v1767554289/xe54y8zsvhursjrpbnvm.png">
+    <link rel="apple-touch-icon" href="https://res.cloudinary.com/dbviya1rj/image/upload/v1767554289/xe54y8zsvhursjrpbnvm.png">
+    <meta name="theme-color" content="#00F2FF">
+
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="{{ url()->current() }}">
+    <meta property="og:title" content="ArchitGrid | The Content Infrastructure for Agencies">
+    <meta property="og:description" content="The operating system for high-scale agencies. Architect industrial-grade content strategies grounded in Deep Research and AI.">
+    <meta property="og:image" content="https://images.unsplash.com/photo-1518770660439-4636190af475?q=80&w=1200&auto=format&fit=crop">
+    <meta property="og:site_name" content="ArchitGrid">
+    <meta property="og:locale" content="en_US">
+
+    <!-- Twitter -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:url" content="{{ url()->current() }}">
+    <meta name="twitter:title" content="ArchitGrid | The Content Infrastructure for Agencies">
+    <meta name="twitter:description" content="The operating system for high-scale agencies. Architect industrial-grade content strategies grounded in Deep Research and AI.">
+    <meta name="twitter:image" content="https://images.unsplash.com/photo-1518770660439-4636190af475?q=80&w=1200&auto=format&fit=crop">
+
+    <!-- Schema.org JSON-LD -->
+    <script type="application/ld+json">
+    {
+        "@context": "https://schema.org",
+        "@type": "SoftwareApplication",
+        "name": "ArchitGrid",
+        "headline": "The Content Infrastructure for Agencies",
+        "description": "ArchitGrid provides the multi-tenant infrastructure for high-scale agency growth, featuring Deep RAG Research and Automated Content Architecture.",
+        "applicationCategory": "BusinessApplication",
+        "operatingSystem": "Web",
+        "offers": {
+            "@type": "Offer",
+            "price": "19.00",
+            "priceCurrency": "USD"
+        },
+        "brand": {
+            "@type": "Brand",
+            "name": "ArchitGrid",
+            "logo": "https://res.cloudinary.com/dbviya1rj/image/upload/v1767554289/xe54y8zsvhursjrpbnvm.png"
+        }
+    }
+    </script>
+
     <link rel="preconnect" href="https://fonts.bunny.net">
     <link href="https://fonts.bunny.net/css?family=montserrat:900|inter:400,500,700,800|jetbrains-mono:500" rel="stylesheet" />
     <script src="https://cdn.tailwindcss.com"></script>

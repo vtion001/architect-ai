@@ -132,8 +132,8 @@ Route::middleware(['auth', 'tenant', 'mfa', 'session_security'])->group(function
 
     // Developer Only Routes
     Route::middleware('can:is-developer')->prefix('developer')->group(function () {
-        Route::post('impersonate', [DeveloperController::class, 'impersonate']);
-        Route::post('stop-impersonating', [DeveloperController::class, 'stopImpersonating']);
+        Route::post('impersonate', [DeveloperController::class, 'impersonate'])->name('developer.impersonate');
+        Route::post('stop-impersonating', [DeveloperController::class, 'stopImpersonating'])->name('developer.stop-impersonating');
     });
 
     // Platform Operations Console (Admin/DevTool)
