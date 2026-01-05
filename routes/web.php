@@ -22,6 +22,9 @@ Route::prefix('auth')->group(function () {
     Route::get('register', function () { return view('auth.register'); })->name('register');
     Route::get('login/{tenant_slug?}', function ($slug = null) { return view('auth.login', ['slug' => $slug]); })->name('login');
     
+    Route::get('join/{token}', [\App\Http\Controllers\Auth\InvitationController::class, 'show'])->name('invitation.join');
+    Route::post('join/{token}', [\App\Http\Controllers\Auth\InvitationController::class, 'accept']);
+    
     Route::post('register-agency', [AuthController::class, 'registerAgency'])->middleware('throttle:3,60'); // 3 agencies per hour
     Route::post('login', [AuthController::class, 'login'])->middleware('throttle:5,15'); // 5 attempts per 15 mins
     Route::post('logout', function () { auth()->logout(); return redirect('/auth/login'); })->name('logout');
@@ -52,6 +55,7 @@ Route::middleware(['auth', 'tenant', 'mfa', 'session_security'])->group(function
         
         Route::get('/users', [\App\Http\Controllers\Tenant\UserManagementController::class, 'index'])->name('users.index');
         Route::post('/users', [\App\Http\Controllers\Tenant\UserManagementController::class, 'store'])->name('users.store');
+        Route::post('/users/invite', [\App\Http\Controllers\Tenant\UserManagementController::class, 'invite'])->name('users.invite');
 
         Route::get('/policies', [\App\Http\Controllers\Tenant\PolicyController::class, 'index'])->name('policies.index');
         Route::get('/policies/create', [\App\Http\Controllers\Tenant\PolicyController::class, 'create'])->name('policies.create');

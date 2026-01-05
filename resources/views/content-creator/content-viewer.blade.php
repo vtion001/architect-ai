@@ -1,13 +1,52 @@
 @extends('layouts.app')
 
+@php
+    // Pre-process posts data for JavaScript
+    $rawSegments = preg_split('/\n-{3,}\n/', $content->result ?? '');
+    $postsData = [];
+    $globalHashtags = '';
+
+    if (!empty($rawSegments)) {
+        $lastSegment = trim(end($rawSegments));
+        if (count($rawSegments) > 1 && str_starts_with($lastSegment, '#') && strlen($lastSegment) < 300) {
+            array_pop($rawSegments);
+            $globalHashtags = $lastSegment;
+        }
+        $rawSegments = array_values(array_filter($rawSegments));
+    } else {
+        $rawSegments = [$content->result ?? 'No content generated.'];
+    }
+
+    foreach ($rawSegments as $idx => $post) {
+        $finalPostContent = trim($post);
+        $finalPostContent = preg_replace('/^\d+\.\s*/', '', $finalPostContent);
+        if ($globalHashtags) {
+            $finalPostContent .= "\n\n" . $globalHashtags;
+        }
+        $cleanText = preg_replace('/^#+\s+/m', '', $finalPostContent);
+        $cleanText = str_replace(['*', '`'], '', $cleanText);
+        $cleanHtml = nl2br(e($cleanText));
+        
+        $postsData[] = [
+            'index' => $idx,
+            'raw' => $finalPostContent,
+            'html' => $cleanHtml,
+            'published' => in_array($idx, $publishedIndexes ?? [])
+        ];
+    }
+@endphp
+
 @section('content')
 <script>
+    // Post data prepared server-side to avoid HTML attribute escaping issues
+    window.__postsData = @json($postsData);
+    
     document.addEventListener('alpine:init', () => {
         // Global state for calculations and constants
         const config = {
-            deleteUrl: '{{ route("content-creator.destroy", $content->id) }}',
-            redirectUrl: '{{ route("content-creator.index") }}',
-            csrfToken: '{{ csrf_token() }}'
+            deleteUrl: @js(route("content-creator.destroy", $content->id)),
+            redirectUrl: @js(route("content-creator.index")),
+            csrfToken: @js(csrf_token())
         };
 
         // Root Batch Manager component
@@ -42,36 +81,39 @@
             }
         }));
 
-        // Individual Post Card component
-        Alpine.data('postCard', (index, initialRaw, initialHtml, alreadyPublished = false) => ({
-            showMediaOptions: false,
-            imageUrl: null,
-            isUploading: false,
-            isGenerating: false,
-            isRegenerating: false,
-            isPublishing: false,
-            isEditing: false,
-            isPublished: alreadyPublished,
-            publishResult: null,
-            showPublishModal: false,
-            selectedPlatforms: [],
-            scheduleDate: new Date().toISOString().slice(0, 16),
-            facebookPages: [],
-            selectedFacebookPage: null,
-            isFacebookConnected: {{ $isFacebookConnected ? 'true' : 'false' }},
-            isFetchingPages: false,
-            showPageModal: false,
-            postNow: true,
-            rawContent: initialRaw,
-            htmlContent: initialHtml,
+        // Individual Post Card component - now takes just the index and looks up data
+        Alpine.data('postCard', (postIndex) => {
+            const postData = window.__postsData[postIndex] || {};
+            return {
+                index: postIndex,
+                showMediaOptions: false,
+                imageUrl: null,
+                isUploading: false,
+                isGenerating: false,
+                isRegenerating: false,
+                isPublishing: false,
+                isEditing: false,
+                isPublished: postData.published || false,
+                publishResult: null,
+                showPublishModal: false,
+                selectedPlatforms: [],
+                scheduleDate: new Date().toISOString().slice(0, 16),
+                facebookPages: [],
+                selectedFacebookPage: null,
+                isFacebookConnected: @js($isFacebookConnected),
+                isFetchingPages: false,
+                showPageModal: false,
+                postNow: true,
+                rawContent: postData.raw || '',
+                htmlContent: postData.html || '',
             
             init() {
                 const visuals = @js($content->options['visuals'] ?? []);
-                if (visuals && visuals[index]) {
-                    this.imageUrl = visuals[index];
+                if (visuals && visuals[this.index]) {
+                    this.imageUrl = visuals[this.index];
                 }
                 this.$watch('imageUrl', (val) => {
-                    if (val) this.persistVisual(index);
+                    if (val) this.persistVisual(this.index);
                 });
 
                 // Load remembered Facebook Page
@@ -89,20 +131,25 @@
             },
 
             refreshPageData() {
+                // Only attempt refresh if we have a selected page to update
+                if (!this.selectedFacebookPage) return;
+                
                 fetch('/social-planner/facebook-pages')
-                    .then(res => res.json())
+                    .then(res => {
+                        if (!res.ok) return { pages: [] };
+                        return res.json();
+                    })
                     .then(data => {
                         const pages = data.pages || [];
-                        if (this.selectedFacebookPage && pages.length > 0) {
+                        if (pages.length > 0) {
                             const freshPage = pages.find(p => p.id === this.selectedFacebookPage.id);
                             if (freshPage) {
-                                // Update local state with fresh data (including potential instagram_business_account)
                                 this.selectedFacebookPage = freshPage;
                                 localStorage.setItem('arch_ai_fb_page', JSON.stringify(freshPage));
                             }
                         }
                     })
-                    .catch(e => console.error('Background page refresh failed', e));
+                    .catch(() => {}); // Silently fail - this is a background refresh
             },
 
             toggleEdit() {
@@ -113,31 +160,37 @@
             },
 
             persistVisual(idx) {
-                fetch(`/content-creator/{{ $content->id }}/save-visual`, {
+                fetch(@js(url("/content-creator/{$content->id}/save-visual")), {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json', 'Accept': 'application/json', 'X-CSRF-TOKEN': '{{ csrf_token() }}' },
+                    headers: { 'Content-Type': 'application/json', 'Accept': 'application/json', 'X-CSRF-TOKEN': @js(csrf_token()) },
                     body: JSON.stringify({ index: idx, image_url: this.imageUrl })
                 });
             },
 
             fetchFacebookPages() {
-                if (!this.isFacebookConnected) {
-                    alert('Please connect your Facebook account in the Social Planner first.');
-                    return;
-                }
                 this.isFetchingPages = true;
                 this.showPageModal = true;
+                
+                // Always fetch fresh pages to catch new connections/accounts
                 fetch('/social-planner/facebook-pages')
                     .then(res => res.json())
                     .then(data => { 
                         this.facebookPages = data.pages || []; 
+                        this.isFacebookConnected = this.facebookPages.length > 0;
+                        
                         if (this.facebookPages.length === 0) {
-                            alert('No Facebook pages found. Please ensure you have granted page permissions.');
+                            // If we get zero pages, check if we're even connected
+                            if (!this.isFacebookConnected) {
+                                alert('No connection found. Please link your Facebook account in the Social Planner.');
+                                this.showPageModal = false;
+                            } else {
+                                alert('No Facebook pages found. Ensure you have granted "Manage Pages" permissions.');
+                            }
                         }
                     })
                     .catch(err => {
                         console.error(err);
-                        alert('Failed to fetch Facebook pages.');
+                        alert('Error communicating with the Social Engine.');
                         this.showPageModal = false;
                     })
                     .finally(() => { this.isFetchingPages = false; });
@@ -177,7 +230,7 @@
                     fetch('/content-creator/upload-media', {
                         method: 'POST',
                         body: formData,
-                        headers: { 'X-CSRF-TOKEN': '{{ csrf_token() }}', 'Accept': 'application/json' }
+                        headers: { 'X-CSRF-TOKEN': @js(csrf_token()), 'Accept': 'application/json' }
                     })
                     .then(async res => {
                         if (!res.ok) {
@@ -229,7 +282,7 @@
                 const prompt = this.rawContent.substring(0, 400);
                 fetch('/content-creator/generate-media', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json', 'Accept': 'application/json', 'X-CSRF-TOKEN': '{{ csrf_token() }}' },
+                    headers: { 'Content-Type': 'application/json', 'Accept': 'application/json', 'X-CSRF-TOKEN': @js(csrf_token()) },
                     body: JSON.stringify({ prompt: prompt })
                 })
                 .then(res => res.json())
@@ -245,8 +298,8 @@
                 this.isRegenerating = true;
                 fetch('/content-creator/regenerate', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json', 'Accept': 'application/json', 'X-CSRF-TOKEN': '{{ csrf_token() }}' },
-                    body: JSON.stringify({ content_id: {{ $content->id }}, current_text: this.rawContent })
+                    headers: { 'Content-Type': 'application/json', 'Accept': 'application/json', 'X-CSRF-TOKEN': @js(csrf_token()) },
+                    body: JSON.stringify({ content_id: @js($content->id), current_text: this.rawContent })
                 })
                 .then(res => res.json())
                 .then(data => {
@@ -305,10 +358,10 @@
                 this.isPublishing = true;
                 fetch('/content-creator/publish', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json', 'Accept': 'application/json', 'X-CSRF-TOKEN': '{{ csrf_token() }}' },
+                    headers: { 'Content-Type': 'application/json', 'Accept': 'application/json', 'X-CSRF-TOKEN': @js(csrf_token()) },
                     body: JSON.stringify({
-                        content_id: {{ $content->id }},
-                        segment_index: index,
+                        content_id: @js($content->id),
+                        segment_index: this.index,
                         final_text: this.rawContent,
                         image_url: this.imageUrl,
                         platforms: this.selectedPlatforms,
@@ -335,7 +388,7 @@
                 })
                 .finally(() => { this.isPublishing = false; this.showPublishModal = false; });
             }
-        }));
+        };});
     });
 </script>
 
@@ -382,54 +435,15 @@
     </div>
 
     <!-- Social Media Feed Grid -->
-    @php
-        // 1. Split content by markdown horizontal rule '---'
-        $rawSegments = preg_split('/\n-{3,}\n/', $content->result ?? '');
-        $posts = [];
-        $globalHashtags = '';
-
-        // 2. logic to detect if the last segment is just hashtags (common pattern)
-        if (!empty($rawSegments)) {
-            $lastSegment = trim(end($rawSegments));
-            // Check if it starts with # and is relatively short (likely hashtags)
-            if (count($rawSegments) > 1 && str_starts_with($lastSegment, '#') && strlen($lastSegment) < 300) {
-                // Remove the last segment and store it as global tags
-                array_pop($rawSegments);
-                $globalHashtags = $lastSegment;
-            }
-            $posts = array_filter($rawSegments);
-        } else {
-            $posts = [$content->result ?? 'No content generated.'];
-        }
-    @endphp
-
     <div class="grid grid-cols-1 md:grid-cols-2 gap-6 pb-20">
-        @foreach($posts as $index => $post)
-        @php
-            // Append global hashtags if they exist
-            $finalPostContent = trim($post);
-            
-            // Remove leading numbering (e.g., "1. ", "2. ") to clean up list style outputs
-            $finalPostContent = preg_replace('/^\d+\.\s*/', '', $finalPostContent);
-
-            if ($globalHashtags) {
-                 $finalPostContent .= "\n\n" . $globalHashtags;
-            }
-        @endphp
-        @php
-            // Clean content for display (remove markdown symbols)
-            $cleanText = preg_replace('/^#+\s+/m', '', $finalPostContent); // Remove headers
-            $cleanText = str_replace(['*', '`'], '', $cleanText); // Remove asterisks and ticks
-            $cleanHtml = nl2br(e($cleanText));
-        @endphp
-        
-        <div x-data="postCard({{ $index }}, {{ Js::from($finalPostContent) }}, {{ Js::from($cleanHtml) }}, {{ in_array($index, $publishedIndexes) ? 'true' : 'false' }})" 
+        @foreach($postsData as $postInfo)
+        <div x-data="postCard({{ $postInfo['index'] }})" 
              class="w-full bg-card border border-border rounded-xl shadow-md overflow-visible animate-in fade-in slide-in-from-bottom-4 duration-500 relative" 
-             style="animation-delay: {{ $index * 150 }}ms;">
+             style="animation-delay: {{ $postInfo['index'] * 150 }}ms;">
             
             <!-- Index Badge -->
             <div class="absolute -top-3 -left-3 w-8 h-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-sm font-black shadow-lg border-4 border-background z-20">
-                {{ $index + 1 }}
+                {{ $postInfo['index'] + 1 }}
             </div>
             
             <!-- Success Overlay -->
@@ -533,7 +547,7 @@
                         
                         <div class="flex items-center gap-3 w-full max-w-xs">
                              <button @click="triggerUpload" class="flex-1 flex flex-col items-center justify-center gap-2 p-4 rounded-xl border border-border bg-card hover:border-primary/50 hover:bg-primary/5 transition-all group/btn">
-                                <i data-lucide="paperclip" class="w-5 h-5 text-muted-foreground group-hover/btn:text-primary"></i>
+                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="paperclip" class="lucide lucide-paperclip w-5 h-5 text-muted-foreground group-hover/btn:text-primary"><path d="m16 6-8.414 8.586a2 2 0 0 0 2.829 2.829l8.414-8.586a4 4 0 1 0-5.657-5.657l-8.379 8.551a6 6 0 1 0 8.485 8.485l8.379-8.551"></path></svg>
                                 <span class="text-[10px] font-bold uppercase tracking-wider text-muted-foreground group-hover/btn:text-primary">Upload Photo</span>
                              </button>
                              <button @click="generateImage" class="flex-1 flex flex-col items-center justify-center gap-2 p-4 rounded-xl border border-border bg-card hover:border-purple-500/50 hover:bg-purple-500/5 transition-all group/btn">
@@ -614,11 +628,11 @@
                                 <div class="flex flex-col">
                                     <span class="text-sm font-medium">Facebook</span>
                                     <span x-show="!isFacebookConnected" class="text-[9px] text-red-500 font-bold uppercase tracking-tighter">Not Connected</span>
-                                    <span x-show="isFacebookConnected && selectedFacebookPage" class="text-[9px] text-blue-600 font-bold uppercase tracking-tighter truncate max-w-[100px]" x-text="selectedFacebookPage.name"></span>
+                                    <span x-show="isFacebookConnected && selectedFacebookPage" class="text-[9px] text-blue-600 font-bold uppercase tracking-tighter truncate max-w-[100px]" x-text="selectedFacebookPage?.name"></span>
                                 </div>
                             </label>
                              <button @click.stop="fetchFacebookPages" class="absolute right-2 top-1/2 -translate-y-1/2 p-2 hover:bg-blue-200/20 rounded-full transition-colors z-10" title="Select Page">
-                                <i data-lucide="settings" class="w-4 h-4 text-muted-foreground"></i>
+                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="settings" class="lucide lucide-settings w-4 h-4 text-muted-foreground"><path d="M9.671 4.136a2.34 2.34 0 0 1 4.659 0 2.34 2.34 0 0 0 3.319 1.915 2.34 2.34 0 0 1 2.33 4.033 2.34 2.34 0 0 0 0 3.831 2.34 2.34 0 0 1-2.33 4.033 2.34 2.34 0 0 0-3.319 1.915 2.34 2.34 0 0 1-4.659 0 2.34 2.34 0 0 0-3.32-1.915 2.34 2.34 0 0 1-2.33-4.033 2.34 2.34 0 0 0 0-3.831A2.34 2.34 0 0 1 6.35 6.051a2.34 2.34 0 0 0 3.319-1.915"></path><circle cx="12" cy="12" r="3"></circle></svg>
                              </button>
                          </div>
                          
@@ -635,7 +649,7 @@
                                 <div class="w-8 h-8 rounded bg-pink-600 flex items-center justify-center text-white">In</div>
                                 <div class="flex flex-col">
                                     <span class="text-sm font-medium">Instagram</span>
-                                    <span x-show="isFacebookConnected && selectedFacebookPage" class="text-[9px] text-pink-600 font-bold uppercase tracking-tighter truncate max-w-[100px]" x-text="selectedFacebookPage.name"></span>
+                                    <span x-show="isFacebookConnected && selectedFacebookPage" class="text-[9px] text-pink-600 font-bold uppercase tracking-tighter truncate max-w-[100px]" x-text="selectedFacebookPage?.name"></span>
                                 </div>
                             </label>
                             <button @click.stop="fetchInstagramPages" class="absolute right-2 top-1/2 -translate-y-1/2 p-2 hover:bg-pink-500/20 rounded-full transition-colors z-10" title="Select Account">

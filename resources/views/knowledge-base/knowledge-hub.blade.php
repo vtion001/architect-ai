@@ -3,12 +3,19 @@
 @section('content')
 <div class="p-8 max-w-7xl mx-auto" x-data="{
     showUploadModal: false,
+    showViewModal: false,
+    viewingAsset: null,
     assetTitle: '',
     assetType: 'text',
     assetContent: '',
     assetCategory: 'General',
     assetUrl: '',
     isSaving: false,
+
+    viewAsset(asset) {
+        this.viewingAsset = asset;
+        this.showViewModal = true;
+    },
 
     saveAsset() {
         if (!this.assetTitle || !this.assetContent) {
@@ -154,9 +161,14 @@
                                     </p>
                                 </div>
                             </div>
-                            <button @click="deleteAsset('{{ $asset->id }}')" class="opacity-0 group-hover:opacity-100 transition-opacity p-2 text-destructive hover:bg-red-50 rounded-lg">
-                                <i data-lucide="trash-2" class="w-4 h-4"></i>
-                            </button>
+                            <div class="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                <button @click="viewAsset({{ $asset }})" class="p-2 text-primary hover:bg-primary/5 rounded-lg">
+                                    <i data-lucide="eye" class="w-4 h-4"></i>
+                                </button>
+                                <button @click="deleteAsset('{{ $asset->id }}')" class="p-2 text-destructive hover:bg-red-50 rounded-lg">
+                                    <i data-lucide="trash-2" class="w-4 h-4"></i>
+                                </button>
+                            </div>
                         </div>
                     </div>
                     @empty
@@ -241,6 +253,26 @@
                         <i data-lucide="loader-2" class="w-4 h-4 animate-spin"></i>
                     </template>
                 </button>
+            </div>
+        </div>
+    <!-- View Asset Modal -->
+    <div x-show="showViewModal" x-cloak class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+        <div @click.away="showViewModal = false" class="bg-card w-full max-w-2xl rounded-2xl shadow-2xl border border-border p-10 animate-in zoom-in-95 duration-200">
+            <div class="flex items-center justify-between mb-8">
+                <div>
+                    <h2 class="text-2xl font-black uppercase tracking-tighter text-foreground" x-text="viewingAsset?.title"></h2>
+                    <p class="text-[10px] text-primary font-black uppercase tracking-widest mt-1" x-text="viewingAsset?.category"></p>
+                </div>
+                <button @click="showViewModal = false" class="p-2 hover:bg-muted rounded-full"><i data-lucide="x" class="w-6 h-6"></i></button>
+            </div>
+
+            <div class="max-h-[500px] overflow-y-auto pr-2 custom-scrollbar">
+                <div class="prose prose-sm max-w-none text-muted-foreground whitespace-pre-wrap leading-relaxed font-medium" x-html="viewingAsset?.content"></div>
+            </div>
+
+            <div class="mt-8 pt-6 border-t border-border flex justify-end gap-3">
+                <button @click="showViewModal = false" class="px-6 py-2 rounded-xl bg-muted font-black uppercase text-[10px] tracking-widest hover:bg-muted/80 transition-all">Close Viewer</button>
+                <button @click="deleteAsset(viewingAsset.id)" class="px-6 py-2 rounded-xl bg-red-50 text-red-600 font-black uppercase text-[10px] tracking-widest hover:bg-red-100 transition-all">Purge Asset</button>
             </div>
         </div>
     </div>

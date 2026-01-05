@@ -208,14 +208,26 @@ class ContentCreatorController extends Controller
                 // Upload to Cloudinary
                 try {
                     $timestamp = time();
-                    $signature = sha1("timestamp=$timestamp$apiSecret");
+                    
+                    // Signature calculation (alphabetical order of params)
+                    $params = [
+                        'timestamp' => $timestamp,
+                    ];
+                    ksort($params);
+                    
+                    $signParts = [];
+                    foreach ($params as $key => $value) {
+                        $signParts[] = "$key=$value";
+                    }
+                    $signString = implode('&', $signParts) . $apiSecret;
+                    $signature = sha1($signString);
 
                     // Use attach() for file uploads (multipart/form-data)
                     $response = Http::attach(
                         'file', 
-                        fopen($file->getRealPath(), 'r'), 
+                        file_get_contents($file->getRealPath()), 
                         $file->getClientOriginalName()
-                    )->post("https://api.cloudinary.com/v1_1/$cloudName/image/upload", [
+                    )->post("https://api.cloudinary.com/v1_1/$cloudName/auto/upload", [
                         'api_key' => $apiKey,
                         'timestamp' => $timestamp,
                         'signature' => $signature,
@@ -226,12 +238,10 @@ class ContentCreatorController extends Controller
                         Log::info("Media uploaded to Cloudinary. URL: $url");
                         return response()->json(['success' => true, 'url' => $url]);
                     } else {
-                        Log::error("Cloudinary upload failed: " . $response->body());
-                        return response()->json(['success' => false, 'message' => 'Cloudinary upload failed.'], 500);
+                        Log::error("Cloudinary upload failed: " . $response->status() . " - " . $response->body());
                     }
                 } catch (\Exception $e) {
                     Log::error("Cloudinary exception: " . $e->getMessage());
-                    return response()->json(['success' => false, 'message' => 'Upload error.'], 500);
                 }
             } else {
                  Log::warning("Cloudinary credentials missing in .env. Falling back to public upload.");
@@ -247,11 +257,79 @@ class ContentCreatorController extends Controller
             return response()->json([
                 'success' => true,
                 'url' => $url,
-                'message' => 'Uploaded locally. Add CLOUDINARY_ keys to .env for cloud storage.'
+                'message' => 'Uploaded locally. Check Cloudinary credentials if this is unintended.'
             ]);
         }
 
         return response()->json(['success' => false, 'message' => 'No file uploaded'], 400);
+    }
+
+    public function generateMedia(Request $request)
+    {
+        $request->validate([
+            'prompt' => 'required|string|min:3',
+        ]);
+
+        $tokenCost = 5;
+
+        // 1. Check & Consume Tokens
+        if (!$this->tokenService->consume(auth()->user(), $tokenCost, 'image_generation', ['prompt' => $request->prompt])) {
+            return response()->json([
+                'success' => false,
+                'message' => "Insufficient tokens. Image generation requires $tokenCost tokens."
+            ], 402);
+        }
+
+        $generatedUrl = $this->contentService->generateImage($request->prompt);
+
+        if ($generatedUrl) {
+            // Attempt to upload generated URL to Cloudinary for persistence
+            $cloudName = config('services.cloudinary.cloud_name');
+            $apiKey = config('services.cloudinary.api_key');
+            $apiSecret = config('services.cloudinary.api_secret');
+
+            if ($cloudName && $apiKey && $apiSecret) {
+                try {
+                    $timestamp = time();
+                    
+                    $params = [
+                        'timestamp' => $timestamp,
+                    ];
+                    ksort($params);
+                    
+                    $signParts = [];
+                    foreach ($params as $key => $value) {
+                        $signParts[] = "$key=$value";
+                    }
+                    $signString = implode('&', $signParts) . $apiSecret;
+                    $signature = sha1($signString);
+
+                    // Use multipart for URL uploads to be consistent with file uploads
+                    $response = Http::asMultipart()->post("https://api.cloudinary.com/v1_1/$cloudName/auto/upload", [
+                        'file' => $generatedUrl, // Cloudinary accepts remote URLs in the file param!
+                        'api_key' => $apiKey,
+                        'timestamp' => $timestamp,
+                        'signature' => $signature,
+                    ]);
+
+                    if ($response->successful()) {
+                         $generatedUrl = $response->json()['secure_url'];
+                         Log::info("Generated AI image saved to Cloudinary: $generatedUrl");
+                    } else {
+                        Log::error("Failed to save AI image to Cloudinary: " . $response->status() . " - " . $response->body());
+                    }
+                } catch (\Exception $e) {
+                    Log::warning("Failed to save AI image to Cloudinary: " . $e->getMessage());
+                }
+            }
+
+            return response()->json([
+                'success' => true,
+                'url' => $generatedUrl
+            ]);
+        }
+
+        return response()->json(['success' => false, 'message' => 'Image generation failed. Please try again.'], 500);
     }
 
     public function regenerate(Request $request)
@@ -264,7 +342,6 @@ class ContentCreatorController extends Controller
         $content = Content::findOrFail($request->content_id);
         
         try {
-            // Simple regen prompt logic
             $newText = $this->contentService->generateText(
                 $content->topic, 
                 $content->type, 
@@ -277,7 +354,8 @@ class ContentCreatorController extends Controller
                 'new_text' => $newText
             ]);
         } catch (\Exception $e) {
-             return response()->json(['success' => false, 'message' => 'Regeneration failed'], 500);
+            Log::error("Regeneration failed: " . $e->getMessage());
+            return response()->json(['success' => false, 'message' => 'Regeneration failed'], 500);
         }
     }
 
@@ -285,22 +363,20 @@ class ContentCreatorController extends Controller
     {
         $validated = $request->validate([
             'content_id' => 'required|exists:contents,id',
-            'segment_index' => 'required|integer', // Track which part of the batch this is
+            'segment_index' => 'required|integer',
             'final_text' => 'required|string',
             'image_url' => 'nullable|url',
             'platforms' => 'required|array|min:1',
-            'scheduled_at' => 'required|string', // Allow 'now' string or date
+            'scheduled_at' => 'required|string',
             'facebook_page_id' => 'nullable|string',
             'facebook_page_token' => 'nullable|string',
             'instagram_account_id' => 'nullable|string',
         ]);
 
-        // Resolve 'now' to actual timestamp
         $scheduledAt = $validated['scheduled_at'] === 'now' ? now()->toDateTimeString() : $validated['scheduled_at'];
         
-        $parentDrag = Content::find($validated['content_id']);
+        $parentContent = Content::find($validated['content_id']);
         $results = [];
-
         $isImmediate = $validated['scheduled_at'] === 'now';
 
         foreach ($validated['platforms'] as $platform) {
@@ -308,33 +384,30 @@ class ContentCreatorController extends Controller
                 'platform' => $platform,
                 'scheduled_at' => $scheduledAt,
                 'image_url' => $validated['image_url'],
-                'original_content_id' => $validated['content_id'],
+                'original_content_id' => (int)$validated['content_id'],
                 'segment_index' => (int)$validated['segment_index']
             ];
 
-            // Attach specific credentials for Facebook
             if ($platform === 'facebook') {
                 $options['page_id'] = $validated['facebook_page_id'] ?? null;
                 $options['page_token'] = $validated['facebook_page_token'] ?? null;
             }
             
-            // Attach credentials for Instagram (uses FB Page Token)
             if ($platform === 'instagram') {
                 $options['instagram_id'] = $validated['instagram_account_id'] ?? null;
                 $options['page_token'] = $validated['facebook_page_token'] ?? null;
             }
 
             $contentRecord = Content::create([
-                'title' => ($isImmediate ? 'Published ' : 'Scheduled ') . ucfirst($platform) . ' - ' . Str::limit($parentDrag->topic, 20),
-                'topic' => $parentDrag->topic,
+                'title' => ($isImmediate ? 'Published ' : 'Scheduled ') . ucfirst($platform) . ' - ' . Str::limit($parentContent->topic, 20),
+                'topic' => $parentContent->topic,
                 'type' => 'social-post', 
-                'context' => $parentDrag->context,
+                'context' => $parentContent->context,
                 'status' => 'scheduled',
                 'result' => $validated['final_text'], 
                 'options' => $options
             ]);
 
-            // If scheduled at 'now', or time is past, attempt immediate post
             if ($isImmediate || \Carbon\Carbon::parse($scheduledAt)->isPast()) {
                 if ($platform === 'facebook' && !empty($options['page_id']) && !empty($options['page_token'])) {
                     $fbResult = $this->postToFacebook($contentRecord);
@@ -400,14 +473,12 @@ class ContentCreatorController extends Controller
 
         try {
             if ($imageUrl) {
-                // Photo Post
                 $response = Http::post("https://graph.facebook.com/v18.0/$pageId/photos", [
                     'url' => $imageUrl,
                     'message' => $message,
                     'access_token' => $token
                 ]);
             } else {
-                // Text/Feed Post
                 $response = Http::post("https://graph.facebook.com/v18.0/$pageId/feed", [
                     'message' => $message,
                     'access_token' => $token
@@ -439,7 +510,6 @@ class ContentCreatorController extends Controller
             return ['success' => false, 'error' => 'Instagram requires an image and a valid token.'];
         }
 
-        // Ensure URL is absolute for local uploads
         if (str_starts_with($imageUrl, '/')) {
             $imageUrl = rtrim(config('app.url'), '/') . $imageUrl;
         }
@@ -447,7 +517,6 @@ class ContentCreatorController extends Controller
         Log::info("Posting to IG ($igUserId) with Image: $imageUrl");
 
         try {
-            // 1. Create Media Container
             $response = Http::post("https://graph.facebook.com/v18.0/$igUserId/media", [
                 'image_url' => $imageUrl,
                 'caption' => $caption,
@@ -458,15 +527,12 @@ class ContentCreatorController extends Controller
             Log::info("IG Container Response: " . json_encode($containerData));
             
             if (!isset($containerData['id'])) {
-                 return ['success' => false, 'error' => 'Container Create Failed: ' . ($containerData['error']['message'] ?? json_encode($containerData))];
+                return ['success' => false, 'error' => 'Container Create Failed: ' . ($containerData['error']['message'] ?? json_encode($containerData))];
             }
             
             $creationId = $containerData['id'];
-
-            // Give IG a moment to process the image download (prevents "Media not ready" errors)
             sleep(5);
 
-            // 2. Publish Media
             $publishResponse = Http::post("https://graph.facebook.com/v18.0/$igUserId/media_publish", [
                 'creation_id' => $creationId,
                 'access_token' => $token
@@ -487,56 +553,10 @@ class ContentCreatorController extends Controller
         }
     }
 
-
-    public function generateMedia(Request $request)
-    {
-        $request->validate([
-            'prompt' => 'required|string|min:3',
-        ]);
-
-        $generatedUrl = $this->contentService->generateImage($request->prompt);
-
-        if ($generatedUrl) {
-            // Attempt to upload generated URL to Cloudinary for persistence
-            $cloudName = config('services.cloudinary.cloud_name');
-            $apiKey = config('services.cloudinary.api_key');
-            $apiSecret = config('services.cloudinary.api_secret');
-
-            if ($cloudName && $apiKey && $apiSecret) {
-                try {
-                    $timestamp = time();
-                    $signature = sha1("timestamp=$timestamp$apiSecret");
-
-                    // Use asForm() for URL uploads to ensure application/x-www-form-urlencoded
-                    $response = Http::asForm()->post("https://api.cloudinary.com/v1_1/$cloudName/image/upload", [
-                        'file' => $generatedUrl, // Cloudinary accepts remote URLs!
-                        'api_key' => $apiKey,
-                        'timestamp' => $timestamp,
-                        'signature' => $signature,
-                    ]);
-
-                    if ($response->successful()) {
-                         $generatedUrl = $response->json()['secure_url'];
-                         Log::info("Generated AI image saved to Cloudinary: $generatedUrl");
-                    }
-                } catch (\Exception $e) {
-                    Log::warning("Failed to save AI image to Cloudinary: " . $e->getMessage());
-                    // Silently fail back to original OpenAI URL
-                }
-            }
-
-            return response()->json([
-                'success' => true,
-                'url' => $generatedUrl
-            ]);
-        }
-
-        return response()->json(['success' => false, 'message' => 'Image generation failed. Please try again.'], 500);
-    }
     public function saveVisual(Request $request, Content $content)
     {
         $validated = $request->validate([
-            'image_url' => 'required|url',
+            'image_url' => 'required|string', // Accept both URLs and local paths
             'index' => 'required|integer'
         ]);
 

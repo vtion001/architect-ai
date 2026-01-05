@@ -70,6 +70,36 @@
             this.isGenerating = false;
         });
     },
+    saveToKb() {
+        if (!this.htmlPreview) return;
+        this.isGenerating = true;
+        fetch('{{ route('knowledge-base.store') }}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': '{{ csrf_token() }}'
+            },
+            body: JSON.stringify({
+                title: (this.researchTopic || 'Generated Report') + ' (Architected)',
+                type: 'text',
+                content: this.htmlPreview,
+                category: 'Reports'
+            })
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.success) {
+                alert('Report successfully indexed into the Global Knowledge Base.');
+            } else {
+                alert('Failed to index report.');
+            }
+            this.isGenerating = false;
+        })
+        .catch(err => {
+            console.error(err);
+            this.isGenerating = false;
+        });
+    },
     handleFullView() {
         if (!this.htmlPreview) return;
         const newWin = window.open('', '_blank');
@@ -266,6 +296,14 @@
                     <p class="text-sm text-muted-foreground">Live preview of your generated report</p>
                 </div>
                 <div class="flex items-center gap-2">
+                    <button 
+                        @click="saveToKb"
+                        :disabled="!htmlPreview || isGenerating"
+                        class="inline-flex items-center justify-center rounded-md text-xs font-black uppercase tracking-widest border border-primary/30 bg-primary/5 text-primary hover:bg-primary hover:text-white h-8 px-3 disabled:opacity-50 transition-all"
+                    >
+                        <i data-lucide="database" class="w-3.5 h-3.5 mr-2"></i>
+                        Index to KB
+                    </button>
                     <button 
                         @click="downloadPdf"
                         :disabled="!htmlPreview"

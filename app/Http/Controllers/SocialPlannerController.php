@@ -184,11 +184,42 @@ class SocialPlannerController extends Controller
              return response()->json(['pages' => []]);
         }
 
-        $response = \Illuminate\Support\Facades\Http::get("https://graph.facebook.com/v18.0/me/accounts?fields=name,category,access_token,instagram_business_account&access_token=$accessToken");
-        $data = $response->json();
-        
+        $allPages = [];
+        $url = "https://graph.facebook.com/v18.0/me/accounts";
+        $params = [
+            'fields' => 'id,name,category,access_token,instagram_business_account{id,name,username,profile_picture_url}',
+            'limit' => 100, // Request up to 100 pages at once
+            'access_token' => $accessToken
+        ];
+
+        try {
+            // First request
+            $response = \Illuminate\Support\Facades\Http::get($url, $params);
+            $data = $response->json();
+            
+            if (isset($data['data'])) {
+                $allPages = array_merge($allPages, $data['data']);
+            }
+
+            // Handle pagination - follow 'next' links if they exist
+            while (isset($data['paging']['next'])) {
+                $response = \Illuminate\Support\Facades\Http::get($data['paging']['next']);
+                $data = $response->json();
+                
+                if (isset($data['data'])) {
+                    $allPages = array_merge($allPages, $data['data']);
+                }
+            }
+
+            \Illuminate\Support\Facades\Log::info("Fetched " . count($allPages) . " Facebook pages");
+            
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::error("Failed to fetch Facebook pages: " . $e->getMessage());
+            return response()->json(['pages' => [], 'error' => $e->getMessage()]);
+        }
+
         return response()->json([
-            'pages' => $data['data'] ?? []
+            'pages' => $allPages
         ]);
     }
 }

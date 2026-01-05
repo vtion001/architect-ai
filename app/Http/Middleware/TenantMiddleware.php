@@ -16,15 +16,21 @@ class TenantMiddleware
      */
     public function handle(Request $request, Closure $next): Response
     {
-        // 1. Identify Tenant from Slug (either in route or header)
+        // 1. Identify Tenant from Domain, Slug, or Header
+        $host = $request->getHost();
         $slug = $request->route('tenant_slug') ?? $request->header('X-Tenant-Slug');
 
-        if (!$slug && auth()->check()) {
+        if ($host && !in_array($host, [config('app.url'), 'localhost', '127.0.0.1'])) {
+            // Attempt to find tenant by custom domain in metadata
+            $tenant = Tenant::where('metadata->custom_domain', $host)->first();
+        }
+
+        if (!isset($tenant) && !$slug && auth()->check()) {
             // Fallback to user's tenant if authenticated
             $tenant = auth()->user()->tenant;
-        } elseif ($slug) {
+        } elseif (!isset($tenant) && $slug) {
             $tenant = Tenant::where('slug', $slug)->first();
-        } else {
+        } elseif (!isset($tenant)) {
             $tenant = null;
         }
 

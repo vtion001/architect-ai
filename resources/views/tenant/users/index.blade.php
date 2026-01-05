@@ -2,14 +2,15 @@
 
 @section('content')
 <div class="p-8 max-w-7xl mx-auto" x-data="{
+    activeTab: 'members',
     showAddModal: false,
     email: '',
     role_id: '',
     isAdding: false,
 
-    addUser() {
+    inviteUser() {
         this.isAdding = true;
-        fetch('{{ route('users.store') }}', {
+        fetch('{{ route('users.invite') }}', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -26,7 +27,7 @@
             if (res.ok) {
                 window.location.reload();
             } else {
-                alert(data.message || 'Failed to add user');
+                alert(data.message || 'Failed to dispatch invitation');
                 this.isAdding = false;
             }
         })
@@ -34,20 +35,36 @@
             console.error(err);
             this.isAdding = false;
         });
+    },
+
+    copyInvite(token) {
+        const link = `{{ url('/auth/join/') }}/${token}`;
+        navigator.clipboard.writeText(link);
+        alert('Invitation link copied to clipboard.');
     }
 }">
     <div class="mb-8 flex items-center justify-between">
         <div>
-            <h1 class="text-3xl font-bold mb-2">Team Management</h1>
-            <p class="text-muted-foreground font-medium">Provision and manage user identities for this workspace.</p>
+            <h1 class="text-3xl font-bold mb-2 uppercase tracking-tighter">Identity Management</h1>
+            <p class="text-muted-foreground font-medium italic">Provision and manage access protocols for this workspace.</p>
         </div>
-        <button @click="showAddModal = true" class="bg-primary text-primary-foreground px-4 py-2 rounded-lg font-bold text-sm shadow-lg shadow-primary/20 flex items-center gap-2 transition-all hover:scale-[1.02]">
+        <button @click="showAddModal = true" class="bg-primary text-primary-foreground px-6 py-2.5 rounded-xl font-black text-xs uppercase tracking-widest shadow-lg shadow-primary/20 flex items-center gap-2 transition-all hover:scale-[1.02]">
             <i data-lucide="user-plus" class="w-4 h-4"></i>
-            Add Team Member
+            Invite New Identity
         </button>
     </div>
 
-    <div class="bg-card border border-border rounded-3xl overflow-hidden shadow-sm">
+    <!-- Tab Toggles -->
+    <div class="flex gap-4 mb-6 border-b border-border">
+        <button @click="activeTab = 'members'" :class="activeTab === 'members' ? 'border-primary text-primary' : 'border-transparent text-muted-foreground'" class="pb-3 px-2 border-b-2 font-black text-[10px] uppercase tracking-widest transition-all">Active Members</button>
+        <button @click="activeTab = 'invites'" :class="activeTab === 'invites' ? 'border-primary text-primary' : 'border-transparent text-muted-foreground'" class="pb-3 px-2 border-b-2 font-black text-[10px] uppercase tracking-widest transition-all flex items-center gap-2">
+            Pending Protocol
+            <span class="bg-primary/10 text-primary px-1.5 py-0.5 rounded-md text-[9px]">{{ count($invitations) }}</span>
+        </button>
+    </div>
+
+    <!-- Members Table -->
+    <div x-show="activeTab === 'members'" class="bg-card border border-border rounded-3xl overflow-hidden shadow-sm animate-in fade-in duration-300">
         <table class="w-full text-left text-sm border-collapse">
             <thead class="bg-muted/30 text-muted-foreground font-black uppercase tracking-widest border-b border-border">
                 <tr>
@@ -55,7 +72,7 @@
                     <th class="p-4">Role / Scope</th>
                     <th class="p-4">Status</th>
                     <th class="p-4">Last Active</th>
-                    <th class="p-4">Actions</th>
+                    <th class="p-4 text-right">Actions</th>
                 </tr>
             </thead>
             <tbody class="divide-y divide-border/50">
@@ -68,7 +85,7 @@
                                 </div>
                                 <div>
                                     <p class="font-bold text-foreground leading-tight">{{ $user->email }}</p>
-                                    <p class="text-[10px] text-muted-foreground font-mono">{{ $user->id }}</p>
+                                    <p class="text-[10px] text-muted-foreground font-mono uppercase">{{ substr($user->id, 0, 8) }}</p>
                                 </div>
                             </div>
                         </td>
@@ -85,12 +102,12 @@
                                 {{ $user->status }}
                             </span>
                         </td>
-                        <td class="p-4 text-muted-foreground text-xs font-medium">
-                            {{ $user->last_login_at?->diffForHumans() ?? 'Never' }}
+                        <td class="p-4 text-muted-foreground text-[10px] font-bold uppercase">
+                            {{ $user->last_login_at?->diffForHumans() ?? 'NEVER' }}
                         </td>
-                        <td class="p-4">
+                        <td class="p-4 text-right">
                             <button class="p-2 text-muted-foreground hover:text-primary hover:bg-primary/5 rounded-lg transition-all">
-                                <i data-lucide="more-horizontal" class="w-4 h-4"></i>
+                                <i data-lucide="shield-alert" class="w-4 h-4"></i>
                             </button>
                         </td>
                     </tr>
@@ -99,37 +116,68 @@
         </table>
     </div>
 
-    <!-- Add User Modal -->
+    <!-- Invites Section -->
+    <div x-show="activeTab === 'invites'" x-cloak class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 animate-in fade-in duration-300">
+        @forelse($invitations as $invite)
+            <div class="bg-card border border-border rounded-3xl p-6 shadow-sm hover:border-primary/30 transition-all group">
+                <div class="flex items-center justify-between mb-4">
+                    <div class="w-10 h-10 rounded-xl bg-muted flex items-center justify-center">
+                        <i data-lucide="mail" class="w-5 h-5 text-muted-foreground"></i>
+                    </div>
+                    <span class="px-2 py-1 rounded-lg bg-amber-50 text-amber-600 text-[9px] font-black uppercase tracking-widest border border-amber-100">Pending Identity</span>
+                </div>
+                <h3 class="font-bold text-sm mb-1">{{ $invite->email }}</h3>
+                <p class="text-[10px] text-muted-foreground font-bold uppercase tracking-widest mb-4">Role: {{ $invite->role->name }}</p>
+                
+                <div class="pt-4 border-t border-border/50 flex gap-2">
+                    <button @click="copyInvite('{{ $invite->token }}')" class="flex-1 h-9 bg-muted border border-border rounded-lg text-[9px] font-black uppercase tracking-widest hover:bg-primary hover:text-white hover:border-primary transition-all flex items-center justify-center gap-2">
+                        <i data-lucide="link" class="w-3 h-3"></i>
+                        Copy Link
+                    </button>
+                    <button class="w-9 h-9 flex items-center justify-center rounded-lg bg-red-50 text-red-600 border border-red-100 hover:bg-red-100 transition-all">
+                        <i data-lucide="trash-2" class="w-4 h-4"></i>
+                    </button>
+                </div>
+            </div>
+        @empty
+            <div class="col-span-full py-20 text-center text-muted-foreground opacity-50 italic">
+                <i data-lucide="inbox" class="w-12 h-12 mx-auto mb-4"></i>
+                <p>No pending identity protocols in the queue.</p>
+            </div>
+        @endforelse
+    </div>
+
+    <!-- Invite User Modal -->
     <div x-show="showAddModal" x-cloak class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-        <div @click.away="!isAdding && (showAddModal = false)" class="bg-card w-full max-w-md rounded-3xl shadow-2xl border border-border p-8 animate-in zoom-in-95 duration-200">
-            <h2 class="text-2xl font-bold mb-2">New Team Member</h2>
-            <p class="text-sm text-muted-foreground mb-8">Grant workspace access to a new identity.</p>
+        <div @click.away="!isAdding && (showAddModal = false)" class="bg-card w-full max-w-md rounded-3xl shadow-2xl border border-border p-10 animate-in zoom-in-95 duration-200">
+            <h2 class="text-2xl font-black uppercase tracking-tighter mb-2">Invite Identity</h2>
+            <p class="text-sm text-muted-foreground mb-8 italic">Initiate an onboarding protocol for a new workspace member.</p>
             
-            <form @submit.prevent="addUser" class="space-y-5">
+            <form @submit.prevent="inviteUser" class="space-y-6">
                 <div class="space-y-2">
-                    <label class="text-[10px] font-black uppercase tracking-widest text-muted-foreground italic px-1">Email Address</label>
+                    <label class="text-[10px] font-black uppercase tracking-widest text-muted-foreground italic px-1">Target Email Address</label>
                     <input x-model="email" type="email" required placeholder="member@company.com"
-                           class="w-full h-12 bg-muted/20 border border-border rounded-xl px-4 text-sm font-medium focus:ring-2 focus:ring-primary/20 outline-none">
+                           class="w-full h-14 bg-muted/20 border border-border rounded-2xl px-5 text-sm font-bold focus:ring-2 focus:ring-primary/20 outline-none">
                 </div>
 
                 <div class="space-y-2">
-                    <label class="text-[10px] font-black uppercase tracking-widest text-muted-foreground italic px-1">Assigned Role</label>
-                    <select x-model="role_id" required class="w-full h-12 bg-muted/20 border border-border rounded-xl px-4 text-sm font-medium focus:ring-2 focus:ring-primary/20 outline-none">
-                        <option value="">Select a role...</option>
+                    <label class="text-[10px] font-black uppercase tracking-widest text-muted-foreground italic px-1">Permissions Level (Role)</label>
+                    <select x-model="role_id" required class="w-full h-14 bg-muted/20 border border-border rounded-2xl px-5 text-sm font-bold focus:ring-2 focus:ring-primary/20 outline-none">
+                        <option value="">Choose access level...</option>
                         @foreach($roles as $role)
                             <option value="{{ $role->id }}">{{ $role->name }}</option>
                         @endforeach
                     </select>
                 </div>
 
-                <div class="pt-4 flex gap-3">
-                    <button type="button" @click="showAddModal = false" :disabled="isAdding" class="flex-1 h-12 rounded-xl border border-border font-bold uppercase text-xs hover:bg-muted transition-all">Cancel</button>
-                    <button type="submit" :disabled="isAdding" class="flex-1 h-12 rounded-xl bg-primary text-primary-foreground font-bold uppercase text-xs shadow-lg shadow-primary/20 hover:bg-primary/90 transition-all flex items-center justify-center gap-2">
+                <div class="pt-4 flex flex-col gap-3">
+                    <button type="submit" :disabled="isAdding" class="w-full h-14 bg-primary text-primary-foreground font-black uppercase tracking-[0.2em] text-xs shadow-lg shadow-primary/20 hover:bg-primary/90 transition-all flex items-center justify-center gap-3">
                         <template x-if="isAdding">
-                            <i data-lucide="loader-2" class="w-4 h-4 animate-spin"></i>
+                            <i data-lucide="loader-2" class="w-5 h-5 animate-spin"></i>
                         </template>
-                        <span x-text="isAdding ? 'Adding...' : 'Add Member'"></span>
+                        <span x-text="isAdding ? 'DISPATCHING...' : 'DISPATCH INVITATION'"></span>
                     </button>
+                    <button type="button" @click="showAddModal = false" :disabled="isAdding" class="w-full h-14 rounded-2xl border border-border font-black uppercase text-xs tracking-widest hover:bg-muted transition-all">Cancel</button>
                 </div>
             </form>
         </div>

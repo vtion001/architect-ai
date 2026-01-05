@@ -44,6 +44,9 @@ class ReportService
             return $this->getDummyContent();
         }
 
+        // 1. RAG: Fetch relevant internal knowledge base assets
+        $kbContext = $this->getKnowledgeBaseContext($data->researchTopic ?? $data->prompt ?? '');
+
         // Perform Deep Research if a topic is provided
         $researchData = '';
         if ($data->researchTopic) {
@@ -55,16 +58,16 @@ class ReportService
         try {
             $response = \Illuminate\Support\Facades\Http::withToken($apiKey)
                 ->timeout(120)
-                ->post('https://api.openai.com/v1/chat/completions', [
+                ->post('https://api.openai.com/v1_1/chat/completions', [
                     'model' => config('services.openai.model', 'gpt-4o-mini'),
                     'messages' => [
                         [
                             'role' => 'system',
                             'content' => "You are an expert business analyst and technical writer. 
-                                         Your task is to take RAW research data and RAW source content and transform them into a HIGH-END HTML business report.
+                                         Your task is to take RAW research data, INTERNAL knowledge base data, and RAW source content and transform them into a HIGH-END HTML business report.
                                          
                                          CORE DIRECTIVES:
-                                         - THE 'RESEARCH DATA' IS YOUR PRIMARY SOURCE OF TRUTH. You must include the facts, figures, and insights from it. DO NOT GENERALIZE.
+                                         - THE 'RESEARCH DATA' AND 'INTERNAL KNOWLEDGE BASE' ARE YOUR PRIMARY SOURCES OF TRUTH. You must include the facts, figures, and insights from them. DO NOT GENERALIZE.
                                          - THE 'RESEARCH TOPIC' IS THE MANDATORY THEME. Every section must relate back to: {$data->researchTopic}.
                                          - GENERATE A DETAILED BUSINESS REPORT. Use a clean, single-column flow.
                                          - Use <h2> for section titles and <h3> for sub-sections.
@@ -89,6 +92,11 @@ class ReportService
                                          Style Variant: {$data->variant}. 
                                          Recipient: {$data->recipientName} ({$data->recipientTitle}). 
                                          
+                                         INTERNAL KNOWLEDGE BASE (CONTEXT):
+                                         ---
+                                         {$kbContext}
+                                         ---
+
                                          RESEARCH DATA (PRIMARY SOURCE):
                                          ---
                                          {$researchData}
@@ -99,7 +107,7 @@ class ReportService
                                          {$data->contentData}
                                          ---
                                          
-                                         Instruction: Create a comprehensive report specifically about '{$data->researchTopic}'. Use the RESEARCH DATA provided as your factual base. Build a detailed narrative using the business layout tools (tables, callouts, grids) provided in your system instructions. Do not omit data. Expand the raw research into professional technical analysis."
+                                         Instruction: Create a comprehensive report specifically about '{$data->researchTopic}'. Use the RESEARCH DATA and INTERNAL KNOWLEDGE BASE provided as your factual base. Build a detailed narrative using the business layout tools (tables, callouts, grids) provided in your system instructions. Do not omit data. Expand the raw research into professional technical analysis."
                         ],
                     ],
                     'temperature' => 0.5,
@@ -219,5 +227,26 @@ class ReportService
                 <li>Strengthen partnerships in key markets</li>
             </ul>
         ";
+    }
+
+    /**
+     * RAG: Retrieve relevant context from the tenant's knowledge base.
+     */
+    protected function getKnowledgeBaseContext(string $query): ?string
+    {
+        $tenant = app(\App\Models\Tenant::class);
+        if (!$tenant || empty($query)) return null;
+
+        $assets = \App\Models\KnowledgeBaseAsset::where('tenant_id', $tenant->id)
+            ->where(function($q) use ($query) {
+                $q->where('title', 'like', "%" + $query + "%")
+                  ->orWhere('content', 'like', "%" + $query + "%");
+            })
+            ->limit(3)
+            ->get();
+
+        if ($assets->isEmpty()) return null;
+
+        return $assets->map(fn($a) => "--- SOURCE: {$a->title} ---\n{$a->content}")->implode("\n\n");
     }
 }

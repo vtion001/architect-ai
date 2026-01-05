@@ -1,14 +1,14 @@
 @extends('layouts.app')
 
 @section('content')
-<div class="p-8 max-w-7xl mx-auto" x-data="socialPlanner()">
+<div class="p-8 max-w-7xl mx-auto" x-data='socialPlanner()'>
     <div class="mb-8 flex items-center justify-between">
         <div>
             <h1 class="text-3xl font-bold mb-2">Daily Social Planner</h1>
             <p class="text-muted-foreground">Schedule and manage your social media content across platforms</p>
         </div>
         <button @click="showConnectModal = true" class="flex items-center gap-2 px-4 py-2 bg-white border border-border rounded-lg text-sm font-bold shadow-sm hover:bg-muted/50 transition-colors">
-            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="settings" class="lucide lucide-settings w-4 h-4 text-muted-foreground"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.38a2 2 0 0 0-.73-2.73l-.15-.1a2 2 0 0 1-1-1.72v-.51a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+            <i data-lucide="settings" class="w-4 h-4 text-muted-foreground"></i>
             Connect Channels
         </button>
     </div>
@@ -71,7 +71,7 @@
             <div class="flex flex-col space-y-1.5 p-6">
                 <div class="flex items-center justify-between">
                     <h3 class="text-2xl font-semibold leading-none tracking-tight flex items-center gap-2">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="calendar" class="lucide lucide-calendar w-5 h-5"><path d="M8 2v4"></path><path d="M16 2v4"></path><rect width="18" height="18" x="3" y="4" rx="2"></rect><path d="M3 10h18"></path></svg>
+                        <i data-lucide="calendar" class="w-5 h-5"></i>
                         Content Calendar
                     </h3>
                     <button @click="showCalendarModal = true" class="text-xs text-primary hover:underline">View Full</button>
@@ -105,7 +105,7 @@
                 </div>
                 
                 <button @click="showCreatePostModal = true" class="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground hover:bg-primary/90 h-10 px-4 py-2 w-full mt-4">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="plus" class="lucide lucide-plus w-4 h-4 mr-2"><path d="M5 12h14"></path><path d="M12 5v14"></path></svg>
+                    <i data-lucide="plus" class="w-4 h-4 mr-2"></i>
                     Schedule New Post
                 </button>
             </div>
@@ -175,7 +175,7 @@
                         </a>
                     @empty
                         <div class="flex flex-col items-center justify-center py-12 text-muted-foreground">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-calendar-x mb-4 opacity-50"><rect width="18" height="18" x="3" y="4" rx="2" ry="2"/><line x1="16" x2="16" y1="2" y2="6"/><line x1="8" x2="8" y1="2" y2="6"/><line x1="3" x2="21" y1="10" y2="10"/><line x1="10" x2="14" y1="14" y2="18"/><line x1="14" x2="10" y1="14" y2="18"/></svg>
+                            <i data-lucide="calendar-x" class="w-12 h-12 mb-4 opacity-50"></i>
                             <p>No posts scheduled yet.</p>
                         </div>
                     @endforelse
@@ -185,15 +185,14 @@
     </div>
     
     <!-- Full Calendar Modal -->
-    <div x-show="showCalendarModal" 
+    <div x-show="showCalendarModal" x-cloak
          class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4"
          x-transition:enter="transition ease-out duration-300"
          x-transition:enter-start="opacity-0"
          x-transition:enter-end="opacity-100"
          x-transition:leave="transition ease-in duration-200"
          x-transition:leave-start="opacity-100"
-         x-transition:leave-end="opacity-0"
-         style="display: none;">
+         x-transition:leave-end="opacity-0">
         
         <div @click.away="showCalendarModal = false" class="bg-card text-card-foreground w-full max-w-6xl h-[85vh] rounded-xl shadow-2xl flex flex-col border border-border">
             <div class="p-6 border-b border-border flex items-center justify-between">
@@ -202,14 +201,14 @@
                     <p class="text-sm text-muted-foreground">Full content schedule</p>
                 </div>
                 <div class="flex items-center gap-2">
-                    <button class="p-2 hover:bg-muted rounded-full">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-chevron-left w-5 h-5"><path d="m15 18-6-6 6-6"/></svg>
+                    <button @click="currentDate.setMonth(currentDate.getMonth() - 1); currentDate = new Date(currentDate)" class="p-2 hover:bg-muted rounded-full">
+                        <i data-lucide="chevron-left" class="w-5 h-5"></i>
                     </button>
-                    <button class="p-2 hover:bg-muted rounded-full">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-chevron-right w-5 h-5"><path d="m9 18 6-6-6-6"/></svg>
+                    <button @click="currentDate.setMonth(currentDate.getMonth() + 1); currentDate = new Date(currentDate)" class="p-2 hover:bg-muted rounded-full">
+                        <i data-lucide="chevron-right" class="w-5 h-5"></i>
                     </button>
                     <button @click="showCalendarModal = false" class="ml-4 p-2 hover:bg-red-100 text-red-500 rounded-full">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-x w-5 h-5"><path d="M18 6 6 18"/><path d="m6 6 18 18"/></svg>
+                        <i data-lucide="x" class="w-5 h-5"></i>
                     </button>
                 </div>
             </div>
@@ -236,7 +235,6 @@
                                   :class="{ 'bg-primary text-primary-foreground': day === new Date().getDate() && currentDate.getMonth() === new Date().getMonth() }"
                                   x-text="day"></span>
                             
-                            <!-- Dynamic Posts from Alpine -->
                             <div class="space-y-1 mt-1 overflow-y-auto overflow-x-hidden flex-1 scrollbar-thin scrollbar-thumb-muted-foreground/20 hover:scrollbar-thumb-muted-foreground/30 pr-0.5">
                                 <template x-for="post in postsOnDay(day)">
                                     <a :href="post.original_id ? '/content-creator/' + post.original_id : '#'"
@@ -260,21 +258,20 @@
     </div>
 
     <!-- Create Post Modal -->
-    <div x-show="showCreatePostModal" 
+    <div x-show="showCreatePostModal" x-cloak
          class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4"
          x-transition:enter="transition ease-out duration-300"
          x-transition:enter-start="opacity-0"
          x-transition:enter-end="opacity-100"
          x-transition:leave="transition ease-in duration-200"
          x-transition:leave-start="opacity-100"
-         x-transition:leave-end="opacity-0"
-         style="display: none;">
+         x-transition:leave-end="opacity-0">
         
         <div @click.away="showCreatePostModal = false" class="bg-card text-card-foreground w-full max-w-2xl rounded-xl shadow-2xl flex flex-col border border-border max-h-[90vh] overflow-y-auto">
             <div class="p-6 border-b border-border flex items-center justify-between">
                 <h2 class="text-xl font-bold">Schedule New Post</h2>
                 <button @click="showCreatePostModal = false" class="p-2 hover:bg-red-100 text-red-500 rounded-full">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-x w-5 h-5"><path d="M18 6 6 18"/><path d="m6 6 18 18"/></svg>
+                    <i data-lucide="x" class="w-5 h-5"></i>
                 </button>
             </div>
             
@@ -285,7 +282,7 @@
                         <label class="text-[10px] font-black uppercase tracking-widest text-foreground italic">Post Topic / Theme <span class="text-red-500">*</span></label>
                         <button @click="fetchSuggestions()" :disabled="isLoadingSuggestions || !topic" class="bg-muted px-3 py-1 rounded border border-border text-[10px] font-bold flex items-center gap-1.5 hover:bg-muted/80 disabled:opacity-50">
                             <span x-show="!isLoadingSuggestions" class="flex items-center gap-1.5">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="sparkles" class="lucide lucide-sparkles w-3 h-3 text-primary"><path d="M11.017 2.814a1 1 0 0 1 1.966 0l1.051 5.558a2 2 0 0 0 1.594 1.594l5.558 1.051a1 1 0 0 1 0 1.966l-5.558 1.051a2 2 0 0 0-1.594 1.594l-1.051 5.558a1 1 0 0 1-1.966 0l-1.051-5.558a2 2 0 0 0-1.594-1.594l-5.558-1.051a1 1 0 0 1 0-1.966l5.558-1.051a2 2 0 0 0 1.594-1.594z"></path><path d="M20 2v4"></path><path d="M22 4h-4"></path><circle cx="4" cy="20" r="2"></circle></svg>
+                                <i data-lucide="sparkles" class="w-3 h-3 text-primary"></i>
                                 GET SUGGESTIONS
                             </span>
                             <span x-show="isLoadingSuggestions">Running OpenAI...</span>
@@ -293,7 +290,6 @@
                     </div>
                     <input x-model="topic" type="text" placeholder="e.g., 'Modern Architecture Trends 2026'" class="w-full h-14 bg-muted/20 border border-border rounded-xl px-5 text-sm font-medium focus:ring-1 focus:ring-primary">
                     
-                    <!-- Suggestions Results -->
                     <div x-show="suggestions" x-transition class="p-4 bg-muted/30 border border-border rounded-lg">
                         <h4 class="text-xs font-bold uppercase mb-2 text-primary">OpenAI Ideas:</h4>
                         <div class="prose prose-sm max-w-none text-muted-foreground whitespace-pre-wrap text-sm" x-text="suggestions"></div>
@@ -327,15 +323,14 @@
     </div>
 
     <!-- Connect Channels Modal -->
-    <div x-show="showConnectModal" 
+    <div x-show="showConnectModal" x-cloak
          class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4"
          x-transition:enter="transition ease-out duration-300"
          x-transition:enter-start="opacity-0"
          x-transition:enter-end="opacity-100"
          x-transition:leave="transition ease-in duration-200"
          x-transition:leave-start="opacity-100"
-         x-transition:leave-end="opacity-0"
-         style="display: none;">
+         x-transition:leave-end="opacity-0">
         
         <div @click.away="showConnectModal = false" class="bg-card text-card-foreground w-full max-w-lg rounded-xl shadow-2xl flex flex-col border border-border">
             <div class="p-6 border-b border-border flex items-center justify-between">
@@ -344,11 +339,19 @@
                     <p class="text-sm text-muted-foreground">Manage your social media integrations</p>
                 </div>
                 <button @click="showConnectModal = false" class="p-2 hover:bg-muted rounded-full">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-x"><path d="M18 6 6 18"/><path d="m6 6 18 18"/></svg>
+                    <i data-lucide="x" class="w-5 h-5"></i>
                 </button>
             </div>
             
             <div class="p-6 space-y-4">
+                <!-- Guidance Note -->
+                <div class="bg-blue-50 border border-blue-100 rounded-xl p-4 flex gap-3 mb-2">
+                    <i data-lucide="info" class="w-5 h-5 text-blue-600 shrink-0"></i>
+                    <p class="text-[10px] text-blue-800 font-medium leading-relaxed">
+                        <strong>PRO TIP:</strong> If you've recently added new Facebook Pages or Instagram accounts, you <u>must</u> click <strong>"Edit Settings"</strong> in the Facebook login popup to authorize those specific new pages.
+                    </p>
+                </div>
+
                 <!-- Facebook -->
                 <div class="flex items-center justify-between p-4 rounded-xl border border-border bg-card hover:bg-muted/10 transition-colors">
                     <div class="flex items-center gap-4">
@@ -412,11 +415,11 @@
                         <span x-text="connectedAccounts.twitter ? 'Manage' : 'Connect'"></span>
                     </button>
                 </div>
-
             </div>
         </div>
     </div>
 </div>
+
 <script>
     window.socialPlannerConfig = @js($socialConfig);
     window.socialPlannerPosts = @js($scheduledPosts);
@@ -535,7 +538,6 @@
                 let scope = '';
                 let state = 'random_state_string';
 
-                // Default config (overridden for Instagram below)
                 let config = this.socialConfig[platform];
 
                 switch(platform) {
@@ -543,7 +545,8 @@
                         if (!config || !config.clientId) { alert('Missing FACEBOOK_CLIENT_ID'); return; }
                         clientId = config.clientId;
                         redirectUri = config.redirectUri || window.location.origin + '/social/callback/facebook';
-                        scope = 'public_profile,email,pages_manage_posts,pages_read_engagement';
+                        // Comprehensive scopes: pages + instagram + business
+                        scope = 'public_profile,email,pages_manage_posts,pages_read_engagement,pages_show_list,pages_read_user_content,business_management,instagram_basic,instagram_content_publish';
                         url = `https://www.facebook.com/v18.0/dialog/oauth?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&state=${state}&scope=${scope}`;
                         break;
 
@@ -555,8 +558,8 @@
                         clientId = config.clientId;
                         // Redirect to FB callback since we are using FB Login
                         redirectUri = config.redirectUri || window.location.origin + '/social/callback/facebook'; 
-                        // Combined scopes for FB Pages + Instagram Business
-                        scope = 'public_profile,email,pages_manage_posts,pages_read_engagement,instagram_basic,instagram_content_publish';
+                        // Combined scopes for FB Pages + Instagram Business + Business Manager
+                        scope = 'public_profile,email,pages_manage_posts,pages_read_engagement,pages_show_list,pages_read_user_content,business_management,instagram_basic,instagram_content_publish';
                         
                         url = `https://www.facebook.com/v18.0/dialog/oauth?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&scope=${scope}&state=${state}`;
                         break;
@@ -590,14 +593,8 @@
             init() {
                 window.addEventListener('message', (event) => {
                     if (event.data.type === 'connected') {
-                        this.connectedAccounts[event.data.platform] = true;
-                        
-                        // If Facebook connects, assume Instagram is also connected (since we share the flow)
-                        if (event.data.platform === 'facebook') {
-                            this.connectedAccounts.instagram = true;
-                        }
-                        
                         alert(`Successfully connected to ${event.data.platform}!`);
+                        window.location.reload();
                     }
                 });
             }

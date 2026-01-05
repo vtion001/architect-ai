@@ -3,38 +3,65 @@
 namespace App\Http\Controllers\Tenant;
 
 use App\Http\Controllers\Controller;
+use App\Models\Invitation;
 use App\Models\User;
 use App\Models\Role;
+use App\Services\AuthorizationService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 
 class UserManagementController extends Controller
 {
+    public function __construct(protected AuthorizationService $authService) {}
+
     public function index()
     {
         $users = User::with('roles')->get();
+        $invitations = Invitation::with('role')->whereNull('accepted_at')->get();
         $roles = Role::whereNull('tenant_id')->orWhere('tenant_id', auth()->user()->tenant_id)->get();
 
-        return view('tenant.users.index', compact('users', 'roles'));
+        return view('tenant.users.index', compact('users', 'roles', 'invitations'));
     }
 
-    public function store(Request $request)
+    /**
+     * Dispatch a new user invitation.
+     */
+    public function invite(Request $request)
     {
         $request->validate([
             'email' => 'required|email|unique:users,email',
             'role_id' => 'required|exists:roles,id',
         ]);
 
-        $user = User::create([
+        $invitation = Invitation::create([
             'tenant_id' => auth()->user()->tenant_id,
+            'inviter_id' => auth()->id(),
             'email' => $request->email,
-            'password' => Hash::make(Str::random(16)),
-            'status' => 'active',
+            'role_id' => $request->role_id,
+            'token' => Str::random(40),
+            'expires_at' => now()->addDays(7),
         ]);
 
-        $user->roles()->attach($request->role_id, ['scope_type' => 'tenant']);
+        $this->authService->audit(
+            auth()->user(), 
+            'user.invited', 
+            $invitation, 
+            'success', 
+            "Identity invitation dispatched to: {$request->email}"
+        );
 
-        return response()->json(['message' => 'User added successfully', 'user' => $user], 201);
+        // In a production app, we would send an actual email here.
+        // For this prototype, the invite will show up in the UI.
+        return response()->json([
+            'message' => 'Invitation protocol initiated.',
+            'invitation' => $invitation
+        ], 201);
+    }
+
+    public function store(Request $request)
+    {
+        // Redirect legacy store calls to invite
+        return $this->invite($request);
     }
 }

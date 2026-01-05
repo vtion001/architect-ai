@@ -27,6 +27,13 @@ class ResearchService
             return "Research for: $topic (Gemini API key not configured).";
         }
 
+        // 1. RAG: Fetch relevant internal knowledge base assets
+        $kbContext = $this->getKnowledgeBaseContext($topic);
+        $enhancedTopic = $topic;
+        if ($kbContext) {
+            $enhancedTopic .= "\n\nUSE THESE INTERNAL SOURCES AS GROUNDING FOR THE REPORT:\n" . $kbContext;
+        }
+
         // List of models to try in order: Primary -> Fallback 1 -> Fallback 2
         $models = array_unique([
             $this->model, 
@@ -37,7 +44,7 @@ class ResearchService
         foreach ($models as $model) {
             Log::info("Attempting deep research with model: $model");
             
-            $result = $this->attemptResearchWithModel($model, $topic);
+            $result = $this->attemptResearchWithModel($model, $enhancedTopic);
             
             if ($result) {
                 return $result;
@@ -47,6 +54,27 @@ class ResearchService
         }
 
         return "Research failed: Rate limit exceeded on all available Gemini models. Please wait a minute and try again.";
+    }
+
+    /**
+     * RAG: Retrieve relevant context from the tenant's knowledge base.
+     */
+    protected function getKnowledgeBaseContext(string $topic): ?string
+    {
+        $tenant = app(\App\Models\Tenant::class);
+        if (!$tenant) return null;
+
+        $assets = \App\Models\KnowledgeBaseAsset::where('tenant_id', $tenant->id)
+            ->where(function($q) use ($topic) {
+                $q->where('title', 'like', "%$topic%")
+                  ->orWhere('content', 'like', "%$topic%");
+            })
+            ->limit(3)
+            ->get();
+
+        if ($assets->isEmpty()) return null;
+
+        return $assets->map(fn($a) => "--- INTERNAL SOURCE: {$a->title} ---\n{$a->content}")->implode("\n\n");
     }
 
     private function attemptResearchWithModel(string $model, string $topic): ?string

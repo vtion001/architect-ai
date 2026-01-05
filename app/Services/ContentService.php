@@ -23,6 +23,13 @@ class ContentService
         $generator = $options['generator'] ?? 'post';
         $tone = $options['tone'] ?? 'Professional';
         $cta = $options['cta'] ?? '';
+        
+        // 1. RAG: Fetch relevant knowledge base assets
+        $kbContext = $this->getKnowledgeBaseContext($topic);
+        if ($kbContext) {
+            $context = ($context ? $context . "\n\n" : "") . "EXTERNAL KNOWLEDGE BASE DATA:\n" . $kbContext;
+        }
+
         $lineBreaks = ($options['addLineBreaks'] ?? true) ? "Use natural spacing and paragraph breaks for a human-like flow." : "Use standard spacing.";
         $hashtags = ($options['includeHashtags'] ?? false) ? "Include 2-3 relevant hashtags that a human would actually use (no spamming)." : "";
 
@@ -185,6 +192,29 @@ class ContentService
         }
 
         return [];
+    }
+
+    /**
+     * RAG: Retrieve relevant context from the tenant's knowledge base.
+     */
+    protected function getKnowledgeBaseContext(string $topic): ?string
+    {
+        $tenant = app(\App\Models\Tenant::class);
+        if (!$tenant) return null;
+
+        // Basic keyword search for MVP RAG
+        // In production, this would use vector embeddings (Pinecone/Milvus)
+        $assets = \App\Models\KnowledgeBaseAsset::where('tenant_id', $tenant->id)
+            ->where(function($q) use ($topic) {
+                $q->where('title', 'like', "%$topic%")
+                  ->orWhere('content', 'like', "%$topic%");
+            })
+            ->limit(3)
+            ->get();
+
+        if ($assets->isEmpty()) return null;
+
+        return $assets->map(fn($a) => "--- SOURCE: {$a->title} ---\n{$a->content}")->implode("\n\n");
     }
 
     public function generateImage(string $prompt): ?string
