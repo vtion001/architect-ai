@@ -2,6 +2,8 @@
 
 use App\Http\Controllers\Auth\AuthController;
 use App\Http\Controllers\Auth\DeveloperController;
+use App\Http\Controllers\ContentCreatorController;
+use App\Http\Controllers\ResearchEngineController;
 use Illuminate\Support\Facades\Route;
 
 /*
