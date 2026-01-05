@@ -394,13 +394,18 @@ class ContentCreatorController extends Controller
             'content_id' => 'required|exists:contents,id',
             'segment_index' => 'required|integer',
             'final_text' => 'required|string',
-            'image_url' => 'nullable|url',
+            'image_url' => 'nullable|string', // Changed from url to string to support relative paths
             'platforms' => 'required|array|min:1',
             'scheduled_at' => 'required|string',
             'facebook_page_id' => 'nullable|string',
             'facebook_page_token' => 'nullable|string',
             'instagram_account_id' => 'nullable|string',
         ]);
+
+        // Normalize image_url to full URL if it's relative
+        if (!empty($validated['image_url']) && str_starts_with($validated['image_url'], '/')) {
+            $validated['image_url'] = rtrim(config('app.url'), '/') . $validated['image_url'];
+        }
 
         $scheduledAt = $validated['scheduled_at'] === 'now' ? now()->toDateTimeString() : $validated['scheduled_at'];
         
