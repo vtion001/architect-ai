@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\User;
 use App\Models\AuditLog;
 use App\Models\AccessPolicy;
+use App\Notifications\IntelligenceAlert;
 use Illuminate\Support\Facades\Log;
 
 class AuthorizationService
@@ -178,7 +179,7 @@ class AuthorizationService
             ->where('timestamp', '>=', now()->subMinutes(15))
             ->count();
 
-        if ($deniedCount >= 10) {
+        if ($deniedCount >= 10 && $user->status !== 'suspended') {
             // Potential lateral movement attempt detected
             Log::warning("ANOMALY DETECTED: User {$user->email} triggered {$deniedCount} denied access events in 15 mins.");
             
@@ -186,14 +187,22 @@ class AuthorizationService
             $user->update(['status' => 'suspended']);
             
             AuditLog::create([
+                'actor_id' => $user->id,
                 'actor_type' => 'system',
                 'tenant_id' => $user->tenant_id,
-                'action' => 'user.auto_suspended',
+                'action' => 'security.auto_suspended',
                 'resource_type' => 'User',
                 'resource_id' => $user->id,
                 'result' => 'success',
-                'metadata' => ['reason' => 'Multiple denied access attempts detected (Anomaly Detection)'],
+                'justification' => 'Autonomous mitigation: Multiple denied access attempts detected.',
             ]);
+
+            // Alert the tenant's primary identities
+            $user->notify(new IntelligenceAlert(
+                'Security Threat Mitigated',
+                "Identity node {$user->email} has been automatically suspended due to anomalous activity.",
+                'shield-alert'
+            ));
         }
     }
 }

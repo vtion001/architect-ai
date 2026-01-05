@@ -207,7 +207,7 @@
                         </div>
                     </div>
                     <div class="mb-10">
-                        <span class="text-5xl font-black text-white">$149</span>
+                        <span class="text-5xl font-black text-white">$19</span>
                         <span class="text-sm font-bold text-slate-500 uppercase tracking-widest ml-2">/ month</span>
                     </div>
                     <a href="/waitlist" class="w-full h-16 rounded-3xl border border-white/10 flex items-center justify-center font-black uppercase text-[10px] tracking-widest text-white hover:bg-white hover:text-black transition-all">Initialize Node</a>
@@ -239,7 +239,7 @@
                         </div>
                     </div>
                     <div class="mb-10">
-                        <span class="text-5xl font-black text-cyan-400">$499</span>
+                        <span class="text-5xl font-black text-cyan-400">$49</span>
                         <span class="text-sm font-bold text-slate-500 uppercase tracking-widest ml-2">/ month</span>
                     </div>
                     <a href="/waitlist" class="w-full h-20 bg-cyan-400 text-black rounded-3xl flex items-center justify-center font-black uppercase text-xs tracking-[0.2em] shadow-2xl shadow-cyan-400/20 hover:bg-white hover:scale-[1.02] transition-all">Engage Enterprise</a>

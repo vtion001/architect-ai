@@ -45,13 +45,16 @@
         <div class="bg-slate-900 border border-slate-800 rounded-[32px] p-8 relative overflow-hidden group shadow-xl">
             <div class="absolute -top-10 -right-10 w-32 h-32 bg-emerald-500/5 blur-3xl rounded-full group-hover:bg-emerald-500/10 transition-colors"></div>
             <div class="flex items-center justify-between mb-6">
-                <div class="w-12 h-12 rounded-2xl bg-emerald-500/10 flex items-center justify-center text-emerald-500 border border-emerald-500/20 group-hover:bg-emerald-500 group-hover:text-black transition-all">
+                <div class="w-12 h-12 rounded-2xl bg-emerald-500/10 flex items-center justify-center text-emerald-500 border border-emerald-500/20 group-hover:bg-emerald-500 group-hover:text-white transition-all">
                     <i data-lucide="shield-check" class="w-6 h-6"></i>
                 </div>
                 <span class="mono text-[8px] uppercase text-slate-600 font-black tracking-widest">Integrity</span>
             </div>
-            <p class="text-2xl font-black text-emerald-400 uppercase tracking-tighter">Verified</p>
-            <p class="text-[10px] font-bold text-slate-500 uppercase mt-2 italic">Grid Status: 99.99%</p>
+            <div class="flex items-end gap-2">
+                <p class="text-4xl font-black text-emerald-400">99.9%</p>
+                <span class="text-[10px] font-black text-green-500 uppercase mb-1">Health</span>
+            </div>
+            <p class="text-[10px] font-bold text-slate-500 uppercase mt-2 italic">Global MFA Sync: Verified</p>
         </div>
     </div>
 
@@ -95,7 +98,25 @@
         </div>
 
         <!-- Beta Lead Hub -->
-        <div class="lg:col-span-4 space-y-6">
+        <div class="lg:col-span-4 space-y-6" x-data="{
+            isConverting: false,
+            convertLead(id) {
+                if (!confirm('Provision new tenant from this master lead?')) return;
+                this.isConverting = true;
+                fetch(`/admin/waitlist/${id}/convert`, {
+                    method: 'POST',
+                    headers: { 'X-CSRF-TOKEN': '{{ csrf_token() }}', 'Accept': 'application/json' }
+                })
+                .then(res => res.json())
+                .then(data => {
+                    if (data.success) {
+                        alert('Identity Provisioned Successfully.\n\nLink: ' + data.invitation_url);
+                        window.location.reload();
+                    }
+                })
+                .finally(() => { this.isConverting = false; });
+            }
+        }">
             <h3 class="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] px-1 text-cyan-500">Master Lead Provisioning</h3>
             <div class="bg-slate-900 border border-slate-800 rounded-[40px] p-8 space-y-6 shadow-2xl relative overflow-hidden">
                 <div class="absolute -top-20 -right-20 w-40 h-40 bg-cyan-400/5 rounded-full blur-3xl"></div>
@@ -115,7 +136,14 @@
                             <p class="text-[10px] text-slate-500 uppercase font-black tracking-widest mt-1">{{ $entry->agency_name ?? 'Individual Node' }}</p>
                         </div>
                         <div class="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                            <button class="flex-1 h-9 bg-cyan-500 text-black rounded-xl font-black uppercase text-[8px] tracking-widest hover:bg-white transition-all">Provision</button>
+                            @if($entry->status === 'pending')
+                                <button @click="convertLead('{{ $entry->id }}')" :disabled="isConverting" class="flex-1 h-9 bg-cyan-500 text-black rounded-xl font-black uppercase text-[8px] tracking-widest hover:bg-white transition-all disabled:opacity-50">
+                                    <span x-show="!isConverting">Provision</span>
+                                    <span x-show="isConverting">...</span>
+                                </button>
+                            @else
+                                <span class="flex-1 text-center py-2 text-[8px] font-black uppercase text-slate-600">Protocol Active</span>
+                            @endif
                             <button class="w-9 h-9 bg-slate-800 text-slate-400 rounded-xl flex items-center justify-center hover:bg-red-600 hover:text-white transition-all"><i data-lucide="trash-2" class="w-3.5 h-3.5"></i></button>
                         </div>
                     </div>

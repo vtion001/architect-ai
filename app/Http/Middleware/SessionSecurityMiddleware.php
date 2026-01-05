@@ -10,6 +10,8 @@ use Carbon\Carbon;
 
 class SessionSecurityMiddleware
 {
+    public function __construct(protected \App\Services\AuthorizationService $authService) {}
+
     /**
      * Handle an incoming request.
      */
@@ -23,31 +25,56 @@ class SessionSecurityMiddleware
         $userType = $this->getUserType($user);
         $config = config("iam.sessions.$userType");
 
+        // 1. Identity Baseline (Guardian)
+        // Establish baseline if not set
+        if (!session()->has('identity_baseline_ip')) {
+            session([
+                'identity_baseline_ip' => $request->ip(),
+                'identity_baseline_ua' => $request->userAgent(),
+            ]);
+        } else {
+            // Check for Identity Drift (Suspicious shift in IP or Browser)
+            $driftDetected = session('identity_baseline_ip') !== $request->ip() || 
+                             session('identity_baseline_ua') !== $request->userAgent();
+
+            if ($driftDetected) {
+                $this->authService->audit(
+                    $user, 
+                    'security.identity_drift', 
+                    null, 
+                    'denied', 
+                    "Suspicious identity shift. Expected: " . session('identity_baseline_ip') . " | Found: " . $request->ip()
+                );
+
+                return $this->logout($request, 'Identity drift detected. Session terminated for security.');
+            }
+        }
+
         if (!$config) {
             return $next($request);
         }
 
-        // 1. Check Max Duration
+        // 2. Check Max Duration
         $sessionStartedAt = session('session_started_at');
         if (!$sessionStartedAt) {
             session(['session_started_at' => now()->timestamp]);
         } else {
             $maxDuration = $config['max_duration'] * 60; // to seconds
             if (now()->timestamp - $sessionStartedAt > $maxDuration) {
-                return $this->logout($request, 'Session expired (max duration exceeded).');
+                return $this->logout($request, 'Session protocol finalized (max duration exceeded).');
             }
         }
 
-        // 2. Check Inactivity
+        // 3. Check Inactivity
         $lastActivity = session('last_activity_at');
         if ($lastActivity) {
             $inactivityTimeout = $config['inactivity_timeout'] * 60; // to seconds
             if (now()->timestamp - $lastActivity > $inactivityTimeout) {
-                return $this->logout($request, 'Session expired due to inactivity.');
+                return $this->logout($request, 'Session suspended due to inactivity.');
             }
         }
 
-        // 3. Update Last Activity
+        // 4. Update Registry
         session(['last_activity_at' => now()->timestamp]);
 
         return $next($request);

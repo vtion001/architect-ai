@@ -1,5 +1,5 @@
 <!-- Template Category Selection Grid -->
-<div class="grid grid-cols-2 gap-4" x-show="!showVariantModal">
+<div class="grid grid-cols-2 gap-4 pb-8" x-show="!showVariantModal">
     @foreach($templateCategories as $category)
     <button
         @click="
@@ -7,21 +7,30 @@
             template = '{{ $category['id'] }}';
             showVariantModal = true;
         "
-        class="flex flex-col items-start p-5 rounded-[24px] border border-border bg-muted/5 text-left transition-all hover:border-primary/40 group relative overflow-hidden"
-        :class="template === '{{ $category['id'] }}' ? 'border-primary bg-primary/5 ring-1 ring-primary/20' : ''"
+        class="flex flex-col items-start p-6 rounded-[32px] border border-border bg-card/50 text-left transition-all hover:border-primary/40 group relative overflow-hidden min-h-[140px]"
+        :class="template === '{{ $category['id'] }}' ? 'border-primary bg-primary/5 ring-1 ring-primary/20 shadow-lg shadow-primary/5' : ''"
     >
-        <div class="w-full flex items-start justify-between relative z-10">
-            <div class="w-12 h-12 rounded-2xl flex items-center justify-center mb-4 transition-all border border-transparent group-hover:scale-110"
+        <div class="w-full flex items-start justify-between relative z-20 mb-auto">
+            <div class="w-12 h-12 rounded-2xl flex items-center justify-center transition-all border border-transparent group-hover:scale-110 shadow-sm"
                  style="background-color: {{ $category['color'] }}15; color: {{ $category['color'] }}; border-color: {{ $category['color'] }}30;">
                 <i data-lucide="{{ $category['icon'] }}" class="w-6 h-6"></i>
             </div>
-            <i data-lucide="chevron-right" class="w-4 h-4 transition-colors text-slate-700 group-hover:text-primary"></i>
+            <div class="w-6 h-6 rounded-full bg-slate-100 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all">
+                <i data-lucide="chevron-right" class="w-3.5 h-3.5 text-primary"></i>
+            </div>
         </div>
-        <span class="text-xs font-black uppercase tracking-widest text-slate-400 group-hover:text-foreground transition-colors relative z-10">
-            {{ $category['name'] }}
-        </span>
-        <div class="absolute -right-4 -bottom-4 opacity-5 group-hover:scale-110 transition-transform">
-            <i data-lucide="{{ $category['icon'] }}" class="w-16 h-16" style="color: {{ $category['color'] }}"></i>
+        
+        <div class="relative z-20 mt-4">
+            <span class="text-[10px] font-black uppercase tracking-[0.15em] text-slate-500 group-hover:text-foreground transition-colors block leading-tight mb-1">
+                {{ $category['name'] }}
+            </span>
+            <span class="text-[8px] font-bold text-slate-400 uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-opacity">
+                Configure Layout
+            </span>
+        </div>
+
+        <div class="absolute -right-4 -bottom-4 opacity-[0.03] group-hover:opacity-[0.1] group-hover:scale-110 transition-all duration-500 pointer-events-none">
+            <i data-lucide="{{ $category['icon'] }}" class="w-24 h-24" style="color: {{ $category['color'] }}"></i>
         </div>
     </button>
     @endforeach
@@ -56,15 +65,29 @@
                         @click="templateVariant = variant.id; showVariantModal = false;"
                         class="group relative rounded-[32px] border border-slate-800 bg-slate-900 p-6 hover:border-primary transition-all cursor-pointer overflow-hidden flex flex-col h-full"
                     >
-                        <!-- Blueprint Preview Placeholder -->
-                        <div class="mb-6 aspect-video w-full rounded-2xl overflow-hidden relative bg-slate-950 border border-slate-800 flex items-center justify-center group-hover:bg-slate-800 transition-colors">
-                            <div class="absolute inset-0 grid-canvas pointer-events-none opacity-10"></div>
-                            <i :data-lucide="selectedCategory?.icon" class="w-12 h-12 opacity-10 group-hover:opacity-30 transition-opacity" :style="{ color: selectedCategory?.color }"></i>
+                        <!-- Blueprint Preview Image -->
+                        <div class="mb-6 aspect-video w-full rounded-2xl overflow-hidden relative bg-slate-950 border border-slate-800 flex items-center justify-center group-hover:border-primary/50 transition-all">
+                            <!-- Actual Thumbnail Image -->
+                            <img :src="'/images/templates/' + selectedCategory?.id + '.png'" 
+                                 class="absolute inset-0 w-full h-full object-cover opacity-60 group-hover:opacity-80 group-hover:scale-110 transition-all duration-700"
+                                 :alt="variant.name">
+                            
+                            <!-- Tactical Overlays -->
+                            <div class="absolute inset-0 bg-gradient-to-t from-slate-950 via-transparent to-transparent opacity-60"></div>
+                            <div class="absolute inset-0 grid-canvas pointer-events-none opacity-20"></div>
+                            
+                            <!-- Blueprint Icon (Centered) -->
+                            <i :data-lucide="selectedCategory?.icon" 
+                               class="relative z-10 w-12 h-12 opacity-40 group-hover:opacity-100 group-hover:scale-125 transition-all duration-500" 
+                               :style="{ color: selectedCategory?.color }"></i>
                             
                             <!-- Visual Badge -->
-                            <div class="absolute top-3 left-3 px-2 py-1 rounded-md bg-black/40 border border-white/5 backdrop-blur-sm">
-                                <span class="mono text-[7px] font-black text-slate-500 uppercase tracking-widest" x-text="'VARIANT_' + variant.id.toUpperCase().substring(0,8)"></span>
+                            <div class="absolute top-3 left-3 px-2 py-1 rounded-md bg-black/60 border border-white/10 backdrop-blur-md z-20">
+                                <span class="mono text-[7px] font-black text-primary uppercase tracking-widest" x-text="'NODE_' + variant.id.toUpperCase().substring(0,8)"></span>
                             </div>
+
+                            <!-- Scanline Effect -->
+                            <div class="absolute inset-0 pointer-events-none bg-[linear-gradient(rgba(18,16,16,0)_50%,rgba(0,0,0,0.25)_50%),linear-gradient(90deg,rgba(255,0,0,0.06),rgba(0,255,0,0.02),rgba(0,0,255,0.06))] bg-[length:100%_2px,3px_100%] opacity-20 group-hover:opacity-40 transition-opacity"></div>
                         </div>
 
                         <div class="space-y-4 flex-1">

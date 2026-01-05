@@ -27,7 +27,7 @@ class ReportService
 
     public function generatePreviewHtml(ReportTemplate $template, ?string $variant = null): string
     {
-        $sampleContent = $this->getSampleContent();
+        $sampleContent = $this->getSampleContentForTemplate($template);
 
         return View::make($template->view(), [
             'content' => $sampleContent,
@@ -58,7 +58,7 @@ class ReportService
         try {
             $response = \Illuminate\Support\Facades\Http::withToken($apiKey)
                 ->timeout(120)
-                ->post('https://api.openai.com/v1_1/chat/completions', [
+                ->post('https://api.openai.com/v1/chat/completions', [
                     'model' => config('services.openai.model', 'gpt-4o-mini'),
                     'messages' => [
                         [
@@ -153,6 +153,106 @@ class ReportService
         ";
     }
 
+    private function getSampleContentForTemplate(ReportTemplate $template): string
+    {
+        return match ($template) {
+            ReportTemplate::EXECUTIVE_SUMMARY => "
+                <h2>Strategic Overview</h2>
+                <p>This executive summary highlights the core achievements and strategic direction for the upcoming period. Data suggests a strong alignment between operational capacity and market demand.</p>
+                <div class='callout'>
+                    <strong>Key Insight:</strong> Operational efficiency has increased by 14% since the implementation of the new RAG protocol.
+                </div>
+                <h3>Primary Objectives</h3>
+                <ul>
+                    <li><strong>Growth:</strong> Scaling technical infrastructure to support 1M+ concurrent nodes.</li>
+                    <li><strong>Integration:</strong> Seamlessly mapping internal knowledge bases to external research data.</li>
+                    <li><strong>Security:</strong> Enforcing multi-layered identity access gateways across all sub-accounts.</li>
+                </ul>
+            ",
+            ReportTemplate::MARKET_ANALYSIS => "
+                <h2>Market Landscape Analysis</h2>
+                <p>The current market environment is characterized by rapid technological shifts and evolving consumer expectations. Our analysis identifies three key pillars for sustained competitiveness.</p>
+                <div class='grid-2'>
+                    <div>
+                        <h3>Market Drivers</h3>
+                        <ul>
+                            <li>Increasing demand for AI-driven automation</li>
+                            <li>Shift towards decentralized intelligence</li>
+                            <li>Emphasis on data privacy and sovereignty</li>
+                        </ul>
+                    </div>
+                    <div>
+                        <h3>Competitive Threats</h3>
+                        <ul>
+                            <li>Rapid commoditization of basic LLM services</li>
+                            <li>Emerging regulatory frameworks in key sectors</li>
+                            <li>Talent scarcity in specialized engineering roles</li>
+                        </ul>
+                    </div>
+                </div>
+                <h3>Market Sentiment Grid</h3>
+                <table>
+                    <thead>
+                        <tr><th>Sector</th><th>Sentiment</th><th>Confidence</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr><td>Enterprise SaaS</td><td>Bullish</td><td>88%</td></tr>
+                        <tr><td>Infrastructure</td><td>Stable</td><td>72%</td></tr>
+                        <tr><td>Consulting</td><td>Disruptive</td><td>91%</td></tr>
+                    </tbody>
+                </table>
+            ",
+            ReportTemplate::FINANCIAL_OVERVIEW => "
+                <h2>Fiscal Intelligence Summary</h2>
+                <p>Financial performance indicators remain strong with significant improvements in capital efficiency. High-level metrics indicate a resilient revenue model capable of withstanding market volatility.</p>
+                <h3>Consolidated Metrics</h3>
+                <table>
+                    <thead>
+                        <tr><th>KPI</th><th>Actual</th><th>Target</th><th>Variance</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr><td>Gross Margin</td><td>68%</td><td>65%</td><td><span style='color:green'>+3%</span></td></tr>
+                        <tr><td>Burn Rate</td><td>$140k</td><td>$160k</td><td><span style='color:green'>-12.5%</span></td></tr>
+                        <tr><td>CAC Payback</td><td>4.2 Months</td><td>6.0 Months</td><td><span style='color:green'>-1.8m</span></td></tr>
+                    </tbody>
+                </table>
+                <div class='callout'>
+                    <strong>Audit Result:</strong> All nodes reconciled. Treasury balance verified at 99.98% accuracy.
+                </div>
+            ",
+            ReportTemplate::COMPETITIVE_INTELLIGENCE => "
+                <h2>Competitive Intel Brief</h2>
+                <p>Real-time monitoring of competitor protocol deployments reveals a shift toward agentic frameworks. We maintain a technical lead in RAG-integrated report architecture.</p>
+                <h3>Battlecard Comparison</h3>
+                <table>
+                    <thead>
+                        <tr><th>Feature</th><th>ArchitectAI</th><th>Competitor X</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr><td>Deep Research Hub</td><td>Native Integration</td><td>API Only</td></tr>
+                        <tr><td>Multi-Tenant IAM</td><td>Hardened Isolation</td><td>Basic Groups</td></tr>
+                        <tr><td>Custom Templates</td><td>100% Flexible</td><td>Fixed Overlays</td></tr>
+                    </tbody>
+                </table>
+            ",
+            ReportTemplate::INFOGRAPHIC => "
+                <h2>One-Pager Visual Summary</h2>
+                <p>Transformation of complex research data into a high-impact visual representation. Optimized for quick executive review and strategic decision-making.</p>
+                <div class='callout'>
+                    <strong>North Star Metric:</strong> 2.4k Intelligence Reports generated in Q4 via RAG-sync.
+                </div>
+            ",
+            ReportTemplate::TREND_ANALYSIS => "
+                <h2>Emerging Trend Architecture</h2>
+                <p>Identification of patterns across a 7-day network intensity sweep. Our model forecasts a surge in request complexity for specialized industry reports.</p>
+                <div class='callout'>
+                    <strong>Forecast Alpha:</strong> Automation of 'Tier-2' analysis will be standard by 2026.
+                </div>
+            ",
+            default => $this->getSampleContent(),
+        };
+    }
+
     private function getSampleContent(): string
     {
         return "
@@ -239,8 +339,8 @@ class ReportService
 
         $assets = \App\Models\KnowledgeBaseAsset::where('tenant_id', $tenant->id)
             ->where(function($q) use ($query) {
-                $q->where('title', 'like', "%" + $query + "%")
-                  ->orWhere('content', 'like', "%" + $query + "%");
+                $q->where('title', 'like', "%" . $query . "%")
+                  ->orWhere('content', 'like', "%" . $query . "%");
             })
             ->limit(3)
             ->get();

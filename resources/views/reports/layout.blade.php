@@ -64,10 +64,14 @@
 
         @yield('styles')
     </style>
+    <script src="https://unpkg.com/lucide@latest"></script>
 </head>
 <body>
     <div class="report-wrapper @yield('container_class')">
         @yield('content')
     </div>
+    <script>
+        lucide.createIcons();
+    </script>
 </body>
 </html>

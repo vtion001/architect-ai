@@ -39,10 +39,24 @@ class AuthController extends Controller
             ]);
         }
 
-        // 2. Check status
+        // 2. Check status (Active / Suspended)
+        if ($user->status === 'suspended') {
+            app(\App\Services\AuthorizationService::class)->audit(
+                $user, 
+                'security.suspended_login_attempt', 
+                null, 
+                'denied', 
+                "Identity node is currently under autonomous suspension."
+            );
+            
+            throw ValidationException::withMessages([
+                'email' => ['Identity Access Suspended. Please contact grid administration.'],
+            ]);
+        }
+
         if ($user->status !== 'active') {
             throw ValidationException::withMessages([
-                'email' => ['Account is ' . $user->status],
+                'email' => ['Account status: ' . strtoupper($user->status)],
             ]);
         }
 

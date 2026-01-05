@@ -79,6 +79,9 @@ Route::middleware(['auth', 'tenant', 'mfa', 'session_security'])->group(function
         Route::post('/users', [\App\Http\Controllers\Tenant\UserManagementController::class, 'store'])->name('users.store');
         Route::post('/users/invite', [\App\Http\Controllers\Tenant\UserManagementController::class, 'invite'])->name('users.invite');
 
+        Route::post('/api/generate', [\App\Http\Controllers\Tenant\SettingsController::class, 'generateToken'])->name('settings.api.generate');
+        Route::delete('/api/{token}', [\App\Http\Controllers\Tenant\SettingsController::class, 'revokeToken'])->name('settings.api.revoke');
+
         Route::get('/policies', [\App\Http\Controllers\Tenant\PolicyController::class, 'index'])->name('policies.index');
         Route::get('/policies/create', [\App\Http\Controllers\Tenant\PolicyController::class, 'create'])->name('policies.create');
         Route::post('/policies', [\App\Http\Controllers\Tenant\PolicyController::class, 'store'])->name('policies.store');

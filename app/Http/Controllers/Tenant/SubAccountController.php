@@ -38,7 +38,14 @@ class SubAccountController extends Controller
             return $sub;
         });
 
-        return view('tenant.sub-accounts.index', compact('subAccounts'));
+        $plan = $agency->plan ?? 'standard';
+        $capacity = [
+            'current' => $subAccounts->count(),
+            'max' => config("grid.tiers.{$plan}.max_sub_accounts", 3),
+            'label' => strtoupper($plan) . ' NODE',
+        ];
+
+        return view('tenant.sub-accounts.index', compact('subAccounts', 'capacity'));
     }
 
     /**
@@ -47,6 +54,26 @@ class SubAccountController extends Controller
     public function store(Request $request)
     {
         $agency = app(Tenant::class);
+
+        // 1. Quota Enforcement Protocol
+        $plan = $agency->plan ?? 'standard';
+        $maxNodes = config("grid.tiers.{$plan}.max_sub_accounts", 3);
+        $currentNodes = $agency->subAccounts()->count();
+
+        if ($currentNodes >= $maxNodes) {
+            $this->authService->audit(
+                auth()->user(),
+                'security.quota_breach_attempt',
+                null,
+                'denied',
+                "Attempted to provision node beyond plan limit ({$maxNodes})."
+            );
+
+            return response()->json([
+                'success' => false,
+                'message' => "Grid Capacity reached. Your {$plan} node is limited to {$maxNodes} nested workspaces. Please scale your grid."
+            ], 403);
+        }
 
         $request->validate([
             'name' => 'required|string|min:3',

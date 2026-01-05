@@ -10,7 +10,7 @@ return [
     | all tenants. Actions performed by this user are strictly audited.
     |
     */
-    'developer_email' => env('IAM_DEVELOPER_EMAIL', 'admin@architect-ai.io'),
+    'developer_email' => env('IAM_DEVELOPER_EMAIL', 'admin@archit-ai.io'),
 
     /*
     |--------------------------------------------------------------------------

@@ -121,11 +121,14 @@
                 <div class="p-6 border-b border-sidebar-border">
                     <a href="/dashboard" class="flex items-center gap-3">
                         <div class="w-10 h-10 shrink-0">
-                            <img src="https://res.cloudinary.com/dbviya1rj/image/upload/v1767554289/xe54y8zsvhursjrpbnvm.png" class="w-full h-full object-contain" alt="ArchitGrid Logo">
+                            @php
+                                $sidebarLogo = app(\App\Models\Tenant::class)->metadata['logo_url'] ?? 'https://res.cloudinary.com/dbviya1rj/image/upload/v1767554289/xe54y8zsvhursjrpbnvm.png';
+                            @endphp
+                            <img src="{{ $sidebarLogo }}" class="w-full h-full object-contain" alt="Identity Logo">
                         </div>
                         <div>
-                            <h1 class="text-sm font-black tracking-tight text-white uppercase">ArchitGrid</h1>
-                            <p class="text-[10px] font-bold text-primary uppercase tracking-widest">Digital Architect</p>
+                            <h1 class="text-sm font-black tracking-tight text-white uppercase truncate max-w-[120px]">{{ app(\App\Models\Tenant::class)->name }}</h1>
+                            <p class="text-[10px] font-bold text-primary uppercase tracking-widest">Workspace Node</p>
                         </div>
                     </a>
                 </div>

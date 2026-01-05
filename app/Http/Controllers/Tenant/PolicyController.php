@@ -8,6 +8,8 @@ use Illuminate\Http\Request;
 
 class PolicyController extends Controller
 {
+    public function __construct(protected \App\Services\AuthorizationService $authService) {}
+
     public function index()
     {
         $policies = AccessPolicy::orderBy('priority', 'desc')->get();
@@ -28,7 +30,7 @@ class PolicyController extends Controller
             'priority' => 'required|integer',
         ]);
 
-        AccessPolicy::create([
+        $policy = AccessPolicy::create([
             'tenant_id' => auth()->user()->tenant_id,
             'name' => $request->name,
             'effect' => $request->effect,
@@ -36,12 +38,30 @@ class PolicyController extends Controller
             'priority' => $request->priority,
         ]);
 
+        $this->authService->audit(
+            auth()->user(), 
+            'security.policy_created', 
+            $policy, 
+            'success', 
+            "Established new security protocol: {$request->name}"
+        );
+
         return redirect()->route('policies.index')->with('success', 'Access policy created successfully.');
     }
 
     public function destroy(AccessPolicy $policy)
     {
+        $name = $policy->name;
         $policy->delete();
+
+        $this->authService->audit(
+            auth()->user(), 
+            'security.policy_purged', 
+            null, 
+            'success', 
+            "Security protocol purged: {$name}"
+        );
+
         return back()->with('success', 'Policy removed.');
     }
 }

@@ -141,15 +141,6 @@
                 <h3 class="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] mb-10 px-1 italic">Protocol Configuration</h3>
 
                 <div class="space-y-8 relative z-10">
-                    <!-- Template Node -->
-                    <div class="space-y-3">
-                        <label class="text-[10px] font-black uppercase tracking-widest text-foreground italic px-1">Layout Architecture</label>
-                        <button @click="showVariantModal = true" class="w-full h-14 bg-muted/20 border border-border rounded-2xl px-5 flex items-center justify-between group hover:border-primary/30 transition-all">
-                            <span class="text-sm font-bold text-foreground" x-text="selectedVariantData?.name || 'Select Template...'"></span>
-                            <i data-lucide="chevron-right" class="w-4 h-4 text-slate-400 group-hover:text-primary"></i>
-                        </button>
-                    </div>
-
                     <!-- Research Topic -->
                     <div class="space-y-3">
                         <label class="text-[10px] font-black uppercase tracking-widest text-foreground italic px-1">Research Grounding <span class="text-red-500">*</span></label>
@@ -191,12 +182,29 @@
                 <textarea x-model="sourceContent" rows="6" placeholder="Inject raw data or specific session notes..."
                           class="w-full bg-muted/20 border border-border rounded-3xl p-6 text-xs font-medium italic focus:ring-2 focus:ring-primary/20 outline-none"></textarea>
             </div>
+
+            <!-- Template Category Grid -->
+            <div class="space-y-6">
+                <h3 class="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] px-1 italic">Architecture Templates</h3>
+                @include('components.template-selector')
+            </div>
         </div>
 
         <!-- Executive Display Node -->
         <div class="lg:col-span-8 space-y-6">
             <div class="flex items-center justify-between px-1">
-                <h3 class="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em]">Executive Registry Preview</h3>
+                <div class="flex items-center gap-4 bg-muted/30 p-1 rounded-2xl">
+                    <button @click="activeTab = 'preview'" 
+                            :class="activeTab === 'preview' ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground hover:bg-muted'"
+                            class="px-6 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all">
+                        Preview
+                    </button>
+                    <button @click="activeTab = 'html'" 
+                            :class="activeTab === 'html' ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground hover:bg-muted'"
+                            class="px-6 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all">
+                        HTML Code
+                    </button>
+                </div>
                 <div class="flex items-center gap-4">
                     <button @click="zoomLevel = Math.max(0.3, zoomLevel - 0.05)" class="text-slate-500 hover:text-primary transition-colors"><i data-lucide="minus-circle" class="w-4 h-4"></i></button>
                     <span class="mono text-[10px] font-black text-slate-400" x-text="Math.round(zoomLevel * 100) + '%'"></span>
@@ -204,7 +212,7 @@
                 </div>
             </div>
 
-            <div class="bg-card border border-border rounded-[40px] min-h-[800px] shadow-sm relative flex flex-col items-center p-10 overflow-hidden">
+            <div class="bg-card border border-border rounded-[40px] min-h-[900px] shadow-sm relative flex flex-col items-center p-10 overflow-hidden">
                 <!-- Grid Canvas Pattern -->
                 <div class="absolute inset-0 grid-canvas pointer-events-none opacity-20"></div>
 
@@ -219,23 +227,34 @@
                     </div>
                 </div>
 
-                <!-- Document Frame -->
-                <div x-show="htmlPreview" 
-                     class="shadow-2xl bg-white ring-1 ring-slate-900/10 overflow-hidden origin-top transition-transform duration-300" 
-                     :style="`width: 210mm; min-height: 297mm; transform: scale(${zoomLevel});`" x-transition>
-                    <iframe :srcdoc="htmlPreview" class="w-full border-none" style="height: 297mm;" sandbox="allow-same-origin allow-scripts"></iframe>
+                <!-- Preview Tab Content -->
+                <div x-show="activeTab === 'preview'" class="w-full flex flex-col items-center">
+                    <!-- Document Frame -->
+                    <div x-show="htmlPreview" 
+                         class="shadow-2xl bg-white ring-1 ring-slate-900/10 overflow-hidden origin-top transition-transform duration-300" 
+                         :style="`width: 210mm; min-height: 297mm; transform: scale(${zoomLevel});`" x-transition>
+                        <iframe :srcdoc="htmlPreview" class="w-full border-none" style="height: 297mm;" sandbox="allow-same-origin allow-scripts"></iframe>
+                    </div>
+
+                    <!-- Empty State -->
+                    <div x-show="!htmlPreview && !isGenerating && !isLoadingPreview" class="flex-1 min-h-[600px] flex flex-col items-center justify-center text-center opacity-30 italic">
+                        <i data-lucide="file-text" class="w-16 h-16 mb-6"></i>
+                        <p class="text-sm font-bold uppercase tracking-widest">Protocol Registry Awaiting Build</p>
+                    </div>
                 </div>
 
-                <!-- Empty State -->
-                <div x-show="!htmlPreview && !isGenerating && !isLoadingPreview" class="flex-1 flex flex-col items-center justify-center text-center opacity-30 italic">
-                    <i data-lucide="file-text" class="w-16 h-16 mb-6"></i>
-                    <p class="text-sm font-bold uppercase tracking-widest">Protocol Registry Awaiting Build</p>
+                <!-- HTML Tab Content -->
+                <div x-show="activeTab === 'html'" class="w-full h-full flex flex-col pt-10 px-4 relative z-10">
+                    <div x-show="htmlPreview" class="bg-slate-950 rounded-3xl p-8 overflow-auto border border-slate-800 shadow-2xl max-h-[800px] custom-scrollbar">
+                        <pre class="mono text-[11px] text-emerald-400 whitespace-pre-wrap"><code x-text="htmlPreview"></code></pre>
+                    </div>
+                    <div x-show="!htmlPreview" class="flex-1 min-h-[600px] flex flex-col items-center justify-center text-center opacity-30 italic">
+                        <i data-lucide="code" class="w-16 h-16 mb-6"></i>
+                        <p class="text-sm font-bold uppercase tracking-widest">No Source Code Available</p>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
-
-    <!-- Template Selector Fragment (Modal) -->
-    @include('components.template-selector')
 </div>
 @endsection

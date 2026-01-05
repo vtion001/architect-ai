@@ -24,8 +24,3 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withExceptions(function (Exceptions $exceptions) {
         //
     })->create();
-
-// Define IAM Gates
-\Illuminate\Support\Facades\Gate::define('is-developer', function ($user) {
-    return $user->is_developer;
-});

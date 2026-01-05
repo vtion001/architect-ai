@@ -37,10 +37,20 @@
         <div class="min-h-screen flex flex-col items-center justify-center p-6 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-primary/10 via-background to-background">
             <div class="mb-8 flex items-center gap-4">
                 <div class="w-14 h-14 shrink-0 drop-shadow-2xl">
-                    <img src="https://res.cloudinary.com/dbviya1rj/image/upload/v1767554289/xe54y8zsvhursjrpbnvm.png" class="w-full h-full object-contain" alt="ArchitGrid Logo">
+                    @php
+                        $authLogo = 'https://res.cloudinary.com/dbviya1rj/image/upload/v1767554289/xe54y8zsvhursjrpbnvm.png';
+                        $slug = request()->route('tenant_slug') ?? request('slug');
+                        if ($slug) {
+                            $tenant = \App\Models\Tenant::where('slug', $slug)->first();
+                            if ($tenant) $authLogo = $tenant->metadata['logo_url'] ?? $authLogo;
+                        }
+                    @endphp
+                    <img src="{{ $authLogo }}" class="w-full h-full object-contain" alt="Identity Logo">
                 </div>
                 <div>
-                    <h1 class="text-2xl font-black tracking-tighter text-foreground uppercase">ArchitGrid</h1>
+                    <h1 class="text-2xl font-black tracking-tighter text-foreground uppercase">
+                        {{ $slug ? (\App\Models\Tenant::where('slug', $slug)->first()?->name ?? 'ArchitGrid') : 'ArchitGrid' }}
+                    </h1>
                     <p class="text-[10px] font-bold text-primary uppercase tracking-widest">Secure IAM Gateway</p>
                 </div>
             </div>
