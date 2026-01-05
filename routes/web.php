@@ -106,6 +106,8 @@ Route::middleware(['auth', 'tenant', 'mfa', 'session_security'])->group(function
 
     Route::get('/social-planner', [SocialPlannerController::class, 'index'])->name('social-planner.index');
     Route::post('/social-planner/store', [SocialPlannerController::class, 'store'])->name('social-planner.store');
+    Route::put('/social-planner/{content}', [SocialPlannerController::class, 'update'])->name('social-planner.update');
+    Route::delete('/social-planner/{content}', [SocialPlannerController::class, 'destroy'])->name('social-planner.destroy');
     Route::post('/social-planner/suggestions', [SocialPlannerController::class, 'getSuggestions'])->name('social-planner.suggestions');
     Route::get('/social-planner/facebook-pages', [SocialPlannerController::class, 'getFacebookPages'])->name('social-planner.facebook-pages');
     Route::get('/social/callback/{platform}', [SocialPlannerController::class, 'handleCallback'])->name('social.callback');
@@ -117,6 +119,10 @@ Route::middleware(['auth', 'tenant', 'mfa', 'session_security'])->group(function
     Route::get('/documents', [DocumentsController::class, 'index'])->name('documents.index');
     Route::get('/documents/{document}', [DocumentsController::class, 'show'])->name('documents.show');
     Route::delete('/documents/{document}', [DocumentsController::class, 'destroy'])->name('documents.destroy');
+
+    Route::get('/media-registry', [\App\Http\Controllers\MediaRegistryController::class, 'index'])->name('media-registry.index');
+    Route::delete('/media-registry/{asset}', [\App\Http\Controllers\MediaRegistryController::class, 'destroy'])->name('media-registry.destroy');
+
     Route::get('/analytics', [AnalyticsController::class, 'index'])->name('analytics.index');
 
     Route::get('/research-engine', [ResearchEngineController::class, 'index'])->name('research-engine.index');

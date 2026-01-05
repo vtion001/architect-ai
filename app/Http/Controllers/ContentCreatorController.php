@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Content;
 use App\Models\KnowledgeBaseAsset;
+use App\Models\MediaAsset;
 use App\Services\ContentService;
 use App\Services\TokenService;
 use Illuminate\Http\Request;
@@ -335,6 +336,21 @@ class ContentCreatorController extends Controller
                     Log::warning("Failed to save AI image to Cloudinary: " . $e->getMessage());
                 }
             }
+
+            // Index into Industrial Media Registry
+            MediaAsset::create([
+                'tenant_id' => auth()->user()->tenant_id,
+                'user_id' => auth()->id(),
+                'name' => 'AI Provision: ' . Str::limit($request->prompt, 30),
+                'url' => $generatedUrl,
+                'type' => 'image',
+                'source' => 'ai_generation',
+                'prompt' => $request->prompt,
+                'metadata' => [
+                    'generator' => 'Banana Pro AI',
+                    'timestamp' => now()->toIso8601String()
+                ]
+            ]);
 
             return response()->json([
                 'success' => true,

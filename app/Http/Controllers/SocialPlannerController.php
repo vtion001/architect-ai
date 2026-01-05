@@ -64,7 +64,67 @@ class SocialPlannerController extends Controller
         return view('social-planner.social-planner', compact('scheduledPosts', 'socialConfig'));
     }
 
-    // ... (getSuggestions, store methods remain same)
+    public function getSuggestions(Request $request)
+    {
+        // Placeholder for AI suggestions logic
+        return response()->json(['suggestions' => 'AI Suggestions logic would go here.']);
+    }
+
+    public function store(Request $request)
+    {
+        $validated = $request->validate([
+            'content' => 'required|string',
+            'scheduled_at' => 'required|date',
+            'platform' => 'nullable|string'
+        ]);
+
+        $content = Content::create([
+            'title' => 'Scheduled Post',
+            'result' => $validated['content'],
+            'type' => 'social-post',
+            'status' => 'scheduled',
+            'tenant_id' => $this->tenant->id,
+            'options' => [
+                'platform' => $validated['platform'] ?? 'generic',
+                'scheduled_at' => $validated['scheduled_at']
+            ]
+        ]);
+
+        return response()->json(['success' => true, 'content' => $content]);
+    }
+
+    public function update(Request $request, Content $content)
+    {
+        if ($content->tenant_id !== $this->tenant->id) {
+            abort(403);
+        }
+
+        $validated = $request->validate([
+            'content' => 'required|string',
+            'scheduled_at' => 'required|date',
+        ]);
+
+        $options = $content->options ?? [];
+        $options['scheduled_at'] = $validated['scheduled_at'];
+
+        $content->update([
+            'result' => $validated['content'],
+            'options' => $options
+        ]);
+
+        return response()->json(['success' => true, 'content' => $content]);
+    }
+
+    public function destroy(Content $content)
+    {
+        if ($content->tenant_id !== $this->tenant->id) {
+            abort(403);
+        }
+        
+        $content->delete();
+        
+        return response()->json(['success' => true]);
+    }
 
     public function handleCallback(Request $request, $platform)
     {

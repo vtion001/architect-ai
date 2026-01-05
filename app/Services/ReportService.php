@@ -16,23 +16,29 @@ class ReportService
 
     public function generateReportHtml(ReportRequestData $data): string
     {
+        $tenant = app(\App\Models\Tenant::class);
         $content = $this->generateContent($data);
 
         return View::make($data->template->view(), [
             'content' => $content,
             'recipientName' => $data->recipientName ?? 'Recipient',
-            'variant' => $data->variant
+            'variant' => $data->variant,
+            'brandColor' => $tenant->metadata['primary_color'] ?? '#00F2FF',
+            'logoUrl' => $tenant->metadata['logo_url'] ?? null
         ])->render();
     }
 
     public function generatePreviewHtml(ReportTemplate $template, ?string $variant = null): string
     {
-        $sampleContent = $this->getSampleContentForTemplate($template);
+        $tenant = app(\App\Models\Tenant::class);
+        $sampleContent = $this->getSampleContent();
 
         return View::make($template->view(), [
             'content' => $sampleContent,
             'recipientName' => 'Sample Recipient',
-            'variant' => $variant
+            'variant' => $variant,
+            'brandColor' => $tenant->metadata['primary_color'] ?? '#00F2FF',
+            'logoUrl' => $tenant->metadata['logo_url'] ?? null
         ])->render();
     }
 

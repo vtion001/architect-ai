@@ -1,4 +1,15 @@
 <?php return array (
+  'laravel/nightwatch' => 
+  array (
+    'aliases' => 
+    array (
+      'Nightwatch' => 'Laravel\\Nightwatch\\Facades\\Nightwatch',
+    ),
+    'providers' => 
+    array (
+      0 => 'Laravel\\Nightwatch\\NightwatchServiceProvider',
+    ),
+  ),
   'laravel/sail' => 
   array (
     'providers' => 
