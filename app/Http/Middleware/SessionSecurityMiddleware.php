@@ -37,7 +37,7 @@ class SessionSecurityMiddleware
             $driftDetected = session('identity_baseline_ip') !== $request->ip() || 
                              session('identity_baseline_ua') !== $request->userAgent();
 
-            if ($driftDetected) {
+            if ($driftDetected && !app()->isLocal()) {
                 $this->authService->audit(
                     $user, 
                     'security.identity_drift', 

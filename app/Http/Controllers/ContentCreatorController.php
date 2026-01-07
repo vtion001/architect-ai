@@ -205,7 +205,7 @@ class ContentCreatorController extends Controller
     public function uploadMedia(Request $request)
     {
         $request->validate([
-            'file' => 'required|image|max:10240', // 10MB max
+            'file' => 'required|file|mimes:jpeg,png,jpg,gif,svg,webp,mp4,mov,avi,wmv|max:51200', // 50MB max, images & videos
         ]);
 
         if ($request->hasFile('file')) {
@@ -235,6 +235,7 @@ class ContentCreatorController extends Controller
                     $signature = sha1($signString);
 
                     // Use attach() for file uploads (multipart/form-data)
+                    // "auto" resource type handles both images and videos
                     $response = Http::attach(
                         'file', 
                         file_get_contents($file->getRealPath()), 
@@ -295,31 +296,27 @@ class ContentCreatorController extends Controller
         $generatedUrl = $this->contentService->generateImage($request->prompt);
 
         if ($generatedUrl) {
-            // Attempt to upload generated URL to Cloudinary for persistence
+            $finalUrl = $generatedUrl;
+            $source = 'ai_generation_temp';
+
+            // 2. Attempt Persistence (Cloudinary first, then Local)
             $cloudName = config('services.cloudinary.cloud_name');
             $apiKey = config('services.cloudinary.api_key');
             $apiSecret = config('services.cloudinary.api_secret');
+            $uploadedToCloud = false;
 
             if ($cloudName && $apiKey && $apiSecret) {
                 try {
                     $timestamp = time();
-                    
-                    // Include 'file' in signature for remote URL uploads
-                    $params = [
-                        'file' => $generatedUrl,
-                        'timestamp' => $timestamp,
-                    ];
-                    ksort($params);
-                    
-                    $signParts = [];
-                    foreach ($params as $key => $value) {
-                        $signParts[] = "$key=$value";
-                    }
-                    $signString = implode('&', $signParts) . $apiSecret;
+                    $signString = "timestamp={$timestamp}{$apiSecret}";
                     $signature = sha1($signString);
 
-                    // Use asForm for remote URL uploads (not asMultipart)
-                    $response = Http::asForm()->post("https://api.cloudinary.com/v1_1/$cloudName/image/upload", [
+                    Log::info("Attempting Cloudinary upload for AI image...", [
+                        'source_url' => Str::limit($generatedUrl, 100),
+                        'timestamp' => $timestamp
+                    ]);
+
+                    $response = Http::timeout(30)->asForm()->post("https://api.cloudinary.com/v1_1/$cloudName/image/upload", [
                         'file' => $generatedUrl,
                         'api_key' => $apiKey,
                         'timestamp' => $timestamp,
@@ -327,13 +324,42 @@ class ContentCreatorController extends Controller
                     ]);
 
                     if ($response->successful()) {
-                         $generatedUrl = $response->json()['secure_url'];
-                         Log::info("Generated AI image saved to Cloudinary: $generatedUrl");
+                         $finalUrl = $response->json()['secure_url'];
+                         $uploadedToCloud = true;
+                         $source = 'ai_generation';
+                         Log::info("Generated AI image saved to Cloudinary successfully: $finalUrl");
                     } else {
-                        Log::error("Failed to save AI image to Cloudinary: " . $response->status() . " - " . $response->body());
+                        Log::error("Failed to save AI image to Cloudinary", [
+                            'status' => $response->status(),
+                            'body' => $response->body()
+                        ]);
                     }
                 } catch (\Exception $e) {
-                    Log::warning("Failed to save AI image to Cloudinary: " . $e->getMessage());
+                    Log::warning("Cloudinary upload exception: " . $e->getMessage());
+                }
+            }
+
+            // 3. Local Fallback if Cloudinary failed
+            if (!$uploadedToCloud) {
+                try {
+                    $imageContent = file_get_contents($generatedUrl);
+                    if ($imageContent !== false) {
+                        $filename = 'ai_' . Str::random(40) . '.png';
+                        $path = public_path('uploads/content-media');
+                        
+                        if (!file_exists($path)) {
+                            mkdir($path, 0755, true);
+                        }
+                        
+                        file_put_contents($path . '/' . $filename, $imageContent);
+                        $finalUrl = '/uploads/content-media/' . $filename;
+                        $source = 'ai_generation_local';
+                        Log::info("Generated AI image saved locally: $finalUrl");
+                    } else {
+                        Log::error("Failed to download AI image for local fallback.");
+                    }
+                } catch (\Exception $e) {
+                    Log::error("Local fallback exception: " . $e->getMessage());
                 }
             }
 
@@ -342,9 +368,9 @@ class ContentCreatorController extends Controller
                 'tenant_id' => auth()->user()->tenant_id,
                 'user_id' => auth()->id(),
                 'name' => 'AI Provision: ' . Str::limit($request->prompt, 30),
-                'url' => $generatedUrl,
+                'url' => $finalUrl,
                 'type' => 'image',
-                'source' => 'ai_generation',
+                'source' => $source,
                 'prompt' => $request->prompt,
                 'metadata' => [
                     'generator' => 'Banana Pro AI',
@@ -354,7 +380,7 @@ class ContentCreatorController extends Controller
 
             return response()->json([
                 'success' => true,
-                'url' => $generatedUrl
+                'url' => $finalUrl
             ]);
         }
 

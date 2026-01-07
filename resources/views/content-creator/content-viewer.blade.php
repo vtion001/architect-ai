@@ -2,7 +2,8 @@
 
 @php
     // Pre-process posts data for JavaScript
-    $rawSegments = preg_split('/\n-{3,}\n/', $content->result ?? '');
+    // Improved regex to handle various newline formats and optional spacing around separators
+    $rawSegments = preg_split('/[\r\n]+\s*-{3,}\s*[\r\n]+/', $content->result ?? '');
     $postsData = [];
     $globalHashtags = '';
 
@@ -218,37 +219,53 @@
                 }
             },
 
+            // Helper to detect video URLs
+            isVideo(url) {
+                if (!url) return false;
+                return /\.(mp4|mov|avi|wmv|webm)$/i.test(url);
+            },
+
             triggerUpload() { this.$refs.fileInput.click(); },
 
             handleUpload(event) {
                 const file = event.target.files[0];
                 if (!file) return;
                 this.isUploading = true;
-                this.compressImage(file, (compressedBlob) => {
-                    const formData = new FormData();
-                    formData.append('file', compressedBlob, file.name);
-                    fetch('/content-creator/upload-media', {
-                        method: 'POST',
-                        body: formData,
-                        headers: { 'X-CSRF-TOKEN': @js(csrf_token()), 'Accept': 'application/json' }
-                    })
-                    .then(async res => {
-                        if (!res.ok) {
-                            if (res.status === 413) throw new Error('File is too large.');
-                            const text = await res.text();
-                            try { return JSON.parse(text); } catch { throw new Error(res.statusText); }
-                        }
-                        return res.json();
-                    })
-                    .then(data => {
-                        if (data.success) {
-                            this.imageUrl = data.url;
-                            this.showMediaOptions = false;
-                        } else { alert(data.message || 'Upload failed'); }
-                    })
-                    .catch(err => { console.error(err); alert(err.message || 'Upload error'); })
-                    .finally(() => { this.isUploading = false; });
-                });
+
+                if (file.type.startsWith('image/')) {
+                    this.compressImage(file, (compressedBlob) => {
+                        this.performUpload(compressedBlob, file.name);
+                    });
+                } else {
+                    // Direct upload for videos
+                    this.performUpload(file, file.name);
+                }
+            },
+
+            performUpload(fileBlob, fileName) {
+                const formData = new FormData();
+                formData.append('file', fileBlob, fileName);
+                fetch('/content-creator/upload-media', {
+                    method: 'POST',
+                    body: formData,
+                    headers: { 'X-CSRF-TOKEN': @js(csrf_token()), 'Accept': 'application/json' }
+                })
+                .then(async res => {
+                    if (!res.ok) {
+                        if (res.status === 413) throw new Error('File is too large.');
+                        const text = await res.text();
+                        try { return JSON.parse(text); } catch { throw new Error(res.statusText); }
+                    }
+                    return res.json();
+                })
+                .then(data => {
+                    if (data.success) {
+                        this.imageUrl = data.url;
+                        this.showMediaOptions = false;
+                    } else { alert(data.message || 'Upload failed'); }
+                })
+                .catch(err => { console.error(err); alert(err.message || 'Upload error'); })
+                .finally(() => { this.isUploading = false; });
             },
 
             compressImage(file, callback) {
@@ -464,7 +481,7 @@
             </div>
             
             <!-- Hidden File Input -->
-            <input type="file" x-ref="fileInput" class="hidden" accept="image/*" @change="handleUpload">
+            <input type="file" x-ref="fileInput" class="hidden" accept="image/*,video/*" @change="handleUpload">
 
             <!-- Post Header -->
             <div class="p-4 flex items-center justify-between border-b border-border/50">
@@ -506,13 +523,18 @@
             <div class="px-4 pb-4">
                  <!-- Image Display State -->
                  <div x-show="imageUrl" class="relative w-full h-auto rounded-lg overflow-hidden border border-border group min-h-[200px]" x-transition>
-                     <img 
-                         :src="imageUrl" 
-                         class="w-full h-auto object-cover max-h-[500px]" 
-                         alt="Post Media"
-                         x-ref="postImage"
-                         @@error="$el.style.display='none'; $refs.imageErrorFallback.style.display='flex'"
-                     >
+                     <template x-if="isVideo(imageUrl)">
+                         <video :src="imageUrl" controls class="w-full h-auto object-cover max-h-[500px]" x-ref="postVideo"></video>
+                     </template>
+                     <template x-if="!isVideo(imageUrl)">
+                         <img 
+                             :src="imageUrl" 
+                             class="w-full h-auto object-cover max-h-[500px]" 
+                             alt="Post Media"
+                             x-ref="postImage"
+                             @@error="$el.style.display='none'; $refs.imageErrorFallback.style.display='flex'"
+                         >
+                     </template>
                      <!-- Expired Image Fallback -->
                      <div x-ref="imageErrorFallback" class="hidden w-full h-48 bg-gradient-to-br from-slate-800 to-slate-900 items-center justify-center flex-col gap-3 rounded-lg border border-red-500/20">
                          <i data-lucide="image-off" class="w-10 h-10 text-red-400/50"></i>
@@ -562,7 +584,7 @@
                         <div class="flex items-center gap-3 w-full max-w-xs">
                              <button @click="triggerUpload" class="flex-1 flex flex-col items-center justify-center gap-2 p-4 rounded-xl border border-border bg-card hover:border-primary/50 hover:bg-primary/5 transition-all group/btn">
                                 <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="paperclip" class="lucide lucide-paperclip w-5 h-5 text-muted-foreground group-hover/btn:text-primary"><path d="m16 6-8.414 8.586a2 2 0 0 0 2.829 2.829l8.414-8.586a4 4 0 1 0-5.657-5.657l-8.379 8.551a6 6 0 1 0 8.485 8.485l8.379-8.551"></path></svg>
-                                <span class="text-[10px] font-bold uppercase tracking-wider text-muted-foreground group-hover/btn:text-primary">Upload Photo</span>
+                                <span class="text-[10px] font-bold uppercase tracking-wider text-muted-foreground group-hover/btn:text-primary">Upload Photo / Video</span>
                              </button>
                              <button @click="generateImage" class="flex-1 flex flex-col items-center justify-center gap-2 p-4 rounded-xl border border-border bg-card hover:border-purple-500/50 hover:bg-purple-500/5 transition-all group/btn">
                                 <i data-lucide="sparkles" class="w-5 h-5 text-purple-500"></i>

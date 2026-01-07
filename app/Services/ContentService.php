@@ -132,20 +132,20 @@ class ContentService
             
             $userPrompt = "Create $count $type(s) about: $topic. \nContext: $context \nTone: $tone \nLength: $length. \nConstraint: Keep it short, engaging, and to the point. No fluff. Do NOT number the outputs.";
             if ($count > 1) {
-                $userPrompt .= "\nRespond with distinct options separated by '---' (triple dash).";
+                $userPrompt .= "\nRespond with distinct options separated STRICTLY by '---' (triple dash) on its own line. Ensure there are exactly $count distinct options.";
             }
         }
 
         try {
             $response = Http::withToken($this->apiKey)
-                ->timeout(60)
+                ->timeout(120) // Increased timeout for larger batches
                 ->post('https://api.openai.com/v1/chat/completions', [
                     'model' => $this->model,
                     'messages' => [
                         ['role' => 'system', 'content' => $systemPrompt],
                         ['role' => 'user', 'content' => $userPrompt],
                     ],
-                    'max_tokens' => 2500,
+                    'max_tokens' => 4000, // Increased token limit
                     'temperature' => 0.8, // Increased for more natural variety
                 ]);
 

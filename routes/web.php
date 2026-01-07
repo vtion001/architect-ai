@@ -121,6 +121,7 @@ Route::middleware(['auth', 'tenant', 'mfa', 'session_security'])->group(function
     Route::delete('/documents/{document}', [DocumentsController::class, 'destroy'])->name('documents.destroy');
 
     Route::get('/media-registry', [\App\Http\Controllers\MediaRegistryController::class, 'index'])->name('media-registry.index');
+    Route::post('/media-registry', [\App\Http\Controllers\MediaRegistryController::class, 'store'])->name('media-registry.store');
     Route::delete('/media-registry/{asset}', [\App\Http\Controllers\MediaRegistryController::class, 'destroy'])->name('media-registry.destroy');
 
     Route::get('/analytics', [AnalyticsController::class, 'index'])->name('analytics.index');

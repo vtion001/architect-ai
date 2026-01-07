@@ -4,6 +4,34 @@
 <div class="p-8 max-w-[1600px] mx-auto animate-in fade-in duration-700" x-data="{ 
     showPreviewModal: false, 
     selectedAsset: null,
+    isUploading: false,
+    triggerUpload() { this.$refs.fileInput.click() },
+    handleUpload(e) {
+        const file = e.target.files[0];
+        if (!file) return;
+        this.isUploading = true;
+        const formData = new FormData();
+        formData.append('file', file);
+        
+        fetch('{{ route('media-registry.store') }}', {
+            method: 'POST',
+            headers: { 'X-CSRF-TOKEN': '{{ csrf_token() }}', 'Accept': 'application/json' },
+            body: formData
+        })
+        .then(res => res.json())
+        .then(data => {
+            if(data.success) {
+                window.location.reload();
+            } else {
+                alert('Upload failed: ' + (data.message || 'Unknown error'));
+            }
+        })
+        .catch(err => {
+            console.error(err);
+            alert('Error uploading file.');
+        })
+        .finally(() => this.isUploading = false);
+    },
     purgeAsset(id) {
         if(!confirm('Purge this visual from the grid registry?')) return;
         fetch(`/media-registry/${id}`, {
@@ -12,6 +40,9 @@
         }).then(() => window.location.reload());
     }
 }">
+    <!-- Hidden File Input -->
+    <input type="file" x-ref="fileInput" class="hidden" accept="image/*" @change="handleUpload">
+
     <!-- Registry Header -->
     <div class="mb-12 flex flex-col md:flex-row items-start md:items-center justify-between gap-8 border-b border-border pb-10">
         <div>
@@ -30,6 +61,14 @@
                 <i data-lucide="filter" class="w-4 h-4"></i>
                 Filter Grid
             </button>
+            
+            <!-- Upload Button -->
+            <button @click="triggerUpload()" :disabled="isUploading" class="h-14 px-8 rounded-2xl border border-border bg-card font-black uppercase text-[10px] tracking-widest flex items-center gap-3 hover:bg-muted transition-all disabled:opacity-50">
+                <i x-show="!isUploading" data-lucide="upload-cloud" class="w-4 h-4"></i>
+                <i x-show="isUploading" data-lucide="loader-2" class="w-4 h-4 animate-spin"></i>
+                <span x-text="isUploading ? 'Uploading...' : 'Upload Asset'"></span>
+            </button>
+
             <a href="/content-creator" class="h-14 px-10 rounded-2xl bg-primary text-primary-foreground font-black uppercase text-[10px] tracking-[0.2em] flex items-center gap-3 shadow-xl shadow-primary/20 hover:scale-[1.02] transition-all">
                 <i data-lucide="sparkles" class="w-4 h-4"></i>
                 Provision New Asset
