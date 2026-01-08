@@ -30,6 +30,20 @@ class DocumentsController extends Controller
         return view('documents.viewer', compact('document'));
     }
 
+    public function update(Request $request, Document $document)
+    {
+        $validated = $request->validate([
+            'content' => 'required|string',
+        ]);
+
+        $document->update([
+            'content' => $validated['content'],
+            'size' => strlen($validated['content']),
+        ]);
+
+        return response()->json(['success' => true]);
+    }
+
     public function destroy(Document $document)
     {
         $document->delete();

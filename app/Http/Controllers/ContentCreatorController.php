@@ -544,12 +544,23 @@ class ContentCreatorController extends Controller
 
         try {
             if ($imageUrl) {
-                $response = Http::post("https://graph.facebook.com/v18.0/$pageId/photos", [
-                    'url' => $imageUrl,
-                    'message' => $message,
-                    'access_token' => $token
-                ]);
+                if ($this->isVideo($imageUrl)) {
+                    // Video Post
+                    $response = Http::post("https://graph-video.facebook.com/v18.0/$pageId/videos", [
+                        'file_url' => $imageUrl,
+                        'description' => $message,
+                        'access_token' => $token
+                    ]);
+                } else {
+                    // Photo Post
+                    $response = Http::post("https://graph.facebook.com/v18.0/$pageId/photos", [
+                        'url' => $imageUrl,
+                        'message' => $message,
+                        'access_token' => $token
+                    ]);
+                }
             } else {
+                // Text Post
                 $response = Http::post("https://graph.facebook.com/v18.0/$pageId/feed", [
                     'message' => $message,
                     'access_token' => $token
@@ -578,21 +589,29 @@ class ContentCreatorController extends Controller
         $caption = $this->cleanMarkdownForSocial($content->result);
 
         if (!$token || !$imageUrl) {
-            return ['success' => false, 'error' => 'Instagram requires an image and a valid token.'];
+            return ['success' => false, 'error' => 'Instagram requires an image/video and a valid token.'];
         }
 
         if (str_starts_with($imageUrl, '/')) {
             $imageUrl = rtrim(config('app.url'), '/') . $imageUrl;
         }
 
-        Log::info("Posting to IG ($igUserId) with Image: $imageUrl");
+        Log::info("Posting to IG ($igUserId) with Media: $imageUrl");
 
         try {
-            $response = Http::post("https://graph.facebook.com/v18.0/$igUserId/media", [
-                'image_url' => $imageUrl,
+            $params = [
                 'caption' => $caption,
                 'access_token' => $token
-            ]);
+            ];
+
+            if ($this->isVideo($imageUrl)) {
+                $params['media_type'] = 'VIDEO';
+                $params['video_url'] = $imageUrl;
+            } else {
+                $params['image_url'] = $imageUrl;
+            }
+
+            $response = Http::post("https://graph.facebook.com/v18.0/$igUserId/media", $params);
             
             $containerData = $response->json();
             Log::info("IG Container Response: " . json_encode($containerData));
@@ -602,7 +621,13 @@ class ContentCreatorController extends Controller
             }
             
             $creationId = $containerData['id'];
-            sleep(5);
+            
+            // Wait for processing if it's a video
+            if ($this->isVideo($imageUrl)) {
+                sleep(10); // Videos take longer to process
+            } else {
+                sleep(5);
+            }
 
             $publishResponse = Http::post("https://graph.facebook.com/v18.0/$igUserId/media_publish", [
                 'creation_id' => $creationId,
@@ -622,6 +647,11 @@ class ContentCreatorController extends Controller
             Log::error("IG Exception: " . $e->getMessage());
             return ['success' => false, 'error' => $e->getMessage()];
         }
+    }
+
+    private function isVideo(string $url): bool
+    {
+        return preg_match('/\.(mp4|mov|avi|wmv|webm)$/i', $url) === 1;
     }
 
     public function saveVisual(Request $request, Content $content)

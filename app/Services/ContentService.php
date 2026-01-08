@@ -202,6 +202,17 @@ class ContentService
         $tenant = app(\App\Models\Tenant::class);
         if (!$tenant) return null;
 
+        // Check if topic is a specific Asset ID (UUID format) - typically from AI Agent selection
+        if (\Illuminate\Support\Str::isUuid($topic)) {
+            $asset = \App\Models\KnowledgeBaseAsset::where('tenant_id', $tenant->id)->find($topic);
+            if ($asset) {
+                if ($asset->type === 'folder') {
+                    return $this->getFolderContentRecursive($asset);
+                }
+                return "--- SOURCE: {$asset->title} ---\n{$asset->content}";
+            }
+        }
+
         // Basic keyword search for MVP RAG
         // In production, this would use vector embeddings (Pinecone/Milvus)
         $assets = \App\Models\KnowledgeBaseAsset::where('tenant_id', $tenant->id)
@@ -215,6 +226,21 @@ class ContentService
         if ($assets->isEmpty()) return null;
 
         return $assets->map(fn($a) => "--- SOURCE: {$a->title} ---\n{$a->content}")->implode("\n\n");
+    }
+
+    protected function getFolderContentRecursive($folder): string
+    {
+        $content = "";
+        $children = \App\Models\KnowledgeBaseAsset::where('parent_id', $folder->id)->get();
+
+        foreach ($children as $child) {
+            if ($child->type === 'folder') {
+                $content .= $this->getFolderContentRecursive($child);
+            } else {
+                $content .= "--- SOURCE: {$child->title} (in {$folder->title}) ---\n{$child->content}\n\n";
+            }
+        }
+        return $content;
     }
 
     public function generateImage(string $prompt): ?string

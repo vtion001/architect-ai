@@ -216,15 +216,29 @@
                             Social Planner
                         </a>
 
-                        <a href="/knowledge-base" class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors {{ request()->is('knowledge-base') ? 'bg-sidebar-accent text-sidebar-accent-foreground' : 'text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-accent-foreground' }}">
-                            <i data-lucide="database" class="w-4 h-4"></i>
-                            Knowledge Base
-                        </a>
+                                                <a href="/knowledge-base" class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors {{ request()->is('knowledge-base') ? 'bg-sidebar-accent text-sidebar-accent-foreground' : 'text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-accent-foreground' }}">
 
-                        <a href="/report-builder" class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors {{ request()->is('report-builder') ? 'bg-sidebar-accent text-sidebar-accent-foreground' : 'text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-accent-foreground' }}">
-                            <i data-lucide="file-spreadsheet" class="w-4 h-4"></i>
-                            Report Builder
-                        </a>
+                                                    <i data-lucide="database" class="w-4 h-4"></i>
+
+                                                    Knowledge Base
+
+                                                </a>
+
+                                                <a href="/ai-agents" class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors {{ request()->is('ai-agents*') ? 'bg-sidebar-accent text-sidebar-accent-foreground' : 'text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-accent-foreground' }}">
+
+                                                    <i data-lucide="bot" class="w-4 h-4"></i>
+
+                                                    AI Agents
+
+                                                </a>
+
+                                                <a href="/report-builder" class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors {{ request()->is('report-builder') ? 'bg-sidebar-accent text-sidebar-accent-foreground' : 'text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-accent-foreground' }}">
+
+                                                    <i data-lucide="file-spreadsheet" class="w-4 h-4"></i>
+
+                                                    Report Builder
+
+                                                </a>
 
                         <a href="/documents" class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors {{ request()->is('documents') ? 'bg-sidebar-accent text-sidebar-accent-foreground' : 'text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-accent-foreground' }}">
                             <i data-lucide="file-text" class="w-4 h-4"></i>

@@ -68,9 +68,10 @@
                         <!-- Blueprint Preview Image -->
                         <div class="mb-6 aspect-video w-full rounded-2xl overflow-hidden relative bg-slate-950 border border-slate-800 flex items-center justify-center group-hover:border-primary/50 transition-all">
                             <!-- Actual Thumbnail Image -->
-                            <img :src="'/images/templates/' + selectedCategory?.id + '.png'" 
+                            <img :src="'/images/templates/' + (variant.previewImage || selectedCategory?.id || 'custom') + '.png'" 
                                  class="absolute inset-0 w-full h-full object-cover opacity-60 group-hover:opacity-80 group-hover:scale-110 transition-all duration-700"
-                                 :alt="variant.name">
+                                 :alt="variant.name"
+                                 onerror="this.src='/images/templates/custom.png'">
                             
                             <!-- Tactical Overlays -->
                             <div class="absolute inset-0 bg-gradient-to-t from-slate-950 via-transparent to-transparent opacity-60"></div>

@@ -60,8 +60,11 @@
 
                 <!-- Asset Identity -->
                 <div class="space-y-4 mb-8 flex-1">
-                    <div class="w-14 h-14 rounded-2xl bg-primary/5 flex items-center justify-center text-primary group-hover:bg-primary group-hover:text-black transition-all">
-                        <i data-lucide="{{ $doc->category === 'Reports' ? 'file-spreadsheet' : 'file-text' }}" class="w-6 h-6"></i>
+                    <div class="w-14 h-14 rounded-2xl bg-slate-900 border border-border/50 overflow-hidden relative flex items-center justify-center group-hover:border-primary transition-all shadow-inner">
+                        <img src="/images/templates/{{ $doc->metadata['template'] ?? 'custom' }}.png" 
+                             class="absolute inset-0 w-full h-full object-cover opacity-50 group-hover:opacity-100 transition-all duration-500" 
+                             onerror="this.src='/images/templates/custom.png'">
+                        <i data-lucide="{{ $doc->category === 'Reports' ? 'file-spreadsheet' : 'file-text' }}" class="relative z-10 w-5 h-5 text-white/40 group-hover:scale-110 transition-transform"></i>
                     </div>
                     <div>
                         <h3 class="text-xl font-black text-foreground truncate uppercase tracking-tight group-hover:text-primary transition-colors">{{ $doc->name }}</h3>

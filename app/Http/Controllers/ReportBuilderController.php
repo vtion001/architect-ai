@@ -45,7 +45,7 @@ class ReportBuilderController extends Controller
         $tokenCost = 30;
 
         // 1. Check & Consume Tokens
-        if (!$this->tokenService->consume(auth()->user(), $tokenCost, 'report_generation', ['topic' => $request->researchTopic])) {
+        if (!$this->tokenService->consume(auth()->user(), $tokenCost, 'report_generation', ['topic' => $request->researchTopic ?? $request->analysisType ?? 'Report Generation'])) {
             return response()->json([
                 'success' => false,
                 'message' => "Insufficient tokens. Report architecture requires $tokenCost tokens."
@@ -82,9 +82,16 @@ class ReportBuilderController extends Controller
             // Refund on failure
             $this->tokenService->grant(auth()->user()->tenant, $tokenCost, 'refund_failed_report');
             
+            \Illuminate\Support\Facades\Log::error('Report generation failed', [
+                'error' => $e->getMessage(),
+                'file' => $e->getFile(),
+                'line' => $e->getLine(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            
             return response()->json([
                 'success' => false,
-                'message' => 'Report generation failed. Tokens refunded.'
+                'message' => 'Report generation failed: ' . $e->getMessage()
             ], 500);
         }
     }

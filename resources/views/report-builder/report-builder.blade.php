@@ -23,6 +23,15 @@
         if (!this.selectedCategoryData) return null;
         return this.selectedCategoryData.variants.find(v => v.id === this.templateVariant);
     },
+    get availableObjectives() {
+        if (this.template === 'proposal') {
+            return ['Project Proposal', 'Sales Pitch', 'Grant Application', 'Partnership Offer'];
+        }
+        if (this.template === 'contract') {
+            return ['Service Agreement', 'Non-Disclosure Agreement', 'Employment Contract', 'Vendor Contract'];
+        }
+        return ['Comparative Analysis', 'Growth Strategy', 'Financial Audit', 'SWOT Matrix'];
+    },
     fetchPreview() {
         this.isLoadingPreview = true;
         const params = new URLSearchParams({
@@ -41,7 +50,6 @@
             });
     },
     generateReport() {
-        if(!this.researchTopic) { alert('Research Topic is mandatory for grounding.'); return; }
         this.isGenerating = true;
         fetch('{{ route('report-builder.generate') }}', {
             method: 'POST',
@@ -94,6 +102,38 @@
             }
             this.isGenerating = false;
         });
+    },
+    init() {
+        // Fetch preview on page load
+        this.fetchPreview();
+        this.$nextTick(() => {
+            if (window.lucide) window.lucide.createIcons();
+        });
+
+        // Watch for template or variant changes
+        this.$watch('template', () => {
+            if (this.selectedCategoryData && this.selectedCategoryData.variants.length > 0) {
+                this.templateVariant = this.selectedCategoryData.variants[0].id;
+            }
+            // Reset Analysis Type based on new template
+            this.analysisType = this.availableObjectives[0];
+            
+            this.fetchPreview();
+            this.$nextTick(() => {
+                if (window.lucide) window.lucide.createIcons();
+            });
+        });
+        this.$watch('templateVariant', () => {
+            this.fetchPreview();
+            this.$nextTick(() => {
+                if (window.lucide) window.lucide.createIcons();
+            });
+        });
+        this.$watch('showVariantModal', (value) => {
+            if (value) this.$nextTick(() => {
+                if (window.lucide) window.lucide.createIcons();
+            });
+        });
     }
 }">
     <div class="mb-12 flex flex-col md:flex-row items-start md:items-center justify-between gap-8 border-b border-border pb-10">
@@ -143,7 +183,7 @@
                 <div class="space-y-8 relative z-10">
                     <!-- Research Topic -->
                     <div class="space-y-3">
-                        <label class="text-[10px] font-black uppercase tracking-widest text-foreground italic px-1">Research Grounding <span class="text-red-500">*</span></label>
+                        <label class="text-[10px] font-black uppercase tracking-widest text-foreground italic px-1">Research Grounding</label>
                         <div class="relative">
                             <i data-lucide="brain" class="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-primary"></i>
                             <input x-model="researchTopic" type="text" placeholder="e.g. Q3 Market Sentiment"
@@ -156,10 +196,9 @@
                     <div class="space-y-3">
                         <label class="text-[10px] font-black uppercase tracking-widest text-foreground italic px-1">Intelligence Objective</label>
                         <select x-model="analysisType" class="w-full h-14 bg-muted/20 border border-border rounded-2xl px-5 text-sm font-bold focus:ring-2 focus:ring-primary/20 outline-none">
-                            <option>Comparative Analysis</option>
-                            <option>Growth Strategy</option>
-                            <option>Financial Audit</option>
-                            <option>SWOT Matrix</option>
+                            <template x-for="objective in availableObjectives" :key="objective">
+                                <option x-text="objective" :value="objective"></option>
+                            </template>
                         </select>
                     </div>
 

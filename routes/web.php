@@ -116,8 +116,13 @@ Route::middleware(['auth', 'tenant', 'mfa', 'session_security'])->group(function
     Route::post('/knowledge-base', [KnowledgeBaseController::class, 'store'])->name('knowledge-base.store');
     Route::delete('/knowledge-base/{asset}', [KnowledgeBaseController::class, 'destroy'])->name('knowledge-base.destroy');
 
+    Route::get('/ai-agents', [\App\Http\Controllers\AiAgentController::class, 'index'])->name('ai-agents.index');
+    Route::post('/ai-agents', [\App\Http\Controllers\AiAgentController::class, 'store'])->name('ai-agents.store');
+    Route::delete('/ai-agents/{agent}', [\App\Http\Controllers\AiAgentController::class, 'destroy'])->name('ai-agents.destroy');
+
     Route::get('/documents', [DocumentsController::class, 'index'])->name('documents.index');
     Route::get('/documents/{document}', [DocumentsController::class, 'show'])->name('documents.show');
+    Route::put('/documents/{document}', [DocumentsController::class, 'update'])->name('documents.update');
     Route::delete('/documents/{document}', [DocumentsController::class, 'destroy'])->name('documents.destroy');
 
     Route::get('/media-registry', [\App\Http\Controllers\MediaRegistryController::class, 'index'])->name('media-registry.index');

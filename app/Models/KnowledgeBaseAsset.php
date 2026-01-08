@@ -14,6 +14,7 @@ class KnowledgeBaseAsset extends Model
     protected $fillable = [
         'tenant_id',
         'user_id',
+        'parent_id',
         'title',
         'type',
         'category',
@@ -29,5 +30,15 @@ class KnowledgeBaseAsset extends Model
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
+    }
+
+    public function parent(): BelongsTo
+    {
+        return $this->belongsTo(KnowledgeBaseAsset::class, 'parent_id');
+    }
+
+    public function children(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(KnowledgeBaseAsset::class, 'parent_id');
     }
 }

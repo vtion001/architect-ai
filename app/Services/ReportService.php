@@ -62,6 +62,20 @@ class ReportService
         }
 
         try {
+            $roleDescription = "expert business analyst and technical writer";
+            $taskDescription = "HIGH-END HTML business report";
+            $documentType = "report";
+
+            if ($data->template === ReportTemplate::PROPOSAL) {
+                $roleDescription = "expert proposal writer and sales strategist";
+                $taskDescription = "HIGH-IMPACT business proposal";
+                $documentType = "proposal";
+            } elseif ($data->template === ReportTemplate::CONTRACT) {
+                $roleDescription = "expert legal drafter and contract specialist";
+                $taskDescription = "LEGALLY SOUND business contract";
+                $documentType = "contract";
+            }
+
             $response = \Illuminate\Support\Facades\Http::withToken($apiKey)
                 ->timeout(120)
                 ->post('https://api.openai.com/v1/chat/completions', [
@@ -69,13 +83,13 @@ class ReportService
                     'messages' => [
                         [
                             'role' => 'system',
-                            'content' => "You are an expert business analyst and technical writer. 
-                                         Your task is to take RAW research data, INTERNAL knowledge base data, and RAW source content and transform them into a HIGH-END HTML business report.
+                            'content' => "You are an $roleDescription. 
+                                         Your task is to take RAW research data, INTERNAL knowledge base data, and RAW source content and transform them into a $taskDescription.
                                          
                                          CORE DIRECTIVES:
                                          - THE 'RESEARCH DATA' AND 'INTERNAL KNOWLEDGE BASE' ARE YOUR PRIMARY SOURCES OF TRUTH. You must include the facts, figures, and insights from them. DO NOT GENERALIZE.
                                          - THE 'RESEARCH TOPIC' IS THE MANDATORY THEME. Every section must relate back to: {$data->researchTopic}.
-                                         - GENERATE A DETAILED BUSINESS REPORT. Use a clean, single-column flow.
+                                         - GENERATE A DETAILED BUSINESS " . strtoupper($documentType) . ". Use a clean, single-column flow.
                                          - Use <h2> for section titles and <h3> for sub-sections.
                                          - Use <p>, <ul>, <li>, and <strong> for content.
                                          - ADVANCED LAYOUTS:
@@ -84,12 +98,12 @@ class ReportService
                                              * Use <div class='grid-2'><div>Part 1</div><div>Part 2</div></div> sparingly for small side-by-side data points.
                                          - Do not wrap in <html> or <body> tags.
                                          - Maintain a formal, authoritative, and analytical business tone.
-                                         - If 'Source Content' is provided, restructure and professionalize it into the report narrative.
-                                         - YOUR PRIMARY JOB IS DESIGN AND STRUCTURE. Ensure the raw data looks like a premium produced report."
+                                         - If 'Source Content' is provided, restructure and professionalize it into the $documentType narrative.
+                                         - YOUR PRIMARY JOB IS DESIGN AND STRUCTURE. Ensure the raw data looks like a premium produced $documentType."
                         ],
                         [
                             'role' => 'user',
-                            'content' => "Generate a highly detailed business {$data->template->label()} report. 
+                            'content' => "Generate a highly detailed business {$data->template->label()} $documentType. 
                                          
                                          MANDATORY RESEARCH TOPIC: {$data->researchTopic}
                                          
@@ -113,7 +127,7 @@ class ReportService
                                          {$data->contentData}
                                          ---
                                          
-                                         Instruction: Create a comprehensive report specifically about '{$data->researchTopic}'. Use the RESEARCH DATA and INTERNAL KNOWLEDGE BASE provided as your factual base. Build a detailed narrative using the business layout tools (tables, callouts, grids) provided in your system instructions. Do not omit data. Expand the raw research into professional technical analysis."
+                                         Instruction: Create a comprehensive $documentType specifically about '{$data->researchTopic}'. Use the RESEARCH DATA and INTERNAL KNOWLEDGE BASE provided as your factual base. Build a detailed narrative using the business layout tools (tables, callouts, grids) provided in your system instructions. Do not omit data. Expand the raw research into professional technical analysis."
                         ],
                     ],
                     'temperature' => 0.5,
@@ -254,6 +268,39 @@ class ReportService
                 <div class='callout'>
                     <strong>Forecast Alpha:</strong> Automation of 'Tier-2' analysis will be standard by 2026.
                 </div>
+            ",
+            ReportTemplate::PROPOSAL => "
+                <h2>Executive Proposal</h2>
+                <p>We are pleased to present this proposal for your review. Our team has analyzed your requirements and developed a strategy that aligns with your business goals.</p>
+                <div class='callout'>
+                    <strong>Value Proposition:</strong> Our solution is designed to increase operational efficiency by 25% within the first 6 months.
+                </div>
+                <h3>Project Scope</h3>
+                <ul>
+                    <li>Phase 1: Discovery & Strategy</li>
+                    <li>Phase 2: Implementation & Development</li>
+                    <li>Phase 3: Testing & Deployment</li>
+                </ul>
+                <h3>Investment Summary</h3>
+                <table>
+                    <thead><tr><th>Item</th><th>Description</th><th>Cost</th></tr></thead>
+                    <tbody>
+                        <tr><td>Strategy</td><td>Initial consulting and roadmap</td><td>$5,000</td></tr>
+                        <tr><td>Development</td><td>Core system build</td><td>$15,000</td></tr>
+                        <tr><td>Total</td><td><strong>Project Total</strong></td><td><strong>$20,000</strong></td></tr>
+                    </tbody>
+                </table>
+            ",
+            ReportTemplate::CONTRACT => "
+                <h2>1. Services Provided</h2>
+                <p>The Provider agrees to deliver the services as outlined in the attached Statement of Work (SOW). All services will be performed in a professional manner.</p>
+                <h3>2. Payment Terms</h3>
+                <p>Client agrees to pay the Provider the total sum of $20,000. Payment shall be made in two installments: 50% upfront and 50% upon completion.</p>
+                <div class='callout'>
+                    <strong>Confidentiality:</strong> Both parties agree to maintain the confidentiality of all proprietary information disclosed during the term of this agreement.
+                </div>
+                <h3>3. Termination</h3>
+                <p>Either party may terminate this agreement with 30 days written notice. In the event of termination, the Client shall pay for all services rendered up to the termination date.</p>
             ",
             default => $this->getSampleContent(),
         };
