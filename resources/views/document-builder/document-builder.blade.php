@@ -38,7 +38,7 @@
             template: this.template,
             variant: this.templateVariant
         });
-        fetch('{{ route('report-builder.preview') }}?' + params.toString())
+        fetch('{{ route('document-builder.preview') }}?' + params.toString())
             .then(response => response.json())
             .then(data => {
                 this.htmlPreview = data.html;
@@ -51,7 +51,7 @@
     },
     generateReport() {
         this.isGenerating = true;
-        fetch('{{ route('report-builder.generate') }}', {
+        fetch('{{ route('document-builder.generate') }}', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -89,16 +89,16 @@
                 'X-CSRF-TOKEN': '{{ csrf_token() }}'
             },
             body: JSON.stringify({
-                title: (this.researchTopic || 'Generated Report') + ' (Architected)',
+                title: (this.researchTopic || 'Generated Document') + ' (Architected)',
                 type: 'text',
                 content: this.htmlPreview,
-                category: 'Reports'
+                category: 'Documents'
             })
         })
         .then(res => res.json())
         .then(data => {
             if (data.success) {
-                alert('Report indexed into Global Knowledge Hub.');
+                alert('Document indexed into Global Knowledge Hub.');
             }
             this.isGenerating = false;
         });
@@ -138,11 +138,11 @@
 }">
     <div class="mb-12 flex flex-col md:flex-row items-start md:items-center justify-between gap-8 border-b border-border pb-10">
         <div>
-            <h1 class="text-4xl font-black uppercase tracking-tighter text-foreground mb-2">Report Architect</h1>
+            <h1 class="text-4xl font-black uppercase tracking-tighter text-foreground mb-2">Document Architect</h1>
             <div class="flex items-center gap-6">
                 <div class="flex items-center gap-2">
                     <div class="w-2 h-2 rounded-full bg-primary animate-pulse"></div>
-                    <span class="text-[10px] font-black uppercase text-slate-500 tracking-widest">Protocol: RAG-Injected Report Engine</span>
+                    <span class="text-[10px] font-black uppercase text-slate-500 tracking-widest">Protocol: RAG-Injected Document Engine</span>
                 </div>
                 <span class="text-[10px] font-mono text-slate-400 uppercase tracking-tighter italic">Treasury Cost: 30 Tokens per build</span>
             </div>

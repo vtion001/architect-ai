@@ -15,7 +15,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\View\View;
 use Illuminate\Support\Str;
 
-class ReportBuilderController extends Controller
+class DocumentBuilderController extends Controller
 {
     public function __construct(
         protected ReportService $reportService,
@@ -37,7 +37,7 @@ class ReportBuilderController extends Controller
             $selectedResearch = \App\Models\Research::find($request->research_id);
         }
 
-        return view('report-builder.report-builder', compact('templateCategories', 'selectedResearch'));
+        return view('document-builder.document-builder', compact('templateCategories', 'selectedResearch'));
     }
 
     public function generate(GenerateReportRequest $request): JsonResponse

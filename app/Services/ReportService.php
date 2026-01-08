@@ -87,6 +87,10 @@ class ReportService
                                          Your task is to take RAW research data, INTERNAL knowledge base data, and RAW source content and transform them into a $taskDescription.
                                          
                                          CORE DIRECTIVES:
+                                         - **CRITICAL: OUTPUT MUST BE PURE HTML.** Do not use Markdown (no **bold**, no # headers, no -- separators). 
+                                         - **CRITICAL: NO SYMBOLS.** Do not use # or * for formatting. Use <h2>, <h3>, <strong>, <ul>, <li> tags.
+                                         - **CRITICAL: WRAP ALL TEXT.** Every paragraph must be in a <p> tag. Never return a block of text without tags.
+                                         - **CRITICAL: RESTRUCTURE SOURCE CONTENT.** If provided, do not dump the 'Raw Source Content'. You must format it, break it into paragraphs, add headers, and lists.
                                          - THE 'RESEARCH DATA' AND 'INTERNAL KNOWLEDGE BASE' ARE YOUR PRIMARY SOURCES OF TRUTH. You must include the facts, figures, and insights from them. DO NOT GENERALIZE.
                                          - THE 'RESEARCH TOPIC' IS THE MANDATORY THEME. Every section must relate back to: {$data->researchTopic}.
                                          - GENERATE A DETAILED BUSINESS " . strtoupper($documentType) . ". Use a clean, single-column flow.
@@ -98,7 +102,6 @@ class ReportService
                                              * Use <div class='grid-2'><div>Part 1</div><div>Part 2</div></div> sparingly for small side-by-side data points.
                                          - Do not wrap in <html> or <body> tags.
                                          - Maintain a formal, authoritative, and analytical business tone.
-                                         - If 'Source Content' is provided, restructure and professionalize it into the $documentType narrative.
                                          - YOUR PRIMARY JOB IS DESIGN AND STRUCTURE. Ensure the raw data looks like a premium produced $documentType."
                         ],
                         [
@@ -127,20 +130,42 @@ class ReportService
                                          {$data->contentData}
                                          ---
                                          
-                                         Instruction: Create a comprehensive $documentType specifically about '{$data->researchTopic}'. Use the RESEARCH DATA and INTERNAL KNOWLEDGE BASE provided as your factual base. Build a detailed narrative using the business layout tools (tables, callouts, grids) provided in your system instructions. Do not omit data. Expand the raw research into professional technical analysis."
+                                         Instruction: Create a comprehensive $documentType specifically about '{$data->researchTopic}'. Use the RESEARCH DATA and INTERNAL KNOWLEDGE BASE provided as your factual base. Build a detailed narrative using the business layout tools (tables, callouts, grids) provided in your system instructions. Do not omit data. Expand the raw research into professional technical analysis. **STRICTLY USE HTML TAGS ONLY. NO MARKDOWN SYMBOLS.**"
                         ],
                     ],
                     'temperature' => 0.5,
                 ]);
 
             if ($response->successful()) {
-                return $response->json('choices.0.message.content');
+                $rawResult = $response->json('choices.0.message.content');
+                return $this->sanitizeOutput($rawResult);
             }
         } catch (\Exception $e) {
             \Illuminate\Support\Facades\Log::error('OpenAI Error: ' . $e->getMessage());
         }
 
         return $this->getDummyContent();
+    }
+
+    /**
+     * Remove lingering markdown artifacts and ensure clean HTML.
+     */
+    private function sanitizeOutput(string $content): string
+    {
+        // Remove markdown bold/italic markers
+        $content = str_replace(['**', '___'], '', $content);
+        
+        // Remove header hashes if they slipped through
+        $content = preg_replace('/^#+\s+/m', '', $content);
+        
+        // Remove bullet stars if they slipped through (only if followed by space)
+        $content = preg_replace('/^\*\s+/m', '• ', $content);
+
+        // Remove horizontal rule markers
+        $content = preg_replace('/^-{3,}$/m', '<hr>', $content);
+        
+        // Final trim
+        return trim($content);
     }
 
     private function getDummyContent(): string

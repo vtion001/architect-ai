@@ -38,7 +38,8 @@ class ResearchService
         $models = array_unique([
             $this->model, 
             'gemini-1.5-pro', 
-            'gemini-1.5-flash'
+            'gemini-1.5-flash',
+            'gemini-pro'
         ]);
 
         foreach ($models as $model) {
@@ -51,9 +52,71 @@ class ResearchService
             }
             
             Log::warning("Model $model failed or rate limited. Switching to fallback...");
+            sleep(2); // Brief pause to respect rate limits before trying next model
         }
 
-        return "Research failed: Rate limit exceeded on all available Gemini models. Please wait a minute and try again.";
+        // OpenAI Fallback
+        $openaiKey = config('services.openai.key');
+        if ($openaiKey) {
+            Log::info("Gemini failed. Attempting OpenAI fallback for Deep Research...");
+            $result = $this->attemptResearchWithOpenAI($openaiKey, $enhancedTopic);
+            if ($result) {
+                return $result;
+            }
+        }
+
+        return "Research failed: Rate limit exceeded on all available Gemini models and OpenAI fallback failed. Please wait a minute and try again.";
+    }
+
+    private function attemptResearchWithOpenAI(string $apiKey, string $topic): ?string
+    {
+        try {
+            $response = Http::withToken($apiKey)
+                ->timeout(180)
+                ->post('https://api.openai.com/v1/chat/completions', [
+                    'model' => config('services.openai.model', 'gpt-4o-mini'),
+                    'messages' => [
+                        [
+                            'role' => 'system',
+                            'content' => "You are a lead research analyst. Produce an EXHAUSTIVE, 3000+ word deep-dive report."
+                        ],
+                        [
+                            'role' => 'user',
+                            'content' => "Perform deep research on: $topic.
+                            
+                            MANDATE:
+                            - Output MUST be 3,000-5,000 words.
+                            - Use 20-30 distinct sources (simulated or known data).
+                            - Densely packed with numbers, dates, and figures.
+                            
+                            STRUCTURE:
+                            1. Executive Summary
+                            2. Market Landscape
+                            3. Competitive Intelligence
+                            4. Tech Trends
+                            5. Regulatory Environment
+                            6. Consumer Behavior
+                            7. Future Outlook
+                            8. Strategic Recommendations
+                            
+                            Format in clean Markdown."
+                        ]
+                    ],
+                    'max_tokens' => 8000,
+                    'temperature' => 0.5,
+                ]);
+
+            if ($response->successful()) {
+                return $response->json('choices.0.message.content');
+            }
+            
+            Log::error("OpenAI Research Error: " . $response->body());
+            return null;
+
+        } catch (\Exception $e) {
+            Log::error("OpenAI Research Exception: " . $e->getMessage());
+            return null;
+        }
     }
 
     /**
@@ -80,7 +143,7 @@ class ResearchService
     private function attemptResearchWithModel(string $model, string $topic): ?string
     {
         try {
-            $response = Http::timeout(120)
+            $response = Http::timeout(180) // Increased timeout for long generation
                 ->retry(2, 5000, function ($exception, $request) {
                     return $exception->response->status() === 429;
                 })
@@ -89,18 +152,38 @@ class ResearchService
                         [
                             'role' => 'user',
                             'parts' => [
-                                ['text' => "You are a professional research analyst. Your goal is to perform a broad and deep search across at least 15-20 distinct high-quality sources (news, industry reports, official data, and specialized publications). 
+                                ['text' => "You are a lead research analyst for a top-tier consultancy. Your goal is to produce an EXHAUSTIVE, deep-dive research report.
                                 
-                                Perform an exhaustive deep research on: $topic. 
+                                TOPIC: $topic
                                 
-                                Provide a comprehensive, data-heavy, and factual report. 
-                                Include specific numbers, dates, market trends, and competitive insights. 
-                                Avoid generic filler; prioritize hard data points. 
+                                MANDATE:
+                                - The output MUST be extensive, aiming for at least 3,000-5,000 words (equivalent to 5-10+ pages).
+                                - Do NOT summarize or be concise. Expand deeply on every point.
+                                - Use at least 20-30 distinct, high-quality external sources (news, official reports, academic papers).
+                                
+                                REQUIRED STRUCTURE:
+                                1. Executive Summary (Detailed overview, not brief)
+                                2. Global Market Landscape (Market size, CAGR, regional breakdown)
+                                3. Competitive Intelligence (Major players, market share, detailed SWOT for top 3)
+                                4. Technological & Strategic Trends (Innovations, disruptions, adoption rates)
+                                5. Regulatory & Legal Environment (Current laws, compliance, future legislation)
+                                6. Consumer/User Behavior (Demographics, shifting preferences, data backing)
+                                7. Future Outlook & Projections (5-10 year forecast with specific data models)
+                                8. Strategic Recommendations (Actionable, data-driven steps)
+                                
+                                VISUALIZATION (INFOGRAPHICS):
+                                - You MUST include at least 3-5 complex Mermaid.js diagrams to visualize the data (e.g., Pie charts for market share, Line charts for trends, Gantt charts for timelines).
+                                - Use standard `mermaid` code blocks.
+                                
+                                DATA REQUIREMENTS:
+                                - Every section must be DENSE with specific numbers, dates, percentages, and financial figures.
+                                - Avoid generic statements like 'the market is growing'. Instead, say 'The market is projected to grow by 12.4% CAGR to reach $50B by 2030'.
                                 
                                 CITATION RULES:
-                                - Use numerical citations like [1], [2] throughout the text.
+                                - Use numerical citations like [1], [2] strictly throughout the text.
                                 - Every major factual claim MUST have a citation.
-                                - Format the result in clean Markdown with a detailed 'Sources' section at the end corresponding to the [1], [2] numbers."]
+                                - Format the result in clean Markdown.
+                                - Include a detailed 'References' list at the very end with all 20-30 full URLs matching the citations."]
                             ]
                         ]
                     ],
@@ -108,8 +191,8 @@ class ResearchService
                         ['google_search_retrieval' => ['dynamic_retrieval_config' => ['mode' => 'MODE_DYNAMIC', 'dynamic_threshold' => 0.3]]]
                     ],
                     'generationConfig' => [
-                        'temperature' => 0.7,
-                        'maxOutputTokens' => 4000,
+                        'temperature' => 0.4, // Lower temperature for more factual/analytical output
+                        'maxOutputTokens' => 8192, // Maximize token output for length
                     ]
                 ]);
 

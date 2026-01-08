@@ -2,7 +2,7 @@
 
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\DashboardController;
-use App\Http\Controllers\ReportBuilderController;
+use App\Http\Controllers\DocumentBuilderController;
 use App\Http\Controllers\ResearchEngineController;
 use App\Http\Controllers\ContentCreatorController;
 use App\Http\Controllers\SocialPlannerController;
@@ -88,9 +88,9 @@ Route::middleware(['auth', 'tenant', 'mfa', 'session_security'])->group(function
         Route::delete('/policies/{policy}', [\App\Http\Controllers\Tenant\PolicyController::class, 'destroy'])->name('policies.destroy');
     });
 
-    Route::get('/report-builder', [ReportBuilderController::class, 'index'])->name('report-builder.index');
-    Route::post('/report-builder/generate', [ReportBuilderController::class, 'generate'])->name('report-builder.generate');
-    Route::get('/report-builder/preview', [ReportBuilderController::class, 'preview'])->name('report-builder.preview');
+    Route::get('/document-builder', [DocumentBuilderController::class, 'index'])->name('document-builder.index');
+    Route::post('/document-builder/generate', [DocumentBuilderController::class, 'generate'])->name('document-builder.generate');
+    Route::get('/document-builder/preview', [DocumentBuilderController::class, 'preview'])->name('document-builder.preview');
 
     Route::get('/content-creator', [ContentCreatorController::class, 'index'])->name('content-creator.index');
     Route::post('/content-creator/generate', [ContentCreatorController::class, 'store'])->middleware('throttle:10,1')->name('content-creator.generate');
