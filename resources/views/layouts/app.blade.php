@@ -380,5 +380,19 @@
                 lucide.createIcons();
             }
         </script>
+
+        {{-- Global AI Agent Chat Widget --}}
+        @php
+            $globalAgent = \App\Models\AiAgent::where('tenant_id', auth()->user()->tenant_id ?? null)
+                ->where('is_active', true)
+                ->where('widget_enabled', true)
+                ->first();
+        @endphp
+        
+        @if($globalAgent)
+            @include('components.ai-chat-widget', ['agent' => $globalAgent])
+        @endif
+
+        @stack('scripts')
     </body>
 </html>
