@@ -142,165 +142,165 @@
     </button>
 </div>
 
-@once
-@push('scripts')
+{{-- Inline script - define function only once --}}
 <script>
-function aiChatWidget(agentId, agentName, primaryColor, welcomeMessage) {
-    return {
-        agentId: agentId,
-        agentName: agentName,
-        primaryColor: primaryColor,
-        welcomeMessage: welcomeMessage,
-        isOpen: false,
-        isTyping: false,
-        inputMessage: '',
-        messages: [],
-        sessionId: null,
+if (typeof window.aiChatWidget === 'undefined') {
+    window.aiChatWidget = function(agentId, agentName, primaryColor, welcomeMessage) {
+        return {
+            agentId: agentId,
+            agentName: agentName,
+            primaryColor: primaryColor,
+            welcomeMessage: welcomeMessage,
+            isOpen: false,
+            isTyping: false,
+            inputMessage: '',
+            messages: [],
+            sessionId: null,
 
-        init() {
-            // Get or create session ID
-            this.sessionId = localStorage.getItem(`ai_chat_session_${this.agentId}`) || this.generateSessionId();
-            localStorage.setItem(`ai_chat_session_${this.agentId}`, this.sessionId);
-            
-            // Load previous messages
-            this.loadConversation();
-            
-            // Refresh icons after DOM update
-            this.$nextTick(() => {
-                if (window.lucide) window.lucide.createIcons();
-            });
-        },
-
-        generateSessionId() {
-            return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
-                const r = Math.random() * 16 | 0;
-                const v = c === 'x' ? r : (r & 0x3 | 0x8);
-                return v.toString(16);
-            });
-        },
-
-        toggleChat() {
-            this.isOpen = !this.isOpen;
-            if (this.isOpen) {
+            init() {
+                // Get or create session ID
+                this.sessionId = localStorage.getItem(`ai_chat_session_${this.agentId}`) || this.generateSessionId();
+                localStorage.setItem(`ai_chat_session_${this.agentId}`, this.sessionId);
+                
+                // Load previous messages
+                this.loadConversation();
+                
+                // Refresh icons after DOM update
                 this.$nextTick(() => {
-                    this.scrollToBottom();
                     if (window.lucide) window.lucide.createIcons();
                 });
-            }
-        },
+            },
 
-        async loadConversation() {
-            try {
-                const response = await fetch('/ai-agents/conversation?' + new URLSearchParams({
-                    agent_id: this.agentId,
-                    session_id: this.sessionId
-                }), {
-                    headers: {
-                        'Accept': 'application/json',
-                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content
-                    }
+            generateSessionId() {
+                return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+                    const r = Math.random() * 16 | 0;
+                    const v = c === 'x' ? r : (r & 0x3 | 0x8);
+                    return v.toString(16);
                 });
-                
-                if (response.ok) {
-                    const data = await response.json();
-                    if (data.messages) {
-                        this.messages = data.messages;
-                    }
-                }
-            } catch (e) {
-                console.error('Failed to load conversation:', e);
-            }
-        },
+            },
 
-        async sendMessage() {
-            if (!this.inputMessage.trim() || this.isTyping) return;
-
-            const userMessage = this.inputMessage.trim();
-            this.inputMessage = '';
-            
-            // Add user message to UI
-            this.messages.push({ role: 'user', content: userMessage });
-            this.scrollToBottom();
-            
-            this.isTyping = true;
-
-            try {
-                const response = await fetch('/ai-agents/chat', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Accept': 'application/json',
-                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content
-                    },
-                    body: JSON.stringify({
-                        agent_id: this.agentId,
-                        message: userMessage,
-                        session_id: this.sessionId
-                    })
-                });
-
-                const data = await response.json();
-                
-                if (data.success) {
-                    this.messages.push({ role: 'assistant', content: data.message });
-                    this.sessionId = data.session_id;
-                    localStorage.setItem(`ai_chat_session_${this.agentId}`, this.sessionId);
-                } else {
-                    this.messages.push({ 
-                        role: 'assistant', 
-                        content: 'Sorry, I encountered an error. Please try again.' 
+            toggleChat() {
+                this.isOpen = !this.isOpen;
+                if (this.isOpen) {
+                    this.$nextTick(() => {
+                        this.scrollToBottom();
+                        if (window.lucide) window.lucide.createIcons();
                     });
                 }
-            } catch (e) {
-                console.error('Chat error:', e);
-                this.messages.push({ 
-                    role: 'assistant', 
-                    content: 'Connection error. Please check your network and try again.' 
-                });
-            } finally {
-                this.isTyping = false;
-                this.scrollToBottom();
-                this.$nextTick(() => {
-                    if (window.lucide) window.lucide.createIcons();
-                });
-            }
-        },
+            },
 
-        async clearChat() {
-            if (!confirm('Clear conversation history?')) return;
-            
-            try {
-                await fetch('/ai-agents/conversation/clear', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Accept': 'application/json',
-                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content
-                    },
-                    body: JSON.stringify({
+            async loadConversation() {
+                try {
+                    const response = await fetch('/ai-agents/conversation?' + new URLSearchParams({
                         agent_id: this.agentId,
                         session_id: this.sessionId
-                    })
-                });
-            } catch (e) {
-                console.error('Failed to clear conversation:', e);
-            }
-            
-            this.messages = [];
-            this.sessionId = this.generateSessionId();
-            localStorage.setItem(`ai_chat_session_${this.agentId}`, this.sessionId);
-        },
-
-        scrollToBottom() {
-            this.$nextTick(() => {
-                const container = this.$refs.messagesContainer;
-                if (container) {
-                    container.scrollTop = container.scrollHeight;
+                    }), {
+                        headers: {
+                            'Accept': 'application/json',
+                            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content
+                        }
+                    });
+                    
+                    if (response.ok) {
+                        const data = await response.json();
+                        if (data.messages) {
+                            this.messages = data.messages;
+                        }
+                    }
+                } catch (e) {
+                    console.error('Failed to load conversation:', e);
                 }
-            });
-        }
+            },
+
+            async sendMessage() {
+                if (!this.inputMessage.trim() || this.isTyping) return;
+
+                const userMessage = this.inputMessage.trim();
+                this.inputMessage = '';
+                
+                // Add user message to UI
+                this.messages.push({ role: 'user', content: userMessage });
+                this.scrollToBottom();
+                
+                this.isTyping = true;
+
+                try {
+                    const response = await fetch('/ai-agents/chat', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Accept': 'application/json',
+                            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content
+                        },
+                        body: JSON.stringify({
+                            agent_id: this.agentId,
+                            message: userMessage,
+                            session_id: this.sessionId
+                        })
+                    });
+
+                    const data = await response.json();
+                    
+                    if (data.success) {
+                        this.messages.push({ role: 'assistant', content: data.message });
+                        this.sessionId = data.session_id;
+                        localStorage.setItem(`ai_chat_session_${this.agentId}`, this.sessionId);
+                    } else {
+                        this.messages.push({ 
+                            role: 'assistant', 
+                            content: 'Sorry, I encountered an error. Please try again.' 
+                        });
+                    }
+                } catch (e) {
+                    console.error('Chat error:', e);
+                    this.messages.push({ 
+                        role: 'assistant', 
+                        content: 'Connection error. Please check your network and try again.' 
+                    });
+                } finally {
+                    this.isTyping = false;
+                    this.scrollToBottom();
+                    this.$nextTick(() => {
+                        if (window.lucide) window.lucide.createIcons();
+                    });
+                }
+            },
+
+            async clearChat() {
+                if (!confirm('Clear conversation history?')) return;
+                
+                try {
+                    await fetch('/ai-agents/conversation/clear', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Accept': 'application/json',
+                            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content
+                        },
+                        body: JSON.stringify({
+                            agent_id: this.agentId,
+                            session_id: this.sessionId
+                        })
+                    });
+                } catch (e) {
+                    console.error('Failed to clear conversation:', e);
+                }
+                
+                this.messages = [];
+                this.sessionId = this.generateSessionId();
+                localStorage.setItem(`ai_chat_session_${this.agentId}`, this.sessionId);
+            },
+
+            scrollToBottom() {
+                this.$nextTick(() => {
+                    const container = this.$refs.messagesContainer;
+                    if (container) {
+                        container.scrollTop = container.scrollHeight;
+                    }
+                });
+            }
+        };
     };
 }
 </script>
-@endpush
-@endonce
+
