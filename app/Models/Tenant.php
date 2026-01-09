@@ -76,6 +76,11 @@ class Tenant extends Model
         return $this->hasMany(Tenant::class, 'parent_id');
     }
 
+    public function brands(): HasMany
+    {
+        return $this->hasMany(Brand::class);
+    }
+
     public function parent(): BelongsTo
     {
         return $this->belongsTo(Tenant::class, 'parent_id');

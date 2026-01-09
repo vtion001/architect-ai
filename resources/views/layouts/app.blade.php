@@ -251,6 +251,11 @@
                             Media Registry
                         </a>
 
+                        <a href="{{ route('brands.index') }}" class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors {{ request()->is('settings/brands*') ? 'bg-sidebar-accent text-sidebar-accent-foreground' : 'text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-accent-foreground' }}">
+                            <i data-lucide="fingerprint" class="w-4 h-4"></i>
+                            Brand Kits
+                        </a>
+
                         <a href="/analytics" class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors {{ request()->is('analytics') ? 'bg-sidebar-accent text-sidebar-accent-foreground' : 'text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-accent-foreground' }}">
                             <i data-lucide="bar-chart-3" class="w-4 h-4"></i>
                             Analytics

@@ -22,6 +22,9 @@
     newSnippet: '',
     isManagingSnippets: false,
     
+    brands: @js($brands ?? []),
+    selectedBrandId: '',
+
     init() {
         // Load snippets from local storage if available
         const savedSnippets = localStorage.getItem('arch_ai_cta_snippets');
@@ -168,6 +171,8 @@
             blog_structure: this.structure,
             is_batch_mode: this.isBatchMode,
             featured_image_type: this.featuredImageType,
+            
+            brand_id: this.selectedBrandId,
         };
 
         fetch('{{ route('content-creator.generate') }}', {
@@ -303,6 +308,23 @@
                             <h2 class="text-2xl font-black text-foreground">Post Architect</h2>
                         </div>
                         <p class="text-sm text-muted-foreground font-medium">Define parameters for high-engagement text posts powered by your knowledge base.</p>
+                    </div>
+
+                    <!-- Brand Persona -->
+                    <div class="space-y-3" x-show="brands.length > 0">
+                        <label class="text-[10px] font-black uppercase tracking-widest text-primary italic flex items-center gap-2">
+                            <i data-lucide="fingerprint" class="w-3 h-3"></i>
+                            Brand Persona
+                        </label>
+                        <div class="relative">
+                            <select x-model="selectedBrandId" class="w-full h-14 bg-muted/20 border border-border rounded-xl px-5 text-sm font-bold focus:ring-1 focus:ring-primary appearance-none cursor-pointer hover:bg-muted/30 transition-colors">
+                                <option value="">No Brand (Generic Voice)</option>
+                                <template x-for="brand in brands" :key="brand.id">
+                                    <option :value="brand.id" x-text="brand.name"></option>
+                                </template>
+                            </select>
+                            <i data-lucide="chevron-down" class="absolute right-5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none"></i>
+                        </div>
                     </div>
 
                     <!-- Main Topic -->

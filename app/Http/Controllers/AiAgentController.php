@@ -136,7 +136,7 @@ class AiAgentController extends Controller
         }
 
         $messages = [
-            ['role' => 'system', 'content' => $systemPrompt],
+            ['role' => 'system', 'content' => $systemPrompt . "\n\nCRITICAL: DO NOT use markdown symbols like '*' or '#' for formatting. Use plain text and clear spacing. For lists, use simple bullet points like '-' or '•'."],
             ...$conversation->getMessagesForApi(),
         ];
 
@@ -160,6 +160,9 @@ class AiAgentController extends Controller
 
             if ($response->successful()) {
                 $assistantMessage = $response->json('choices.0.message.content');
+                
+                // Sanitize response
+                $assistantMessage = $this->sanitizeAgentResponse($assistantMessage);
                 
                 // Add assistant response to conversation
                 $conversation->addMessage('assistant', $assistantMessage);
@@ -193,6 +196,17 @@ class AiAgentController extends Controller
                 'message' => 'An error occurred while processing your request'
             ], 500);
         }
+    }
+
+    private function sanitizeAgentResponse(string $text): string
+    {
+        // Remove markdown bold/italic/header symbols
+        $text = str_replace(['**', '##', '#'], '', $text);
+        
+        // Final fallback: remove any single * that might be lingering
+        $text = str_replace('*', '', $text);
+
+        return trim($text);
     }
 
     public function getConversation(Request $request): JsonResponse

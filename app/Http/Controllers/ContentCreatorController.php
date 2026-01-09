@@ -24,6 +24,8 @@ class ContentCreatorController extends Controller
     public function index()
     {
         $tenant = app(\App\Models\Tenant::class);
+        $brands = $tenant->brands()->orderBy('is_default', 'desc')->get();
+
         $stats = [
             'total_content' => Content::count(),
             'this_month' => Content::whereMonth('created_at', now()->month)->count(),
@@ -36,7 +38,7 @@ class ContentCreatorController extends Controller
               ->orWhere('options', '[]');
         })->latest()->take(15)->get();
 
-        return view('content-creator.content-creator', compact('stats', 'recentContents'));
+        return view('content-creator.content-creator', compact('stats', 'recentContents', 'brands'));
     }
 
     public function store(Request $request)
@@ -52,6 +54,7 @@ class ContentCreatorController extends Controller
             'addLineBreaks' => 'nullable|boolean',
             'includeHashtags' => 'nullable|boolean',
             'generator' => 'nullable|string',
+            'brand_id' => 'nullable|uuid',
             
             // Video Params
             'video_platform' => 'nullable|string',
@@ -87,14 +90,29 @@ class ContentCreatorController extends Controller
             'count', 'tone', 'length', 'cta', 'addLineBreaks', 'includeHashtags',
             'generator', 'video_platform', 'video_hook', 'video_duration', 'video_style', 
             'video_description', 'source_image', 'ai_model', 'resolution', 'aspect_ratio', 
-            'generation_duration', 'blog_keywords', 'blog_structure', 'is_batch_mode', 'featured_image_type'
+            'generation_duration', 'blog_keywords', 'blog_structure', 'is_batch_mode', 'featured_image_type',
+            'brand_id'
         ]);
+
+        // Inject Brand Context
+        $context = $request->input('context');
+        if ($request->filled('brand_id')) {
+            $brand = \App\Models\Brand::find($request->brand_id);
+            if ($brand) {
+                $brandContext = "\n\n[SYSTEM: STRICT BRAND GUIDELINES ENFORCED]\n";
+                $brandContext .= "Identity: {$brand->name}\n";
+                if (!empty($brand->voice_profile['tone'])) $brandContext .= "Tone of Voice: {$brand->voice_profile['tone']}\n";
+                if (!empty($brand->voice_profile['keywords'])) $brandContext .= "Mandatory Keywords: {$brand->voice_profile['keywords']}\n";
+                if (!empty($brand->contact_info['website'])) $brandContext .= "Website Context: {$brand->contact_info['website']}\n";
+                $context .= $brandContext;
+            }
+        }
 
         $content = Content::create([
             'title' => $request->input('topic'), // Default title to topic
             'topic' => $request->input('topic'),
             'type' => $request->input('type'),
-            'context' => $request->input('context'),
+            'context' => $context,
             'status' => 'generating',
             'options' => $options,
         ]);
@@ -103,7 +121,7 @@ class ContentCreatorController extends Controller
             $generatedText = $this->contentService->generateText(
                 $request->input('topic'),
                 $request->input('type'),
-                $request->input('context'),
+                $context,
                 $options
             );
 

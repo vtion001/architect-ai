@@ -26,6 +26,7 @@ class GenerateReportRequest extends FormRequest
             'prompt' => ['nullable', 'string'],
             'contentData' => ['nullable', 'string'],
             'researchTopic' => ['nullable', 'string'],
+            'brand_id' => ['nullable', 'uuid'],
         ];
     }
 }

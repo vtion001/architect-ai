@@ -72,6 +72,13 @@ Route::middleware(['auth', 'tenant', 'mfa', 'session_security'])->group(function
         Route::post('/profile', [\App\Http\Controllers\Tenant\SettingsController::class, 'updateProfile'])->name('settings.profile');
         Route::post('/mfa/disable', [\App\Http\Controllers\Tenant\SettingsController::class, 'disableMfa'])->name('settings.mfa.disable');
 
+        // Brand Kits
+        Route::get('/brands', [\App\Http\Controllers\BrandController::class, 'index'])->name('brands.index');
+        Route::post('/brands', [\App\Http\Controllers\BrandController::class, 'store'])->name('brands.store');
+        Route::put('/brands/{brand}', [\App\Http\Controllers\BrandController::class, 'update'])->name('brands.update');
+        Route::delete('/brands/{brand}', [\App\Http\Controllers\BrandController::class, 'destroy'])->name('brands.destroy');
+        Route::post('/brands/{brand}/default', [\App\Http\Controllers\BrandController::class, 'setDefault'])->name('brands.set-default');
+
         Route::get('/sub-accounts', [\App\Http\Controllers\Tenant\SubAccountController::class, 'index'])->name('sub-accounts.index');
         Route::post('/sub-accounts', [\App\Http\Controllers\Tenant\SubAccountController::class, 'store'])->name('sub-accounts.store');
         

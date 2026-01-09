@@ -37,7 +37,10 @@ class DocumentBuilderController extends Controller
             $selectedResearch = \App\Models\Research::find($request->research_id);
         }
 
-        return view('document-builder.document-builder', compact('templateCategories', 'selectedResearch'));
+        $tenant = app(\App\Models\Tenant::class);
+        $brands = $tenant->brands()->get();
+
+        return view('document-builder.document-builder', compact('templateCategories', 'selectedResearch', 'brands'));
     }
 
     public function generate(GenerateReportRequest $request): JsonResponse
@@ -52,7 +55,22 @@ class DocumentBuilderController extends Controller
             ], 402);
         }
 
-        $data = ReportRequestData::fromArray($request->validated());
+        $validated = $request->validated();
+
+        // Inject Brand Context
+        if (!empty($validated['brand_id'])) {
+            $brand = \App\Models\Brand::find($validated['brand_id']);
+            if ($brand) {
+                $brandContext = "\n\n[SYSTEM: STRICT BRAND IDENTITY ENFORCED]\n";
+                $brandContext .= "Organization Name: {$brand->name}\n";
+                if (!empty($brand->voice_profile['tone'])) $brandContext .= "Tone of Voice: {$brand->voice_profile['tone']}\n";
+                if (!empty($brand->contact_info['website'])) $brandContext .= "Website: {$brand->contact_info['website']}\n";
+                
+                $validated['prompt'] = ($validated['prompt'] ?? '') . $brandContext;
+            }
+        }
+
+        $data = ReportRequestData::fromArray($validated);
         
         try {
             $html = $this->reportService->generateReportHtml($data);
