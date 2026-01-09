@@ -64,10 +64,8 @@ class AiAgentController extends Controller
 
     public function update(Request $request, AiAgent $agent): JsonResponse
     {
-        // Ensure agent belongs to user's tenant
-        if ($agent->tenant_id !== auth()->user()->tenant_id) {
-            return response()->json(['success' => false, 'message' => 'Unauthorized'], 403);
-        }
+        // Policy-based authorization
+        $this->authorize('update', $agent);
 
         $validated = $request->validate([
             'name' => 'sometimes|string|max:255',
@@ -94,9 +92,7 @@ class AiAgentController extends Controller
 
     public function show(AiAgent $agent): JsonResponse
     {
-        if ($agent->tenant_id !== auth()->user()->tenant_id) {
-            return response()->json(['success' => false, 'message' => 'Unauthorized'], 403);
-        }
+        $this->authorize('view', $agent);
 
         return response()->json(['success' => true, 'agent' => $agent]);
     }
@@ -111,16 +107,14 @@ class AiAgentController extends Controller
 
         $agent = AiAgent::findOrFail($validated['agent_id']);
         
-        // Verify tenant access
-        if ($agent->tenant_id !== auth()->user()->tenant_id) {
-            return response()->json(['success' => false, 'message' => 'Unauthorized'], 403);
-        }
+        // Policy-based authorization
+        $this->authorize('chat', $agent);
 
-        // Get or create conversation
+        // Get or create conversation with tenant_id for isolation
         $sessionId = $validated['session_id'] ?? Str::uuid()->toString();
         $conversation = AgentConversation::firstOrCreate(
             ['agent_id' => $agent->id, 'session_id' => $sessionId],
-            ['user_id' => auth()->id(), 'messages' => []]
+            ['tenant_id' => $agent->tenant_id, 'user_id' => auth()->id(), 'messages' => []]
         );
 
         // Add user message

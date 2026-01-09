@@ -2,7 +2,8 @@
 
 namespace App\Models;
 
-use App\Models\Traits\BelongsToTenant;
+// Note: User intentionally does not use BelongsToTenant global scope
+// because User IS the authentication model and scoping would prevent login.
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;

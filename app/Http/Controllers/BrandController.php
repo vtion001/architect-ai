@@ -60,10 +60,8 @@ class BrandController extends Controller
 
     public function update(Request $request, Brand $brand)
     {
-        // Ensure brand belongs to tenant
-        if ($brand->tenant_id !== Auth::user()->tenant_id) {
-            abort(403);
-        }
+        // Policy-based authorization
+        $this->authorize('update', $brand);
 
         $validated = $request->validate([
             'name' => 'required|string|max:255',
@@ -103,9 +101,7 @@ class BrandController extends Controller
 
     public function destroy(Brand $brand)
     {
-        if ($brand->tenant_id !== Auth::user()->tenant_id) {
-            abort(403);
-        }
+        $this->authorize('delete', $brand);
 
         // Delete logo from Cloudinary if exists
         if ($brand->logo_public_id) {
@@ -119,9 +115,7 @@ class BrandController extends Controller
 
     public function setDefault(Brand $brand)
     {
-        if ($brand->tenant_id !== Auth::user()->tenant_id) {
-            abort(403);
-        }
+        $this->authorize('setDefault', $brand);
 
         $brand->tenant->brands()->update(['is_default' => false]);
         $brand->update(['is_default' => true]);

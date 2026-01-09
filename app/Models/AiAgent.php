@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\Traits\BelongsToTenant;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -10,7 +11,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class AiAgent extends Model
 {
-    use HasFactory, HasUuids;
+    use HasFactory, HasUuids, BelongsToTenant;
 
     protected $fillable = [
         'tenant_id',
@@ -90,6 +91,9 @@ class AiAgent extends Model
 
     /**
      * Get knowledge base content for RAG.
+     * 
+     * SECURITY: Only retrieves assets that belong to the same tenant
+     * as this agent, preventing cross-tenant data leakage.
      */
     public function getKnowledgeContext(): ?string
     {
@@ -97,13 +101,19 @@ class AiAgent extends Model
             return null;
         }
 
-        $assets = KnowledgeBaseAsset::whereIn('id', $this->knowledge_sources)->get();
+        // SECURITY: Explicitly scope by tenant_id to prevent data leakage
+        // even if knowledge_sources array is manipulated
+        $assets = KnowledgeBaseAsset::query()
+            ->where('tenant_id', $this->tenant_id)
+            ->whereIn('id', $this->knowledge_sources)
+            ->get();
         
         if ($assets->isEmpty()) {
             return null;
         }
 
-        return $assets->map(fn($a) => "--- SOURCE: {$a->title} ---\n{$a->content}")->implode("\n\n");
+        return $assets->map(fn($a) => "--- SOURCE: {$a->title} ---\n{$a->content}")
+            ->implode("\n\n");
     }
 }
 
