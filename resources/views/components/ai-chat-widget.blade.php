@@ -17,9 +17,9 @@
     };
 @endphp
 
-<div x-data="aiChatWidget('{{ $agent->id }}', '{{ $agent->name }}', '{{ $agent->primary_color ?? '#00F2FF' }}', '{{ $agent->welcome_message ?? 'Hello! How can I help you?' }}')" 
-     class="fixed {{ $positionClasses }} z-50"
-     x-cloak>
+<div id="ai-chat-widget-{{ $agent->id }}"
+     x-data="aiChatWidget('{{ $agent->id }}', '{{ $agent->name }}', '{{ $agent->primary_color ?? '#00F2FF' }}', '{{ $agent->welcome_message ?? 'Hello! How can I help you?' }}')" 
+     class="fixed {{ $positionClasses }} z-[9999]">
     
     {{-- Chat Window --}}
     <div x-show="isOpen" 
@@ -128,12 +128,17 @@
         </div>
     </div>
 
-    {{-- Toggle Button --}}
+    {{-- Toggle Button - Always visible --}}
     <button @click="toggleChat()" 
             class="w-14 h-14 rounded-full shadow-2xl flex items-center justify-center text-white transition-all hover:scale-110"
-            :style="{ backgroundColor: primaryColor, boxShadow: `0 8px 32px ${primaryColor}40` }">
-        <i x-show="!isOpen" data-lucide="message-circle" class="w-6 h-6"></i>
-        <i x-show="isOpen" data-lucide="x" class="w-6 h-6"></i>
+            style="background-color: {{ $agent->primary_color ?? '#00F2FF' }}; box-shadow: 0 8px 32px {{ $agent->primary_color ?? '#00F2FF' }}40;">
+        {{-- Use SVG directly for immediate visibility --}}
+        <svg x-show="!isOpen" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-6 h-6">
+            <path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z"/>
+        </svg>
+        <svg x-show="isOpen" x-cloak xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-6 h-6">
+            <path d="M18 6 6 18"/><path d="m6 6 12 12"/>
+        </svg>
     </button>
 </div>
 
