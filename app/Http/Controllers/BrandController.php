@@ -5,13 +5,21 @@ declare(strict_types=1);
 namespace App\Http\Controllers;
 
 use App\Models\Brand;
+use App\Services\CloudinaryService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Http;
-use Illuminate\Support\Facades\Log;
 
+/**
+ * Brand Kit Controller.
+ * 
+ * Refactored to use CloudinaryService for file uploads (Service Layer Pattern).
+ */
 class BrandController extends Controller
 {
+    public function __construct(
+        protected CloudinaryService $cloudinaryService
+    ) {}
+
     public function index()
     {
         $brands = Auth::user()->tenant->brands()->orderBy('is_default', 'desc')->get();
@@ -36,9 +44,9 @@ class BrandController extends Controller
 
         $tenant = Auth::user()->tenant;
         
-        // Handle logo upload to Cloudinary
+        // Handle logo upload to Cloudinary via service
         if ($request->hasFile('logo')) {
-            $uploadResult = $this->uploadToCloudinary($request->file('logo'), 'brands');
+            $uploadResult = $this->cloudinaryService->upload($request->file('logo'), 'brands');
             if ($uploadResult) {
                 $validated['logo_url'] = $uploadResult['url'];
                 $validated['logo_public_id'] = $uploadResult['public_id'];
@@ -77,14 +85,14 @@ class BrandController extends Controller
             'social_handles' => 'nullable|array',
         ]);
 
-        // Handle logo upload to Cloudinary
+        // Handle logo upload to Cloudinary via service
         if ($request->hasFile('logo')) {
             // Delete old logo from Cloudinary if exists
             if ($brand->logo_public_id) {
-                $this->deleteFromCloudinary($brand->logo_public_id);
+                $this->cloudinaryService->delete($brand->logo_public_id);
             }
             
-            $uploadResult = $this->uploadToCloudinary($request->file('logo'), 'brands');
+            $uploadResult = $this->cloudinaryService->upload($request->file('logo'), 'brands');
             if ($uploadResult) {
                 $validated['logo_url'] = $uploadResult['url'];
                 $validated['logo_public_id'] = $uploadResult['public_id'];
@@ -103,9 +111,9 @@ class BrandController extends Controller
     {
         $this->authorize('delete', $brand);
 
-        // Delete logo from Cloudinary if exists
+        // Delete logo from Cloudinary via service
         if ($brand->logo_public_id) {
-            $this->deleteFromCloudinary($brand->logo_public_id);
+            $this->cloudinaryService->delete($brand->logo_public_id);
         }
 
         $brand->delete();
@@ -121,85 +129,5 @@ class BrandController extends Controller
         $brand->update(['is_default' => true]);
 
         return redirect()->back()->with('success', 'Default brand updated.');
-    }
-
-    /**
-     * Upload file to Cloudinary
-     */
-    private function uploadToCloudinary($file, string $folder): ?array
-    {
-        $cloudName = config('services.cloudinary.cloud_name');
-        $apiKey = config('services.cloudinary.api_key');
-        $apiSecret = config('services.cloudinary.api_secret');
-
-        if (!$cloudName || !$apiKey || !$apiSecret) {
-            Log::error('BrandController: Cloudinary credentials not configured.');
-            return null;
-        }
-
-        try {
-            $timestamp = time();
-            $publicId = $folder . '/' . uniqid('brand_');
-            
-            // Build signature
-            $signatureString = "folder={$folder}&public_id={$publicId}&timestamp={$timestamp}{$apiSecret}";
-            $signature = sha1($signatureString);
-
-            $response = Http::timeout(60)
-                ->attach('file', file_get_contents($file->getPathname()), $file->getClientOriginalName())
-                ->post("https://api.cloudinary.com/v1_1/{$cloudName}/image/upload", [
-                    'api_key' => $apiKey,
-                    'timestamp' => $timestamp,
-                    'signature' => $signature,
-                    'folder' => $folder,
-                    'public_id' => $publicId,
-                ]);
-
-            if ($response->successful()) {
-                Log::info("BrandController: Logo uploaded successfully to Cloudinary.");
-                return [
-                    'url' => $response->json('secure_url'),
-                    'public_id' => $response->json('public_id'),
-                ];
-            }
-
-            Log::error("BrandController: Cloudinary upload failed. " . $response->body());
-            return null;
-        } catch (\Exception $e) {
-            Log::error("BrandController: Cloudinary upload exception. " . $e->getMessage());
-            return null;
-        }
-    }
-
-    /**
-     * Delete file from Cloudinary
-     */
-    private function deleteFromCloudinary(string $publicId): bool
-    {
-        $cloudName = config('services.cloudinary.cloud_name');
-        $apiKey = config('services.cloudinary.api_key');
-        $apiSecret = config('services.cloudinary.api_secret');
-
-        if (!$cloudName || !$apiKey || !$apiSecret) {
-            return false;
-        }
-
-        try {
-            $timestamp = time();
-            $signatureString = "public_id={$publicId}&timestamp={$timestamp}{$apiSecret}";
-            $signature = sha1($signatureString);
-
-            $response = Http::asForm()->post("https://api.cloudinary.com/v1_1/{$cloudName}/image/destroy", [
-                'api_key' => $apiKey,
-                'timestamp' => $timestamp,
-                'signature' => $signature,
-                'public_id' => $publicId,
-            ]);
-
-            return $response->successful();
-        } catch (\Exception $e) {
-            Log::error("BrandController: Cloudinary delete exception. " . $e->getMessage());
-            return false;
-        }
     }
 }

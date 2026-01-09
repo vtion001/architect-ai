@@ -314,72 +314,16 @@ class ContentCreatorController extends Controller
         $generatedUrl = $this->contentService->generateImage($request->prompt);
 
         if ($generatedUrl) {
-            $finalUrl = $generatedUrl;
-            $source = 'ai_generation_temp';
-
-            // 2. Attempt Persistence (Cloudinary first, then Local)
-            $cloudName = config('services.cloudinary.cloud_name');
-            $apiKey = config('services.cloudinary.api_key');
-            $apiSecret = config('services.cloudinary.api_secret');
-            $uploadedToCloud = false;
-
-            if ($cloudName && $apiKey && $apiSecret) {
-                try {
-                    $timestamp = time();
-                    $signString = "timestamp={$timestamp}{$apiSecret}";
-                    $signature = sha1($signString);
-
-                    Log::info("Attempting Cloudinary upload for AI image...", [
-                        'source_url' => Str::limit($generatedUrl, 100),
-                        'timestamp' => $timestamp
-                    ]);
-
-                    $response = Http::timeout(30)->asForm()->post("https://api.cloudinary.com/v1_1/$cloudName/image/upload", [
-                        'file' => $generatedUrl,
-                        'api_key' => $apiKey,
-                        'timestamp' => $timestamp,
-                        'signature' => $signature,
-                    ]);
-
-                    if ($response->successful()) {
-                         $finalUrl = $response->json()['secure_url'];
-                         $uploadedToCloud = true;
-                         $source = 'ai_generation';
-                         Log::info("Generated AI image saved to Cloudinary successfully: $finalUrl");
-                    } else {
-                        Log::error("Failed to save AI image to Cloudinary", [
-                            'status' => $response->status(),
-                            'body' => $response->body()
-                        ]);
-                    }
-                } catch (\Exception $e) {
-                    Log::warning("Cloudinary upload exception: " . $e->getMessage());
-                }
-            }
-
-            // 3. Local Fallback if Cloudinary failed
-            if (!$uploadedToCloud) {
-                try {
-                    $imageContent = file_get_contents($generatedUrl);
-                    if ($imageContent !== false) {
-                        $filename = 'ai_' . Str::random(40) . '.png';
-                        $path = public_path('uploads/content-media');
-                        
-                        if (!file_exists($path)) {
-                            mkdir($path, 0755, true);
-                        }
-                        
-                        file_put_contents($path . '/' . $filename, $imageContent);
-                        $finalUrl = '/uploads/content-media/' . $filename;
-                        $source = 'ai_generation_local';
-                        Log::info("Generated AI image saved locally: $finalUrl");
-                    } else {
-                        Log::error("Failed to download AI image for local fallback.");
-                    }
-                } catch (\Exception $e) {
-                    Log::error("Local fallback exception: " . $e->getMessage());
-                }
-            }
+            // Use CloudinaryService for upload with automatic fallback
+            $cloudinaryService = app(\App\Services\CloudinaryService::class);
+            $uploadResult = $cloudinaryService->uploadFromUrl($generatedUrl, 'ai-generated', 'uploads/content-media');
+            
+            $finalUrl = $uploadResult['url'];
+            $source = match($uploadResult['source']) {
+                'cloudinary' => 'ai_generation',
+                'local' => 'ai_generation_local',
+                default => 'ai_generation_temp',
+            };
 
             // Index into Industrial Media Registry
             MediaAsset::create([
@@ -392,7 +336,8 @@ class ContentCreatorController extends Controller
                 'prompt' => $request->prompt,
                 'metadata' => [
                     'generator' => 'Banana Pro AI',
-                    'timestamp' => now()->toIso8601String()
+                    'timestamp' => now()->toIso8601String(),
+                    'cloudinary_public_id' => $uploadResult['public_id'] ?? null,
                 ]
             ]);
 
