@@ -260,8 +260,8 @@
     </div>
 
     <!-- Create Modal -->
-    <div x-show="showCreateModal" x-cloak class="fixed inset-0 z-[150] flex items-center justify-center bg-black/80 backdrop-blur-md p-4">
-        <div @click.away="showCreateModal = false" class="bg-card w-full max-w-3xl rounded-[40px] shadow-2xl border border-border flex flex-col overflow-hidden animate-in zoom-in-95 duration-200">
+    <div x-show="showCreateModal" x-cloak class="fixed inset-0 z-[150] flex items-center justify-center bg-black/80 backdrop-blur-md p-4 overflow-y-auto">
+        <div @click.away="showCreateModal = false" class="bg-card w-full max-w-3xl max-h-[90vh] rounded-[32px] shadow-2xl border border-border flex flex-col overflow-hidden animate-in zoom-in-95 duration-200 my-auto">
             <div class="p-8 border-b border-border bg-muted/30 flex justify-between items-center">
                 <div>
                     <h2 class="text-xl font-black uppercase tracking-tighter">New Brand Kit</h2>
@@ -445,9 +445,9 @@
     </div>
 
     <!-- Edit Modal -->
-    <div x-show="showEditModal && selectedBrand" x-cloak class="fixed inset-0 z-[150] flex items-center justify-center bg-black/80 backdrop-blur-md p-4">
+    <div x-show="showEditModal && selectedBrand" x-cloak class="fixed inset-0 z-[150] flex items-center justify-center bg-black/80 backdrop-blur-md p-4 overflow-y-auto">
         <template x-if="selectedBrand">
-            <div @click.away="showEditModal = false" class="bg-card w-full max-w-3xl rounded-[40px] shadow-2xl border border-border flex flex-col overflow-hidden animate-in zoom-in-95 duration-200">
+            <div @click.away="showEditModal = false" class="bg-card w-full max-w-3xl max-h-[90vh] rounded-[32px] shadow-2xl border border-border flex flex-col overflow-hidden animate-in zoom-in-95 duration-200 my-auto">
                 <div class="p-8 border-b border-border bg-muted/30 flex justify-between items-center">
                     <div>
                         <h2 class="text-xl font-black uppercase tracking-tighter">Edit Brand Kit</h2>

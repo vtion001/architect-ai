@@ -3,40 +3,54 @@
     Usage: @include('components.ai-chat-widget', ['agent' => $agent])
     
     This component can be included on any page to add an AI chat widget.
+    The chat appears as a floating popup in the corner, NOT fullscreen.
 --}}
 
 @props(['agent', 'position' => null])
 
 @php
     $widgetPosition = $position ?? $agent->widget_position ?? 'bottom-right';
-    $positionStyles = match($widgetPosition) {
+    $primaryColor = $agent->primary_color ?? '#00F2FF';
+    
+    // Position for the floating trigger button
+    $buttonPosition = match($widgetPosition) {
         'bottom-left' => 'bottom: 24px; left: 24px;',
         'top-right' => 'top: 24px; right: 24px;',
         'top-left' => 'top: 24px; left: 24px;',
         default => 'bottom: 24px; right: 24px;',
     };
+    
+    // Position for the chat popup (above/below the button)
+    $chatPosition = match($widgetPosition) {
+        'bottom-left' => 'bottom: 90px; left: 24px;',
+        'top-right' => 'top: 90px; right: 24px;',
+        'top-left' => 'top: 90px; left: 24px;',
+        default => 'bottom: 90px; right: 24px;',
+    };
 @endphp
 
+{{-- Main Widget Container --}}
 <div id="ai-chat-widget-{{ $agent->id }}"
-     x-data="aiChatWidget('{{ $agent->id }}', '{{ $agent->name }}', '{{ $agent->primary_color ?? '#00F2FF' }}', '{{ $agent->welcome_message ?? 'Hello! How can I help you?' }}')" 
-     style="position: fixed; {{ $positionStyles }} z-index: 99999;">
+     x-data="aiChatWidget('{{ $agent->id }}', '{{ $agent->name }}', '{{ $primaryColor }}', '{{ $agent->welcome_message ?? 'Hello! How can I help you?' }}')"
+     @open-ai-chat.window="if($event.detail && $event.detail.id === '{{ $agent->id }}') isOpen = true">
     
-    {{-- Chat Window --}}
+    {{-- Chat Popup Window - Fixed size, NOT fullscreen --}}
     <div x-show="isOpen" 
-         x-transition:enter="transition ease-out duration-300"
-         x-transition:enter-start="opacity-0 scale-90 translate-y-4"
+         x-cloak
+         x-transition:enter="transition ease-out duration-200"
+         x-transition:enter-start="opacity-0 scale-95 translate-y-2"
          x-transition:enter-end="opacity-100 scale-100 translate-y-0"
-         x-transition:leave="transition ease-in duration-200"
+         x-transition:leave="transition ease-in duration-150"
          x-transition:leave-start="opacity-100 scale-100 translate-y-0"
-         x-transition:leave-end="opacity-0 scale-90 translate-y-4"
-         class="mb-4 w-[380px] max-w-[calc(100vw-3rem)] bg-card border border-border rounded-[32px] shadow-2xl overflow-hidden flex flex-col"
-         style="height: 520px;">
+         x-transition:leave-end="opacity-0 scale-95 translate-y-2"
+         style="position: fixed; {{ $chatPosition }} z-index: 99998; width: 380px; max-width: calc(100vw - 48px); height: 520px; max-height: calc(100vh - 140px);"
+         class="bg-card border border-border rounded-2xl shadow-2xl overflow-hidden flex flex-col">
         
         {{-- Header --}}
-        <div class="px-6 py-4 border-b border-border flex items-center justify-between" 
+        <div class="px-5 py-4 border-b border-border flex items-center justify-between shrink-0" 
              :style="{ background: `linear-gradient(135deg, ${primaryColor}15, ${primaryColor}05)` }">
             <div class="flex items-center gap-3">
-                <div class="w-10 h-10 rounded-xl flex items-center justify-center shadow-inner"
+                <div class="w-10 h-10 rounded-xl flex items-center justify-center"
                      :style="{ backgroundColor: primaryColor + '20', color: primaryColor }">
                     @if($agent->avatar_url)
                         <img src="{{ $agent->avatar_url }}" alt="{{ $agent->name }}" class="w-10 h-10 rounded-xl object-cover">
@@ -46,14 +60,17 @@
                 </div>
                 <div>
                     <h3 class="font-bold text-sm text-foreground">{{ $agent->name }}</h3>
-                    <p class="text-[10px] text-muted-foreground uppercase tracking-wider">{{ $agent->role }}</p>
+                    <div class="flex items-center gap-1.5">
+                        <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                        <p class="text-[10px] text-muted-foreground uppercase tracking-wider">{{ $agent->role ?? 'AI Assistant' }}</p>
+                    </div>
                 </div>
             </div>
-            <div class="flex items-center gap-2">
-                <button @click="clearChat()" class="w-8 h-8 rounded-full hover:bg-muted flex items-center justify-center text-muted-foreground transition-colors" title="Clear chat">
+            <div class="flex items-center gap-1">
+                <button @click="clearChat()" class="w-8 h-8 rounded-lg hover:bg-red-50 hover:text-red-500 flex items-center justify-center text-muted-foreground transition-colors" title="Clear chat">
                     <i data-lucide="trash-2" class="w-4 h-4"></i>
                 </button>
-                <button @click="isOpen = false" class="w-8 h-8 rounded-full hover:bg-muted flex items-center justify-center text-muted-foreground transition-colors">
+                <button @click="isOpen = false" class="w-8 h-8 rounded-lg hover:bg-muted flex items-center justify-center text-muted-foreground transition-colors">
                     <i data-lucide="x" class="w-4 h-4"></i>
                 </button>
             </div>
@@ -68,7 +85,7 @@
                          :style="{ backgroundColor: primaryColor + '20', color: primaryColor }">
                         <i data-lucide="bot" class="w-4 h-4"></i>
                     </div>
-                    <div class="bg-muted/50 rounded-2xl rounded-tl-md px-4 py-3 max-w-[80%]">
+                    <div class="bg-muted/50 rounded-2xl rounded-tl-sm px-4 py-3 max-w-[85%]">
                         <p class="text-sm text-foreground" x-text="welcomeMessage"></p>
                     </div>
                 </div>
@@ -77,7 +94,6 @@
             {{-- Chat Messages --}}
             <template x-for="(msg, index) in messages" :key="index">
                 <div :class="msg.role === 'user' ? 'flex justify-end' : 'flex gap-3'">
-                    {{-- Assistant Avatar --}}
                     <template x-if="msg.role === 'assistant'">
                         <div class="w-8 h-8 rounded-lg shrink-0 flex items-center justify-center"
                              :style="{ backgroundColor: primaryColor + '20', color: primaryColor }">
@@ -85,22 +101,21 @@
                         </div>
                     </template>
                     
-                    {{-- Message Bubble --}}
                     <div :class="msg.role === 'user' 
-                            ? 'bg-primary text-primary-foreground rounded-2xl rounded-tr-md px-4 py-3 max-w-[80%]' 
-                            : 'bg-muted/50 rounded-2xl rounded-tl-md px-4 py-3 max-w-[80%]'">
+                            ? 'bg-primary text-primary-foreground rounded-2xl rounded-tr-sm px-4 py-3 max-w-[85%]' 
+                            : 'bg-muted/50 rounded-2xl rounded-tl-sm px-4 py-3 max-w-[85%]'">
                         <p class="text-sm whitespace-pre-wrap" x-text="msg.content"></p>
                     </div>
                 </div>
             </template>
 
             {{-- Typing Indicator --}}
-            <div x-show="isTyping" class="flex gap-3">
+            <div x-show="isTyping" x-cloak class="flex gap-3">
                 <div class="w-8 h-8 rounded-lg shrink-0 flex items-center justify-center"
                      :style="{ backgroundColor: primaryColor + '20', color: primaryColor }">
                     <i data-lucide="bot" class="w-4 h-4"></i>
                 </div>
-                <div class="bg-muted/50 rounded-2xl rounded-tl-md px-4 py-3">
+                <div class="bg-muted/50 rounded-2xl rounded-tl-sm px-4 py-3">
                     <div class="flex gap-1">
                         <span class="w-2 h-2 bg-slate-400 rounded-full animate-bounce" style="animation-delay: 0ms"></span>
                         <span class="w-2 h-2 bg-slate-400 rounded-full animate-bounce" style="animation-delay: 150ms"></span>
@@ -111,16 +126,16 @@
         </div>
 
         {{-- Input Area --}}
-        <div class="p-4 border-t border-border bg-muted/30">
+        <div class="p-4 border-t border-border bg-muted/20 shrink-0">
             <form @submit.prevent="sendMessage" class="flex gap-2">
                 <input type="text" 
                        x-model="inputMessage" 
                        :disabled="isTyping"
                        placeholder="Type your message..." 
-                       class="flex-1 h-11 px-4 rounded-xl border border-border bg-card text-sm focus:ring-2 focus:ring-primary/20 outline-none disabled:opacity-50">
+                       class="flex-1 h-10 px-4 rounded-xl border border-border bg-card text-sm focus:ring-2 focus:ring-primary/20 outline-none disabled:opacity-50">
                 <button type="submit" 
                         :disabled="!inputMessage.trim() || isTyping"
-                        class="w-11 h-11 rounded-xl flex items-center justify-center text-white transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                        class="w-10 h-10 rounded-xl flex items-center justify-center text-white transition-all disabled:opacity-50 disabled:cursor-not-allowed hover:scale-105 active:scale-95"
                         :style="{ backgroundColor: primaryColor }">
                     <i data-lucide="send" class="w-4 h-4"></i>
                 </button>
@@ -128,11 +143,10 @@
         </div>
     </div>
 
-    {{-- Toggle Button - Always visible --}}
+    {{-- Floating Toggle Button --}}
     <button @click="toggleChat()" 
-            class="w-14 h-14 rounded-full shadow-2xl flex items-center justify-center text-white transition-all hover:scale-110"
-            style="background-color: {{ $agent->primary_color ?? '#00F2FF' }}; box-shadow: 0 8px 32px {{ $agent->primary_color ?? '#00F2FF' }}40;">
-        {{-- Use SVG directly for immediate visibility --}}
+            style="position: fixed; {{ $buttonPosition }} z-index: 99999; background-color: {{ $primaryColor }}; box-shadow: 0 8px 24px {{ $primaryColor }}40;"
+            class="w-14 h-14 rounded-full shadow-xl flex items-center justify-center text-white transition-all hover:scale-110 active:scale-95">
         <svg x-show="!isOpen" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-6 h-6">
             <path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z"/>
         </svg>
@@ -142,7 +156,7 @@
     </button>
 </div>
 
-{{-- Inline script - define function only once --}}
+{{-- Inline script --}}
 <script>
 if (typeof window.aiChatWidget === 'undefined') {
     window.aiChatWidget = function(agentId, agentName, primaryColor, welcomeMessage) {
@@ -158,14 +172,9 @@ if (typeof window.aiChatWidget === 'undefined') {
             sessionId: null,
 
             init() {
-                // Get or create session ID
                 this.sessionId = localStorage.getItem(`ai_chat_session_${this.agentId}`) || this.generateSessionId();
                 localStorage.setItem(`ai_chat_session_${this.agentId}`, this.sessionId);
-                
-                // Load previous messages
                 this.loadConversation();
-                
-                // Refresh icons after DOM update
                 this.$nextTick(() => {
                     if (window.lucide) window.lucide.createIcons();
                 });
@@ -217,11 +226,8 @@ if (typeof window.aiChatWidget === 'undefined') {
 
                 const userMessage = this.inputMessage.trim();
                 this.inputMessage = '';
-                
-                // Add user message to UI
                 this.messages.push({ role: 'user', content: userMessage });
                 this.scrollToBottom();
-                
                 this.isTyping = true;
 
                 try {
@@ -303,4 +309,3 @@ if (typeof window.aiChatWidget === 'undefined') {
     };
 }
 </script>
-
