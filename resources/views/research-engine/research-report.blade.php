@@ -1,6 +1,51 @@
 @extends('layouts.app')
 
 @section('content')
+@if($research->status === 'researching')
+    <div class="min-h-[80vh] flex flex-col items-center justify-center p-10">
+         <div class="relative w-24 h-24 mb-8">
+            <div class="absolute inset-0 border-t-2 border-primary rounded-full animate-spin"></div>
+            <div class="absolute inset-2 border-r-2 border-purple-500 rounded-full animate-spin" style="animation-duration: 1.5s"></div>
+            <div class="absolute inset-4 border-b-2 border-cyan-500 rounded-full animate-spin" style="animation-direction: reverse"></div>
+        </div>
+        <h2 class="text-2xl font-black uppercase tracking-tight text-slate-800">Operationalizing Intelligence</h2>
+        <p class="text-sm font-mono text-slate-500 mt-2 uppercase tracking-widest animate-pulse">Deep Research Agents Active...</p>
+        
+        <div class="mt-8 p-4 bg-slate-50 border border-slate-200 rounded-xl max-w-md w-full">
+            <div class="space-y-3">
+                <div class="flex items-center gap-3 text-xs font-mono text-slate-600">
+                    <div class="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse"></div>
+                    <span>Initializing Context Window...</span>
+                </div>
+                <div class="flex items-center gap-3 text-xs font-mono text-slate-400">
+                    <div class="w-1.5 h-1.5 rounded-full bg-slate-300"></div>
+                    <span>Querying Semantic Knowledge Base...</span>
+                </div>
+                <div class="flex items-center gap-3 text-xs font-mono text-slate-400">
+                    <div class="w-1.5 h-1.5 rounded-full bg-slate-300"></div>
+                    <span>Cross-Referencing External Sources (Google/Bing)...</span>
+                </div>
+                 <div class="flex items-center gap-3 text-xs font-mono text-slate-400">
+                    <div class="w-1.5 h-1.5 rounded-full bg-slate-300"></div>
+                    <span>Synthesizing Final Report...</span>
+                </div>
+            </div>
+        </div>
+
+        <script>
+            setTimeout(() => window.location.reload(), 4000);
+        </script>
+    </div>
+@elseif($research->status === 'failed')
+    <div class="min-h-[60vh] flex flex-col items-center justify-center">
+        <div class="w-16 h-16 bg-red-100 text-red-500 rounded-full flex items-center justify-center mb-6">
+            <i data-lucide="alert-triangle" class="w-8 h-8"></i>
+        </div>
+        <h2 class="text-xl font-bold text-slate-900">Research Protocol Failed</h2>
+        <p class="text-slate-500 mt-2">The agents encountered an anomaly. Tokens have been refunded.</p>
+        <a href="{{ route('research-engine.index') }}" class="mt-8 px-6 py-3 bg-slate-900 text-white rounded-lg text-sm font-bold uppercase tracking-wider">Return to Base</a>
+    </div>
+@else
 <div class="p-10 max-w-[1400px] mx-auto animate-in fade-in duration-700">
     <!-- Protocol Header -->
     <div class="mb-12 flex flex-col md:flex-row items-start md:items-center justify-between gap-8 border-b border-border pb-10">
@@ -130,6 +175,7 @@
         </div>
     </div>
 </div>
+@endif
 
 <script type="module">
     import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs';

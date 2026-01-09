@@ -117,44 +117,14 @@ class ContentCreatorController extends Controller
             'options' => $options,
         ]);
 
-        try {
-            $generatedText = $this->contentService->generateText(
-                $request->input('topic'),
-                $request->input('type'),
-                $context,
-                $options
-            );
+        // Dispatch Async Generation Job
+        \App\Jobs\GenerateContent::dispatch($content, auth()->user(), $tokenCost);
 
-            // Extract a title from the first line or use topic
-            $lines = explode("\n", trim($generatedText));
-            $title = !empty($lines[0]) ? str_replace(['#', '*', '='], '', $lines[0]) : $request->input('topic');
-            if (strlen($title) > 100) $title = substr($title, 0, 97) . '...';
-
-            $wordCount = str_word_count(strip_tags($generatedText));
-
-            $content->update([
-                'title' => $title,
-                'result' => $generatedText,
-                'word_count' => $wordCount,
-                'status' => 'published',
-            ]);
-
-            return response()->json([
-                'success' => true,
-                'content' => $content
-            ]);
-        } catch (\Throwable $e) {
-            Log::error("Content generation failed: " . $e->getMessage());
-            
-            // Refund tokens on failure
-            $this->tokenService->grant(auth()->user()->tenant, $tokenCost, 'refund_failed_generation');
-            
-            $content->update(['status' => 'failed']);
-            return response()->json([
-                'success' => false, 
-                'message' => 'AI generation failed. Tokens refunded.'
-            ], 500);
-        }
+        return response()->json([
+            'success' => true,
+            'content' => $content,
+            'message' => 'Content generation protocol initiated.'
+        ]);
     }
 
     public function show(Content $content)

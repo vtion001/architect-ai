@@ -8,6 +8,7 @@ use App\Models\AiAgent;
 use App\Models\AgentConversation;
 use App\Models\KnowledgeBaseAsset;
 use App\Services\AuthorizationService;
+use App\Services\ResearchService;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Http;
@@ -16,7 +17,10 @@ use Illuminate\Support\Str;
 
 class AiAgentController extends Controller
 {
-    public function __construct(protected AuthorizationService $authService) {}
+    public function __construct(
+        protected AuthorizationService $authService,
+        protected ResearchService $researchService
+    ) {}
 
     public function index()
     {
@@ -123,10 +127,20 @@ class AiAgentController extends Controller
         // Build messages for API
         $systemPrompt = $agent->getFullSystemPrompt();
         
-        // Add knowledge context if available
-        $knowledgeContext = $agent->getKnowledgeContext();
-        if ($knowledgeContext) {
-            $systemPrompt .= "\n\n--- KNOWLEDGE BASE ---\n" . $knowledgeContext;
+        // Add knowledge context if available (Explicitly Linked)
+        $pinnedContext = $agent->getKnowledgeContext();
+        if ($pinnedContext) {
+            $systemPrompt .= "\n\n--- PINNED KNOWLEDGE ---\n" . $pinnedContext;
+        }
+
+        // Add Dynamic RAG Context (Vector/Hybrid Search)
+        try {
+            $ragContext = $this->researchService->getKnowledgeBaseContext($validated['message']);
+            if ($ragContext) {
+                $systemPrompt .= "\n\n--- RELEVANT KNOWLEDGE (SEARCH) ---\n" . $ragContext;
+            }
+        } catch (\Exception $e) {
+            Log::warning("Agent RAG failed: " . $e->getMessage());
         }
 
         $messages = [

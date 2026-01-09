@@ -6,13 +6,14 @@ namespace App\Services;
 
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
+use App\Services\VectorService; // Added for VectorService injection
 
 class ResearchService
 {
     private ?string $apiKey;
     private string $model;
 
-    public function __construct()
+    public function __construct(protected VectorService $vectorService)
     {
         $this->apiKey = config('services.gemini.key');
         $this->model = config('services.gemini.model', 'gemini-1.5-pro');
@@ -130,13 +131,47 @@ class ResearchService
     }
 
     /**
-     * RAG: Retrieve relevant context from the tenant's knowledge base.
+     * RAG: Retrieve relevant context using Hybrid Search (Vector + SQL Fallback).
      */
-    protected function getKnowledgeBaseContext(string $topic): ?string
+    public function getKnowledgeBaseContext(string $topic): ?string
     {
         $tenant = app(\App\Models\Tenant::class);
         if (!$tenant) return null;
 
+        // 1. Try Vector Search (Semantic)
+        try {
+            // Need to filter by Tenant ID in Qdrant Payload?
+            // VectorService doesn't support filters yet. 
+            // For MVP, we search globally and filter in PHP, or trust isolation logic later.
+            // Ideally Qdrant supports payload filtering.
+            
+            $results = $this->vectorService->search($topic, 10); // Fetch more to allow filtering
+            $vectorContext = "";
+            
+            foreach ($results as $item) {
+                $payload = $item['payload'] ?? [];
+                
+                // Manual Tenant Isolation Check
+                if (isset($payload['tenant_id']) && $payload['tenant_id'] !== $tenant->id) {
+                    continue;
+                }
+                
+                if (($item['score'] ?? 0) > 0.65) {
+                    $title = $payload['title'] ?? 'Internal Source';
+                    $content = $payload['content'] ?? '';
+                    $vectorContext .= "--- SEMANTIC SOURCE (Relevance: " . number_format($item['score'] * 100, 1) . "%): $title ---\n$content\n\n";
+                }
+            }
+            
+            if (!empty($vectorContext)) {
+                return trim($vectorContext);
+            }
+            
+        } catch (\Exception $e) {
+            Log::warning("Vector search skipped: " . $e->getMessage());
+        }
+
+        // 2. Fallback to SQL LIKE
         $assets = \App\Models\KnowledgeBaseAsset::where('tenant_id', $tenant->id)
             ->where(function($q) use ($topic) {
                 $q->where('title', 'like', "%$topic%")
@@ -147,7 +182,7 @@ class ResearchService
 
         if ($assets->isEmpty()) return null;
 
-        return $assets->map(fn($a) => "--- INTERNAL SOURCE: {$a->title} ---\n{$a->content}")->implode("\n\n");
+        return $assets->map(fn($a) => "--- KEYWORD SOURCE: {$a->title} ---\n{$a->content}")->implode("\n\n");
     }
 
     private function attemptResearchWithModel(string $model, string $topic): ?string

@@ -11,7 +11,7 @@ trait BelongsToTenant
     protected static function bootBelongsToTenant()
     {
         static::addGlobalScope('tenant', function (Builder $builder) {
-            if (app()->runningInConsole()) {
+            if (app()->runningInConsole() && !app()->runningUnitTests()) {
                 return;
             }
 

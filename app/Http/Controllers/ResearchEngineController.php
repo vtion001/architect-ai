@@ -55,66 +55,16 @@ class ResearchEngineController extends Controller
             'status' => 'researching',
         ]);
 
-        try {
-            // In a production app, this would be a queued job.
-            // Dispatching synchronously for immediate feedback in this demo env.
-            set_time_limit(300); // Allow 5 minutes for deep research
-            Log::info("Starting research for ID: {$research->id} - {$request->input('title')}");
-            
-            $resultMarkdown = $this->researchService->performResearch((string)$request->input('query'));
-            
-            // Parse Metadata JSON from AI response
-            $metadata = [];
-            if (preg_match('/```json\s*(\{.*?\})\s*```$/s', $resultMarkdown, $matches)) {
-                try {
-                    $metadata = json_decode($matches[1], true);
-                    // Remove the JSON block from the content so it doesn't render
-                    $resultMarkdown = str_replace($matches[0], '', $resultMarkdown);
-                } catch (\Exception $e) {
-                    Log::warning("Failed to parse research metadata JSON");
-                }
-            }
+        // Dispatch Job
+        \App\Jobs\PerformResearch::dispatch($research, auth()->user(), $tokenCost);
 
-            Log::info("Research completed for ID: {$research->id}. Result length: " . strlen($resultMarkdown));
-            
-            // Basic heuristic fallback if metadata parsing fails
-            if (empty($metadata['source_count'])) {
-                preg_match_all('/\[\d+\]/', $resultMarkdown, $matches);
-                $sourceCount = count(array_unique($matches[0] ?? []));
-                if ($sourceCount === 0) $sourceCount = rand(15, 20); // Fallback to targeted count
-            } else {
-                $sourceCount = $metadata['source_count'];
-            }
-
-            $research->update([
-                'result' => $resultMarkdown,
-                'status' => 'completed',
-                'sources_count' => $sourceCount,
-                'pages_count' => max(2, (int)(strlen($resultMarkdown) / 3000)),
-                'options' => $metadata
-            ]);
-
-            // Dispatch Intelligence Alert
-            auth()->user()->notify(new IntelligenceAlert(
-                'Research Protocol Finalized',
-                "Intelligence for '{$research->title}' has been grounded.",
-                'brain',
-                route('research-engine.show', $research->id)
-            ));
-
-            return response()->json([
-                'success' => true,
-                'research' => $research
-            ]);
-        } catch (\Throwable $e) {
-            Log::error("Research failed: " . $e->getMessage());
-            
-            // Refund tokens on failure
-            $this->tokenService->grant(auth()->user()->tenant, $tokenCost, 'refund_failed_research');
-            
-            $research->update(['status' => 'failed']);
-            return response()->json(['success' => false, 'message' => 'Research failed. Tokens refunded.'], 500);
-        }
+        // Notify user immediately that protocol started
+        return response()->json([
+            'success' => true,
+            'message' => 'Research protocol initialized. Agents deployed.',
+            'research' => $research,
+            'redirect' => route('research-engine.show', $research->id)
+        ]);
     }
 
     public function show(Research $research)

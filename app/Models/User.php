@@ -4,6 +4,7 @@ namespace App\Models;
 
 // Note: User intentionally does not use BelongsToTenant global scope
 // because User IS the authentication model and scoping would prevent login.
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
@@ -13,7 +14,7 @@ use Laravel\Sanctum\HasApiTokens;
 
 class User extends Authenticatable
 {
-    use HasUuids, HasApiTokens, Notifiable;
+    use HasUuids, HasApiTokens, Notifiable, HasFactory;
 
     protected $fillable = [
         'tenant_id',

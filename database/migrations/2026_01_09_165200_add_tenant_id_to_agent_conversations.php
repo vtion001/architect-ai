@@ -22,13 +22,15 @@ return new class extends Migration
         });
 
         // Backfill tenant_id from the related agent's tenant_id
-        DB::statement("
-            UPDATE agent_conversations ac
-            SET tenant_id = (
-                SELECT tenant_id FROM ai_agents aa WHERE aa.id = ac.agent_id
-            )
-            WHERE ac.tenant_id IS NULL
-        ");
+        if (DB::getDriverName() !== 'sqlite') {
+            DB::statement("
+                UPDATE agent_conversations ac
+                SET tenant_id = (
+                    SELECT tenant_id FROM ai_agents aa WHERE aa.id = ac.agent_id
+                )
+                WHERE ac.tenant_id IS NULL
+            ");
+        }
     }
 
     /**

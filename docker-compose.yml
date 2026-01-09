@@ -45,6 +45,17 @@ services:
         networks:
             - architect-network
 
+    qdrant:
+        image: qdrant/qdrant:latest
+        container_name: architect-ai-qdrant
+        restart: unless-stopped
+        ports:
+            - "6333:6333"
+        volumes:
+            - ./docker/qdrant/data:/qdrant/storage
+        networks:
+            - architect-network
+
 networks:
     architect-network:
         driver: bridge
