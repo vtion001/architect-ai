@@ -9,17 +9,17 @@
 
 @php
     $widgetPosition = $position ?? $agent->widget_position ?? 'bottom-right';
-    $positionClasses = match($widgetPosition) {
-        'bottom-left' => 'bottom-6 left-6',
-        'top-right' => 'top-6 right-6',
-        'top-left' => 'top-6 left-6',
-        default => 'bottom-6 right-6',
+    $positionStyles = match($widgetPosition) {
+        'bottom-left' => 'bottom: 24px; left: 24px;',
+        'top-right' => 'top: 24px; right: 24px;',
+        'top-left' => 'top: 24px; left: 24px;',
+        default => 'bottom: 24px; right: 24px;',
     };
 @endphp
 
 <div id="ai-chat-widget-{{ $agent->id }}"
      x-data="aiChatWidget('{{ $agent->id }}', '{{ $agent->name }}', '{{ $agent->primary_color ?? '#00F2FF' }}', '{{ $agent->welcome_message ?? 'Hello! How can I help you?' }}')" 
-     class="fixed {{ $positionClasses }} z-[9999]">
+     style="position: fixed; {{ $positionStyles }} z-index: 99999;">
     
     {{-- Chat Window --}}
     <div x-show="isOpen" 
