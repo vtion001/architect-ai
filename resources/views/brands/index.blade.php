@@ -5,77 +5,145 @@
     showCreateModal: false,
     showEditModal: false,
     selectedBrand: null,
+    logoFile: null,
+    logoPreview: null,
+    editLogoFile: null,
+    editLogoPreview: null,
     newBrand: {
         name: '',
-        logo_url: '',
-        colors: { primary: '#000000', secondary: '#ffffff' },
+        tagline: '',
+        description: '',
+        industry: '',
+        colors: { primary: '#000000', secondary: '#ffffff', accent: '#3b82f6' },
         typography: { headings: 'Inter', body: 'Inter' },
-        voice_profile: { tone: 'Professional', keywords: '' },
-        contact_info: { website: '', email: '' }
+        voice_profile: { tone: 'Professional', personality: '', keywords: '', avoid_words: '', writing_style: 'Balanced' },
+        contact_info: { website: '', email: '', phone: '' },
+        social_handles: { instagram: '', twitter: '', linkedin: '', facebook: '' }
     },
     isSaving: false,
     
     resetNewBrand() {
         this.newBrand = {
             name: '',
-            logo_url: '',
-            colors: { primary: '#000000', secondary: '#ffffff' },
+            tagline: '',
+            description: '',
+            industry: '',
+            colors: { primary: '#000000', secondary: '#ffffff', accent: '#3b82f6' },
             typography: { headings: 'Inter', body: 'Inter' },
-            voice_profile: { tone: 'Professional', keywords: '' },
-            contact_info: { website: '', email: '' }
+            voice_profile: { tone: 'Professional', personality: '', keywords: '', avoid_words: '', writing_style: 'Balanced' },
+            contact_info: { website: '', email: '', phone: '' },
+            social_handles: { instagram: '', twitter: '', linkedin: '', facebook: '' }
         };
+        this.logoFile = null;
+        this.logoPreview = null;
     },
     
-    saveBrand() {
+    handleLogoSelect(event) {
+        const file = event.target.files[0];
+        if (file) {
+            this.logoFile = file;
+            this.logoPreview = URL.createObjectURL(file);
+        }
+    },
+    
+    handleEditLogoSelect(event) {
+        const file = event.target.files[0];
+        if (file) {
+            this.editLogoFile = file;
+            this.editLogoPreview = URL.createObjectURL(file);
+        }
+    },
+    
+    async saveBrand() {
         if (!this.newBrand.name) {
             alert('Brand Name is required.');
             return;
         }
         this.isSaving = true;
-        fetch('{{ route('brands.store') }}', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRF-TOKEN': '{{ csrf_token() }}',
-                'Accept': 'application/json'
-            },
-            body: JSON.stringify(this.newBrand)
-        })
-        .then(res => res.json())
-        .then(data => {
+        
+        const formData = new FormData();
+        formData.append('name', this.newBrand.name);
+        formData.append('tagline', this.newBrand.tagline || '');
+        formData.append('description', this.newBrand.description || '');
+        formData.append('industry', this.newBrand.industry || '');
+        formData.append('colors', JSON.stringify(this.newBrand.colors));
+        formData.append('typography', JSON.stringify(this.newBrand.typography));
+        formData.append('voice_profile', JSON.stringify(this.newBrand.voice_profile));
+        formData.append('contact_info', JSON.stringify(this.newBrand.contact_info));
+        formData.append('social_handles', JSON.stringify(this.newBrand.social_handles));
+        
+        if (this.logoFile) {
+            formData.append('logo', this.logoFile);
+        }
+        
+        try {
+            const res = await fetch('{{ route('brands.store') }}', {
+                method: 'POST',
+                headers: {
+                    'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                    'Accept': 'application/json'
+                },
+                body: formData
+            });
+            const data = await res.json();
+            if (data.success) {
+                window.location.reload();
+            } else {
+                alert(data.message || 'Failed to create brand.');
+                this.isSaving = false;
+            }
+        } catch (err) {
+            console.error(err);
             window.location.reload();
-        })
-        .catch(err => {
-            // If it redirects, it might throw here, but usually reload works
-            window.location.reload();
-        });
+        }
     },
     
     editBrand(brand) {
-        // Deep copy to avoid mutating original list instantly
         this.selectedBrand = JSON.parse(JSON.stringify(brand));
-        // Ensure defaults if null
-        this.selectedBrand.colors = this.selectedBrand.colors || { primary: '#000000', secondary: '#ffffff' };
+        this.selectedBrand.colors = this.selectedBrand.colors || { primary: '#000000', secondary: '#ffffff', accent: '#3b82f6' };
         this.selectedBrand.typography = this.selectedBrand.typography || { headings: 'Inter', body: 'Inter' };
-        this.selectedBrand.voice_profile = this.selectedBrand.voice_profile || { tone: 'Professional', keywords: '' };
-        this.selectedBrand.contact_info = this.selectedBrand.contact_info || { website: '', email: '' };
-        
+        this.selectedBrand.voice_profile = this.selectedBrand.voice_profile || { tone: 'Professional', personality: '', keywords: '', avoid_words: '', writing_style: 'Balanced' };
+        this.selectedBrand.contact_info = this.selectedBrand.contact_info || { website: '', email: '', phone: '' };
+        this.selectedBrand.social_handles = this.selectedBrand.social_handles || { instagram: '', twitter: '', linkedin: '', facebook: '' };
+        this.editLogoFile = null;
+        this.editLogoPreview = null;
         this.showEditModal = true;
     },
     
-    updateBrand() {
+    async updateBrand() {
         this.isSaving = true;
-        fetch(`/settings/brands/${this.selectedBrand.id}`, {
-            method: 'PUT',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRF-TOKEN': '{{ csrf_token() }}',
-                'Accept': 'application/json'
-            },
-            body: JSON.stringify(this.selectedBrand)
-        })
-        .then(() => window.location.reload())
-        .catch(() => window.location.reload());
+        
+        const formData = new FormData();
+        formData.append('_method', 'PUT');
+        formData.append('name', this.selectedBrand.name);
+        formData.append('tagline', this.selectedBrand.tagline || '');
+        formData.append('description', this.selectedBrand.description || '');
+        formData.append('industry', this.selectedBrand.industry || '');
+        formData.append('colors', JSON.stringify(this.selectedBrand.colors));
+        formData.append('typography', JSON.stringify(this.selectedBrand.typography));
+        formData.append('voice_profile', JSON.stringify(this.selectedBrand.voice_profile));
+        formData.append('contact_info', JSON.stringify(this.selectedBrand.contact_info));
+        formData.append('social_handles', JSON.stringify(this.selectedBrand.social_handles));
+        
+        if (this.editLogoFile) {
+            formData.append('logo', this.editLogoFile);
+        }
+        
+        try {
+            const res = await fetch(`/settings/brands/${this.selectedBrand.id}`, {
+                method: 'POST',
+                headers: {
+                    'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                    'Accept': 'application/json'
+                },
+                body: formData
+            });
+            const data = await res.json();
+            window.location.reload();
+        } catch (err) {
+            console.error(err);
+            window.location.reload();
+        }
     },
     
     deleteBrand(id) {
@@ -135,25 +203,37 @@
                     </div>
                     <div>
                         <h3 class="text-xl font-black text-foreground tracking-tight">{{ $brand->name }}</h3>
+                        @if($brand->tagline)
+                            <p class="text-xs text-muted-foreground italic">{{ $brand->tagline }}</p>
+                        @endif
                         <div class="flex gap-1 mt-1">
                             <div class="w-4 h-4 rounded-full border border-black/10 shadow-sm" style="background-color: {{ $brand->colors['primary'] ?? '#000000' }}"></div>
                             <div class="w-4 h-4 rounded-full border border-black/10 shadow-sm" style="background-color: {{ $brand->colors['secondary'] ?? '#ffffff' }}"></div>
+                            <div class="w-4 h-4 rounded-full border border-black/10 shadow-sm" style="background-color: {{ $brand->colors['accent'] ?? '#3b82f6' }}"></div>
                         </div>
                     </div>
                 </div>
 
-                <!-- Voice Profile -->
-                <div class="bg-muted/30 rounded-2xl p-5 mb-6 flex-1 border border-border/50">
-                    <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-2">Voice & Tone</p>
-                    <div class="flex flex-wrap gap-2">
-                        <span class="px-2 py-1 bg-white border border-border rounded-md text-[10px] font-bold text-foreground">
-                            {{ $brand->voice_profile['tone'] ?? 'Standard' }}
-                        </span>
-                        @if(!empty($brand->voice_profile['keywords']))
-                            <span class="px-2 py-1 bg-white border border-border rounded-md text-[10px] text-muted-foreground italic">
-                                Keywords set
+                <!-- Industry & Voice -->
+                <div class="bg-muted/30 rounded-2xl p-5 mb-6 flex-1 border border-border/50 space-y-3">
+                    @if($brand->industry)
+                        <div>
+                            <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest">Industry</p>
+                            <p class="text-xs font-bold text-foreground">{{ $brand->industry }}</p>
+                        </div>
+                    @endif
+                    <div>
+                        <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest">Voice & Tone</p>
+                        <div class="flex flex-wrap gap-2 mt-1">
+                            <span class="px-2 py-1 bg-white border border-border rounded-md text-[10px] font-bold text-foreground">
+                                {{ $brand->voice_profile['tone'] ?? 'Standard' }}
                             </span>
-                        @endif
+                            @if(!empty($brand->voice_profile['writing_style']))
+                                <span class="px-2 py-1 bg-white border border-border rounded-md text-[10px] text-muted-foreground">
+                                    {{ $brand->voice_profile['writing_style'] }}
+                                </span>
+                            @endif
+                        </div>
                     </div>
                 </div>
 
@@ -181,124 +261,359 @@
 
     <!-- Create Modal -->
     <div x-show="showCreateModal" x-cloak class="fixed inset-0 z-[150] flex items-center justify-center bg-black/80 backdrop-blur-md p-4">
-        <div @click.away="showCreateModal = false" class="bg-card w-full max-w-2xl rounded-[40px] shadow-2xl border border-border flex flex-col overflow-hidden animate-in zoom-in-95 duration-200">
+        <div @click.away="showCreateModal = false" class="bg-card w-full max-w-3xl rounded-[40px] shadow-2xl border border-border flex flex-col overflow-hidden animate-in zoom-in-95 duration-200">
             <div class="p-8 border-b border-border bg-muted/30 flex justify-between items-center">
-                <h2 class="text-xl font-black uppercase tracking-tighter">New Brand Kit</h2>
+                <div>
+                    <h2 class="text-xl font-black uppercase tracking-tighter">New Brand Kit</h2>
+                    <p class="text-xs text-muted-foreground mt-1">Define your brand's visual and voice identity</p>
+                </div>
                 <button @click="showCreateModal = false"><i data-lucide="x" class="w-6 h-6 text-muted-foreground"></i></button>
             </div>
-            <div class="p-8 overflow-y-auto max-h-[70vh] custom-scrollbar space-y-6">
-                <!-- Fields -->
-                <div class="space-y-3">
-                    <label class="text-[10px] font-black uppercase text-slate-500 italic">Brand Name</label>
-                    <input x-model="newBrand.name" type="text" class="w-full h-12 bg-muted/20 border border-border rounded-xl px-4 text-sm font-bold">
-                </div>
+            <div class="p-8 overflow-y-auto max-h-[70vh] custom-scrollbar space-y-8">
                 
-                <div class="grid grid-cols-2 gap-4">
-                    <div class="space-y-3">
-                        <label class="text-[10px] font-black uppercase text-slate-500 italic">Primary Color</label>
-                        <div class="flex gap-2">
-                            <input x-model="newBrand.colors.primary" type="color" class="h-12 w-12 rounded-xl border border-border p-1 bg-card cursor-pointer">
-                            <input x-model="newBrand.colors.primary" type="text" class="flex-1 h-12 bg-muted/20 border border-border rounded-xl px-4 text-sm font-mono">
+                <!-- Basic Info Section -->
+                <div class="space-y-6">
+                    <h3 class="text-[10px] font-black uppercase tracking-widest text-primary flex items-center gap-2">
+                        <i data-lucide="info" class="w-3 h-3"></i> Basic Information
+                    </h3>
+                    
+                    <div class="grid grid-cols-2 gap-6">
+                        <div class="space-y-3">
+                            <label class="text-[10px] font-black uppercase text-slate-500 italic">Brand Name *</label>
+                            <input x-model="newBrand.name" type="text" required placeholder="My Brand" class="w-full h-12 bg-muted/20 border border-border rounded-xl px-4 text-sm font-bold focus:ring-2 focus:ring-primary/20 outline-none">
+                        </div>
+                        <div class="space-y-3">
+                            <label class="text-[10px] font-black uppercase text-slate-500 italic">Tagline</label>
+                            <input x-model="newBrand.tagline" type="text" placeholder="Your catchy tagline..." class="w-full h-12 bg-muted/20 border border-border rounded-xl px-4 text-sm focus:ring-2 focus:ring-primary/20 outline-none">
                         </div>
                     </div>
+                    
+                    <div class="grid grid-cols-2 gap-6">
+                        <div class="space-y-3">
+                            <label class="text-[10px] font-black uppercase text-slate-500 italic">Industry</label>
+                            <select x-model="newBrand.industry" class="w-full h-12 bg-muted/20 border border-border rounded-xl px-4 text-sm font-bold">
+                                <option value="">Select Industry...</option>
+                                <option>Technology</option>
+                                <option>Healthcare</option>
+                                <option>Finance</option>
+                                <option>E-commerce</option>
+                                <option>Real Estate</option>
+                                <option>Food & Beverage</option>
+                                <option>Fashion</option>
+                                <option>Beauty & Wellness</option>
+                                <option>Education</option>
+                                <option>Entertainment</option>
+                                <option>Travel & Hospitality</option>
+                                <option>Automotive</option>
+                                <option>Construction</option>
+                                <option>Other</option>
+                            </select>
+                        </div>
+                        <div class="space-y-3">
+                            <label class="text-[10px] font-black uppercase text-slate-500 italic">Website</label>
+                            <input x-model="newBrand.contact_info.website" type="text" placeholder="www.example.com" class="w-full h-12 bg-muted/20 border border-border rounded-xl px-4 text-sm">
+                        </div>
+                    </div>
+                    
                     <div class="space-y-3">
-                        <label class="text-[10px] font-black uppercase text-slate-500 italic">Secondary Color</label>
-                        <div class="flex gap-2">
-                            <input x-model="newBrand.colors.secondary" type="color" class="h-12 w-12 rounded-xl border border-border p-1 bg-card cursor-pointer">
-                            <input x-model="newBrand.colors.secondary" type="text" class="flex-1 h-12 bg-muted/20 border border-border rounded-xl px-4 text-sm font-mono">
+                        <label class="text-[10px] font-black uppercase text-slate-500 italic">Description</label>
+                        <textarea x-model="newBrand.description" rows="2" placeholder="Brief description of your brand..." class="w-full bg-muted/20 border border-border rounded-xl p-4 text-sm focus:ring-2 focus:ring-primary/20 outline-none resize-none"></textarea>
+                    </div>
+                </div>
+
+                <!-- Logo Upload Section -->
+                <div class="space-y-6 pt-6 border-t border-border/50">
+                    <h3 class="text-[10px] font-black uppercase tracking-widest text-primary flex items-center gap-2">
+                        <i data-lucide="image" class="w-3 h-3"></i> Brand Logo
+                    </h3>
+                    
+                    <div class="flex items-start gap-6">
+                        <!-- Logo Preview -->
+                        <div class="w-32 h-32 rounded-2xl border-2 border-dashed border-border bg-muted/20 flex items-center justify-center overflow-hidden shrink-0">
+                            <template x-if="logoPreview">
+                                <img :src="logoPreview" class="w-full h-full object-contain p-2">
+                            </template>
+                            <template x-if="!logoPreview">
+                                <div class="text-center">
+                                    <i data-lucide="image" class="w-8 h-8 text-slate-300 mx-auto mb-2"></i>
+                                    <span class="text-[9px] text-slate-400 uppercase font-bold">No Logo</span>
+                                </div>
+                            </template>
+                        </div>
+                        
+                        <!-- Upload Input -->
+                        <div class="flex-1 space-y-3">
+                            <label class="block">
+                                <span class="text-[10px] font-black uppercase text-slate-500 italic">Upload Logo</span>
+                                <input type="file" @change="handleLogoSelect" accept="image/png,image/jpeg,image/gif,image/webp,image/svg+xml" class="mt-2 block w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-primary/10 file:text-primary hover:file:bg-primary/20 cursor-pointer">
+                            </label>
+                            <p class="text-[10px] text-muted-foreground">PNG, JPG, GIF, WebP or SVG. Max 5MB.</p>
                         </div>
                     </div>
                 </div>
 
-                <div class="space-y-3">
-                    <label class="text-[10px] font-black uppercase text-slate-500 italic">Logo URL</label>
-                    <input x-model="newBrand.logo_url" type="text" placeholder="https://..." class="w-full h-12 bg-muted/20 border border-border rounded-xl px-4 text-sm">
+                <!-- Colors Section -->
+                <div class="space-y-6 pt-6 border-t border-border/50">
+                    <h3 class="text-[10px] font-black uppercase tracking-widest text-primary flex items-center gap-2">
+                        <i data-lucide="palette" class="w-3 h-3"></i> Color Palette
+                    </h3>
+                    
+                    <div class="grid grid-cols-3 gap-4">
+                        <div class="space-y-3">
+                            <label class="text-[10px] font-black uppercase text-slate-500 italic">Primary</label>
+                            <div class="flex gap-2">
+                                <input x-model="newBrand.colors.primary" type="color" class="h-12 w-12 rounded-xl border border-border p-1 bg-card cursor-pointer">
+                                <input x-model="newBrand.colors.primary" type="text" class="flex-1 h-12 bg-muted/20 border border-border rounded-xl px-3 text-xs font-mono uppercase">
+                            </div>
+                        </div>
+                        <div class="space-y-3">
+                            <label class="text-[10px] font-black uppercase text-slate-500 italic">Secondary</label>
+                            <div class="flex gap-2">
+                                <input x-model="newBrand.colors.secondary" type="color" class="h-12 w-12 rounded-xl border border-border p-1 bg-card cursor-pointer">
+                                <input x-model="newBrand.colors.secondary" type="text" class="flex-1 h-12 bg-muted/20 border border-border rounded-xl px-3 text-xs font-mono uppercase">
+                            </div>
+                        </div>
+                        <div class="space-y-3">
+                            <label class="text-[10px] font-black uppercase text-slate-500 italic">Accent</label>
+                            <div class="flex gap-2">
+                                <input x-model="newBrand.colors.accent" type="color" class="h-12 w-12 rounded-xl border border-border p-1 bg-card cursor-pointer">
+                                <input x-model="newBrand.colors.accent" type="text" class="flex-1 h-12 bg-muted/20 border border-border rounded-xl px-3 text-xs font-mono uppercase">
+                            </div>
+                        </div>
+                    </div>
                 </div>
 
-                <div class="space-y-3">
-                    <label class="text-[10px] font-black uppercase text-slate-500 italic">Voice Tone</label>
-                    <select x-model="newBrand.voice_profile.tone" class="w-full h-12 bg-muted/20 border border-border rounded-xl px-4 text-sm font-bold">
-                        <option>Professional</option>
-                        <option>Casual</option>
-                        <option>Friendly</option>
-                        <option>Authoritative</option>
-                        <option>Playful</option>
-                    </select>
+                <!-- Voice Profile Section -->
+                <div class="space-y-6 pt-6 border-t border-border/50">
+                    <h3 class="text-[10px] font-black uppercase tracking-widest text-primary flex items-center gap-2">
+                        <i data-lucide="mic" class="w-3 h-3"></i> Voice & Tone
+                    </h3>
+                    
+                    <div class="grid grid-cols-2 gap-6">
+                        <div class="space-y-3">
+                            <label class="text-[10px] font-black uppercase text-slate-500 italic">Tone</label>
+                            <select x-model="newBrand.voice_profile.tone" class="w-full h-12 bg-muted/20 border border-border rounded-xl px-4 text-sm font-bold">
+                                <option>Professional</option>
+                                <option>Casual</option>
+                                <option>Friendly</option>
+                                <option>Authoritative</option>
+                                <option>Playful</option>
+                                <option>Luxurious</option>
+                                <option>Empathetic</option>
+                                <option>Bold</option>
+                            </select>
+                        </div>
+                        <div class="space-y-3">
+                            <label class="text-[10px] font-black uppercase text-slate-500 italic">Writing Style</label>
+                            <select x-model="newBrand.voice_profile.writing_style" class="w-full h-12 bg-muted/20 border border-border rounded-xl px-4 text-sm font-bold">
+                                <option>Balanced</option>
+                                <option>Concise</option>
+                                <option>Detailed</option>
+                                <option>Conversational</option>
+                                <option>Technical</option>
+                                <option>Storytelling</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="space-y-3">
+                        <label class="text-[10px] font-black uppercase text-slate-500 italic">Brand Personality</label>
+                        <input x-model="newBrand.voice_profile.personality" type="text" placeholder="e.g. Innovative, Trustworthy, Approachable" class="w-full h-12 bg-muted/20 border border-border rounded-xl px-4 text-sm">
+                    </div>
+                    
+                    <div class="grid grid-cols-2 gap-6">
+                        <div class="space-y-3">
+                            <label class="text-[10px] font-black uppercase text-slate-500 italic">Key Phrases to Use</label>
+                            <textarea x-model="newBrand.voice_profile.keywords" rows="2" placeholder="Phrases that represent your brand..." class="w-full bg-muted/20 border border-border rounded-xl p-4 text-sm"></textarea>
+                        </div>
+                        <div class="space-y-3">
+                            <label class="text-[10px] font-black uppercase text-slate-500 italic">Words to Avoid</label>
+                            <textarea x-model="newBrand.voice_profile.avoid_words" rows="2" placeholder="Words that don't fit your brand..." class="w-full bg-muted/20 border border-border rounded-xl p-4 text-sm"></textarea>
+                        </div>
+                    </div>
                 </div>
 
-                <div class="space-y-3">
-                    <label class="text-[10px] font-black uppercase text-slate-500 italic">Website</label>
-                    <input x-model="newBrand.contact_info.website" type="text" placeholder="www.example.com" class="w-full h-12 bg-muted/20 border border-border rounded-xl px-4 text-sm">
-                </div>
             </div>
             <div class="p-6 border-t border-border bg-muted/30 flex justify-end gap-3">
                 <button @click="showCreateModal = false" class="px-6 py-3 rounded-xl border border-border font-bold text-xs uppercase">Cancel</button>
-                <button @click="saveBrand" :disabled="isSaving" class="px-8 py-3 rounded-xl bg-primary text-primary-foreground font-black text-xs uppercase tracking-widest shadow-lg">
-                    <span x-text="isSaving ? 'Saving...' : 'Create Kit'"></span>
+                <button @click="saveBrand" :disabled="isSaving" class="px-8 py-3 rounded-xl bg-primary text-primary-foreground font-black text-xs uppercase tracking-widest shadow-lg disabled:opacity-50 flex items-center gap-2">
+                    <template x-if="isSaving"><i data-lucide="loader-2" class="w-4 h-4 animate-spin"></i></template>
+                    <span x-text="isSaving ? 'Creating...' : 'Create Brand Kit'"></span>
                 </button>
             </div>
         </div>
     </div>
 
-    <!-- Edit Modal (Simplified copy of Create for brevity, bind to selectedBrand) -->
+    <!-- Edit Modal -->
     <div x-show="showEditModal && selectedBrand" x-cloak class="fixed inset-0 z-[150] flex items-center justify-center bg-black/80 backdrop-blur-md p-4">
-        <div @click.away="showEditModal = false" class="bg-card w-full max-w-2xl rounded-[40px] shadow-2xl border border-border flex flex-col overflow-hidden animate-in zoom-in-95 duration-200">
-            <div class="p-8 border-b border-border bg-muted/30 flex justify-between items-center">
-                <h2 class="text-xl font-black uppercase tracking-tighter">Edit Brand Kit</h2>
-                <button @click="showEditModal = false"><i data-lucide="x" class="w-6 h-6 text-muted-foreground"></i></button>
-            </div>
-            <div class="p-8 overflow-y-auto max-h-[70vh] custom-scrollbar space-y-6">
-                <!-- Fields linked to selectedBrand -->
-                <div class="space-y-3">
-                    <label class="text-[10px] font-black uppercase text-slate-500 italic">Brand Name</label>
-                    <input x-model="selectedBrand.name" type="text" class="w-full h-12 bg-muted/20 border border-border rounded-xl px-4 text-sm font-bold">
+        <template x-if="selectedBrand">
+            <div @click.away="showEditModal = false" class="bg-card w-full max-w-3xl rounded-[40px] shadow-2xl border border-border flex flex-col overflow-hidden animate-in zoom-in-95 duration-200">
+                <div class="p-8 border-b border-border bg-muted/30 flex justify-between items-center">
+                    <div>
+                        <h2 class="text-xl font-black uppercase tracking-tighter">Edit Brand Kit</h2>
+                        <p class="text-xs text-muted-foreground mt-1" x-text="selectedBrand.name"></p>
+                    </div>
+                    <button @click="showEditModal = false"><i data-lucide="x" class="w-6 h-6 text-muted-foreground"></i></button>
                 </div>
-                
-                <div class="grid grid-cols-2 gap-4">
-                    <div class="space-y-3">
-                        <label class="text-[10px] font-black uppercase text-slate-500 italic">Primary Color</label>
-                        <div class="flex gap-2">
-                            <input x-model="selectedBrand.colors.primary" type="color" class="h-12 w-12 rounded-xl border border-border p-1 bg-card cursor-pointer">
-                            <input x-model="selectedBrand.colors.primary" type="text" class="flex-1 h-12 bg-muted/20 border border-border rounded-xl px-4 text-sm font-mono">
+                <div class="p-8 overflow-y-auto max-h-[70vh] custom-scrollbar space-y-8">
+                    
+                    <!-- Basic Info -->
+                    <div class="space-y-6">
+                        <h3 class="text-[10px] font-black uppercase tracking-widest text-primary flex items-center gap-2">
+                            <i data-lucide="info" class="w-3 h-3"></i> Basic Information
+                        </h3>
+                        
+                        <div class="grid grid-cols-2 gap-6">
+                            <div class="space-y-3">
+                                <label class="text-[10px] font-black uppercase text-slate-500 italic">Brand Name</label>
+                                <input x-model="selectedBrand.name" type="text" class="w-full h-12 bg-muted/20 border border-border rounded-xl px-4 text-sm font-bold">
+                            </div>
+                            <div class="space-y-3">
+                                <label class="text-[10px] font-black uppercase text-slate-500 italic">Tagline</label>
+                                <input x-model="selectedBrand.tagline" type="text" class="w-full h-12 bg-muted/20 border border-border rounded-xl px-4 text-sm">
+                            </div>
+                        </div>
+                        
+                        <div class="grid grid-cols-2 gap-6">
+                            <div class="space-y-3">
+                                <label class="text-[10px] font-black uppercase text-slate-500 italic">Industry</label>
+                                <select x-model="selectedBrand.industry" class="w-full h-12 bg-muted/20 border border-border rounded-xl px-4 text-sm font-bold">
+                                    <option value="">Select Industry...</option>
+                                    <option>Technology</option>
+                                    <option>Healthcare</option>
+                                    <option>Finance</option>
+                                    <option>E-commerce</option>
+                                    <option>Real Estate</option>
+                                    <option>Food & Beverage</option>
+                                    <option>Fashion</option>
+                                    <option>Beauty & Wellness</option>
+                                    <option>Education</option>
+                                    <option>Entertainment</option>
+                                    <option>Travel & Hospitality</option>
+                                    <option>Automotive</option>
+                                    <option>Construction</option>
+                                    <option>Other</option>
+                                </select>
+                            </div>
+                            <div class="space-y-3">
+                                <label class="text-[10px] font-black uppercase text-slate-500 italic">Website</label>
+                                <input x-model="selectedBrand.contact_info.website" type="text" class="w-full h-12 bg-muted/20 border border-border rounded-xl px-4 text-sm">
+                            </div>
                         </div>
                     </div>
-                    <div class="space-y-3">
-                        <label class="text-[10px] font-black uppercase text-slate-500 italic">Secondary Color</label>
-                        <div class="flex gap-2">
-                            <input x-model="selectedBrand.colors.secondary" type="color" class="h-12 w-12 rounded-xl border border-border p-1 bg-card cursor-pointer">
-                            <input x-model="selectedBrand.colors.secondary" type="text" class="flex-1 h-12 bg-muted/20 border border-border rounded-xl px-4 text-sm font-mono">
+
+                    <!-- Logo Upload -->
+                    <div class="space-y-6 pt-6 border-t border-border/50">
+                        <h3 class="text-[10px] font-black uppercase tracking-widest text-primary flex items-center gap-2">
+                            <i data-lucide="image" class="w-3 h-3"></i> Brand Logo
+                        </h3>
+                        
+                        <div class="flex items-start gap-6">
+                            <div class="w-32 h-32 rounded-2xl border-2 border-dashed border-border bg-muted/20 flex items-center justify-center overflow-hidden shrink-0">
+                                <template x-if="editLogoPreview">
+                                    <img :src="editLogoPreview" class="w-full h-full object-contain p-2">
+                                </template>
+                                <template x-if="!editLogoPreview && selectedBrand.logo_url">
+                                    <img :src="selectedBrand.logo_url" class="w-full h-full object-contain p-2">
+                                </template>
+                                <template x-if="!editLogoPreview && !selectedBrand.logo_url">
+                                    <div class="text-center">
+                                        <i data-lucide="image" class="w-8 h-8 text-slate-300 mx-auto mb-2"></i>
+                                        <span class="text-[9px] text-slate-400 uppercase font-bold">No Logo</span>
+                                    </div>
+                                </template>
+                            </div>
+                            
+                            <div class="flex-1 space-y-3">
+                                <label class="block">
+                                    <span class="text-[10px] font-black uppercase text-slate-500 italic">Upload New Logo</span>
+                                    <input type="file" @change="handleEditLogoSelect" accept="image/png,image/jpeg,image/gif,image/webp,image/svg+xml" class="mt-2 block w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-primary/10 file:text-primary hover:file:bg-primary/20 cursor-pointer">
+                                </label>
+                                <p class="text-[10px] text-muted-foreground">Upload a new image to replace the current logo.</p>
+                            </div>
                         </div>
                     </div>
-                </div>
 
-                <div class="space-y-3">
-                    <label class="text-[10px] font-black uppercase text-slate-500 italic">Logo URL</label>
-                    <input x-model="selectedBrand.logo_url" type="text" class="w-full h-12 bg-muted/20 border border-border rounded-xl px-4 text-sm">
-                </div>
+                    <!-- Colors -->
+                    <div class="space-y-6 pt-6 border-t border-border/50">
+                        <h3 class="text-[10px] font-black uppercase tracking-widest text-primary flex items-center gap-2">
+                            <i data-lucide="palette" class="w-3 h-3"></i> Color Palette
+                        </h3>
+                        
+                        <div class="grid grid-cols-3 gap-4">
+                            <div class="space-y-3">
+                                <label class="text-[10px] font-black uppercase text-slate-500 italic">Primary</label>
+                                <div class="flex gap-2">
+                                    <input x-model="selectedBrand.colors.primary" type="color" class="h-12 w-12 rounded-xl border border-border p-1 bg-card cursor-pointer">
+                                    <input x-model="selectedBrand.colors.primary" type="text" class="flex-1 h-12 bg-muted/20 border border-border rounded-xl px-3 text-xs font-mono uppercase">
+                                </div>
+                            </div>
+                            <div class="space-y-3">
+                                <label class="text-[10px] font-black uppercase text-slate-500 italic">Secondary</label>
+                                <div class="flex gap-2">
+                                    <input x-model="selectedBrand.colors.secondary" type="color" class="h-12 w-12 rounded-xl border border-border p-1 bg-card cursor-pointer">
+                                    <input x-model="selectedBrand.colors.secondary" type="text" class="flex-1 h-12 bg-muted/20 border border-border rounded-xl px-3 text-xs font-mono uppercase">
+                                </div>
+                            </div>
+                            <div class="space-y-3">
+                                <label class="text-[10px] font-black uppercase text-slate-500 italic">Accent</label>
+                                <div class="flex gap-2">
+                                    <input x-model="selectedBrand.colors.accent" type="color" class="h-12 w-12 rounded-xl border border-border p-1 bg-card cursor-pointer">
+                                    <input x-model="selectedBrand.colors.accent" type="text" class="flex-1 h-12 bg-muted/20 border border-border rounded-xl px-3 text-xs font-mono uppercase">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
 
-                <div class="space-y-3">
-                    <label class="text-[10px] font-black uppercase text-slate-500 italic">Voice Tone</label>
-                    <select x-model="selectedBrand.voice_profile.tone" class="w-full h-12 bg-muted/20 border border-border rounded-xl px-4 text-sm font-bold">
-                        <option>Professional</option>
-                        <option>Casual</option>
-                        <option>Friendly</option>
-                        <option>Authoritative</option>
-                        <option>Playful</option>
-                    </select>
-                </div>
+                    <!-- Voice Profile -->
+                    <div class="space-y-6 pt-6 border-t border-border/50">
+                        <h3  class="text-[10px] font-black uppercase tracking-widest text-primary flex items-center gap-2">
+                            <i data-lucide="mic" class="w-3 h-3"></i> Voice & Tone
+                        </h3>
+                        
+                        <div class="grid grid-cols-2 gap-6">
+                            <div class="space-y-3">
+                                <label class="text-[10px] font-black uppercase text-slate-500 italic">Tone</label>
+                                <select x-model="selectedBrand.voice_profile.tone" class="w-full h-12 bg-muted/20 border border-border rounded-xl px-4 text-sm font-bold">
+                                    <option>Professional</option>
+                                    <option>Casual</option>
+                                    <option>Friendly</option>
+                                    <option>Authoritative</option>
+                                    <option>Playful</option>
+                                    <option>Luxurious</option>
+                                    <option>Empathetic</option>
+                                    <option>Bold</option>
+                                </select>
+                            </div>
+                            <div class="space-y-3">
+                                <label class="text-[10px] font-black uppercase text-slate-500 italic">Writing Style</label>
+                                <select x-model="selectedBrand.voice_profile.writing_style" class="w-full h-12 bg-muted/20 border border-border rounded-xl px-4 text-sm font-bold">
+                                    <option>Balanced</option>
+                                    <option>Concise</option>
+                                    <option>Detailed</option>
+                                    <option>Conversational</option>
+                                    <option>Technical</option>
+                                    <option>Storytelling</option>
+                                </select>
+                            </div>
+                        </div>
+                        
+                        <div class="space-y-3">
+                            <label class="text-[10px] font-black uppercase text-slate-500 italic">Brand Personality</label>
+                            <input x-model="selectedBrand.voice_profile.personality" type="text" class="w-full h-12 bg-muted/20 border border-border rounded-xl px-4 text-sm">
+                        </div>
+                    </div>
 
-                <div class="space-y-3">
-                    <label class="text-[10px] font-black uppercase text-slate-500 italic">Website</label>
-                    <input x-model="selectedBrand.contact_info.website" type="text" class="w-full h-12 bg-muted/20 border border-border rounded-xl px-4 text-sm">
+                </div>
+                <div class="p-6 border-t border-border bg-muted/30 flex justify-end gap-3">
+                    <button @click="showEditModal = false" class="px-6 py-3 rounded-xl border border-border font-bold text-xs uppercase">Cancel</button>
+                    <button @click="updateBrand" :disabled="isSaving" class="px-8 py-3 rounded-xl bg-primary text-primary-foreground font-black text-xs uppercase tracking-widest shadow-lg disabled:opacity-50 flex items-center gap-2">
+                        <template x-if="isSaving"><i data-lucide="loader-2" class="w-4 h-4 animate-spin"></i></template>
+                        <span x-text="isSaving ? 'Saving...' : 'Save Changes'"></span>
+                    </button>
                 </div>
             </div>
-            <div class="p-6 border-t border-border bg-muted/30 flex justify-end gap-3">
-                <button @click="showEditModal = false" class="px-6 py-3 rounded-xl border border-border font-bold text-xs uppercase">Cancel</button>
-                <button @click="updateBrand" :disabled="isSaving" class="px-8 py-3 rounded-xl bg-primary text-primary-foreground font-black text-xs uppercase tracking-widest shadow-lg">
-                    <span x-text="isSaving ? 'Updating...' : 'Save Changes'"></span>
-                </button>
-            </div>
-        </div>
+        </template>
     </div>
 </div>
 @endsection
