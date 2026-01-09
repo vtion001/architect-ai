@@ -118,9 +118,12 @@ Route::middleware(['auth', 'tenant', 'mfa', 'session_security'])->group(function
 
     Route::get('/ai-agents', [\App\Http\Controllers\AiAgentController::class, 'index'])->name('ai-agents.index');
     Route::post('/ai-agents', [\App\Http\Controllers\AiAgentController::class, 'store'])->name('ai-agents.store');
-    Route::post('/ai-agents/chat', [\App\Http\Controllers\AiAgentController::class, 'chat'])->name('ai-agents.chat');
+    Route::get('/ai-agents/{agent}', [\App\Http\Controllers\AiAgentController::class, 'show'])->name('ai-agents.show');
     Route::put('/ai-agents/{agent}', [\App\Http\Controllers\AiAgentController::class, 'update'])->name('ai-agents.update');
     Route::delete('/ai-agents/{agent}', [\App\Http\Controllers\AiAgentController::class, 'destroy'])->name('ai-agents.destroy');
+    Route::post('/ai-agents/chat', [\App\Http\Controllers\AiAgentController::class, 'chat'])->name('ai-agents.chat');
+    Route::get('/ai-agents/conversation', [\App\Http\Controllers\AiAgentController::class, 'getConversation'])->name('ai-agents.conversation');
+    Route::post('/ai-agents/conversation/clear', [\App\Http\Controllers\AiAgentController::class, 'clearConversation'])->name('ai-agents.conversation.clear');
 
     Route::get('/documents', [DocumentsController::class, 'index'])->name('documents.index');
     Route::get('/documents/{document}', [DocumentsController::class, 'show'])->name('documents.show');
