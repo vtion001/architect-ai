@@ -215,46 +215,46 @@
             </div>
 
             <!-- Modal Body -->
-            <div class="p-10 overflow-y-auto max-h-[65vh] custom-scrollbar">
-                <div class="space-y-8">
-                    <div class="grid grid-cols-2 gap-8">
-                        <div class="space-y-3">
+            <div class="p-6 overflow-y-auto max-h-[75vh] custom-scrollbar">
+                <div class="space-y-5">
+                    <div class="grid grid-cols-2 gap-5">
+                        <div class="space-y-2">
                             <label class="text-[10px] font-black uppercase tracking-widest text-slate-500 italic px-1">Designation Name</label>
-                            <input x-model="newAgent.name" type="text" required placeholder="e.g. Nexus-7" class="w-full h-14 bg-muted/20 border border-border rounded-2xl px-5 text-sm font-bold focus:ring-2 focus:ring-primary/20 outline-none">
+                            <input x-model="newAgent.name" type="text" required placeholder="e.g. Nexus-7" class="w-full h-11 bg-muted/20 border border-border rounded-xl px-4 text-sm font-bold focus:ring-2 focus:ring-primary/20 outline-none">
                         </div>
-                        <div class="space-y-3">
+                        <div class="space-y-2">
                             <label class="text-[10px] font-black uppercase tracking-widest text-slate-500 italic px-1">Functional Role</label>
-                            <input x-model="newAgent.role" type="text" placeholder="e.g. Market Research Analyst" class="w-full h-14 bg-muted/20 border border-border rounded-2xl px-5 text-sm font-bold focus:ring-2 focus:ring-primary/20 outline-none">
+                            <input x-model="newAgent.role" type="text" placeholder="e.g. Market Research Analyst" class="w-full h-11 bg-muted/20 border border-border rounded-xl px-4 text-sm font-bold focus:ring-2 focus:ring-primary/20 outline-none">
                         </div>
                     </div>
 
-                    <div class="space-y-3">
+                    <div class="space-y-2">
                         <label class="text-[10px] font-black uppercase tracking-widest text-slate-500 italic px-1">Primary Directive (Goal)</label>
-                        <textarea x-model="newAgent.goal" rows="3" placeholder="Define the agent's main objective and success criteria..." class="w-full bg-muted/20 border border-border rounded-2xl p-6 text-sm font-medium focus:ring-2 focus:ring-primary/20 outline-none"></textarea>
+                        <textarea x-model="newAgent.goal" rows="2" placeholder="Define the agent's main objective and success criteria..." class="w-full bg-muted/20 border border-border rounded-xl p-4 text-sm font-medium focus:ring-2 focus:ring-primary/20 outline-none"></textarea>
                     </div>
 
-                    <div class="space-y-3">
+                    <div class="space-y-2">
                         <label class="text-[10px] font-black uppercase tracking-widest text-slate-500 italic px-1">Backstory & Context</label>
-                        <textarea x-model="newAgent.backstory" rows="3" placeholder="Provide personality traits or specific context for the agent..." class="w-full bg-muted/20 border border-border rounded-2xl p-6 text-sm font-medium focus:ring-2 focus:ring-primary/20 outline-none"></textarea>
+                        <textarea x-model="newAgent.backstory" rows="2" placeholder="Provide personality traits or specific context for the agent..." class="w-full bg-muted/20 border border-border rounded-xl p-4 text-sm font-medium focus:ring-2 focus:ring-primary/20 outline-none"></textarea>
                     </div>
 
                     <!-- Appearance Settings -->
-                    <div class="pt-6 border-t border-border/50 space-y-6">
+                    <div class="pt-5 border-t border-border/50 space-y-4">
                         <label class="text-[10px] font-black uppercase tracking-widest text-primary italic px-1 flex items-center gap-2">
                             <i data-lucide="palette" class="w-3 h-3"></i>
                             Appearance Matrix
                         </label>
-                        <div class="grid grid-cols-2 gap-8">
-                            <div class="space-y-3">
+                        <div class="grid grid-cols-2 gap-5">
+                            <div class="space-y-2">
                                 <label class="text-[9px] font-black uppercase text-slate-500 px-1">Primary Signature Color</label>
                                 <div class="flex gap-3">
-                                    <input x-model="newAgent.primary_color" type="color" class="w-14 h-14 rounded-2xl cursor-pointer border border-border bg-muted/20 p-1">
-                                    <input x-model="newAgent.primary_color" type="text" class="flex-1 h-14 bg-muted/20 border border-border rounded-2xl px-5 text-sm font-mono font-bold uppercase">
+                                    <input x-model="newAgent.primary_color" type="color" class="w-11 h-11 rounded-lg cursor-pointer border border-border bg-muted/20 p-1">
+                                    <input x-model="newAgent.primary_color" type="text" class="flex-1 h-11 bg-muted/20 border border-border rounded-xl px-4 text-sm font-mono font-bold uppercase">
                                 </div>
                             </div>
-                            <div class="space-y-3">
+                            <div class="space-y-2">
                                 <label class="text-[9px] font-black uppercase text-slate-500 px-1">Widget Position</label>
-                                <select x-model="newAgent.widget_position" class="w-full h-14 bg-muted/20 border border-border rounded-2xl px-5 text-sm font-bold">
+                                <select x-model="newAgent.widget_position" class="w-full h-11 bg-muted/20 border border-border rounded-xl px-4 text-sm font-bold">
                                     <option value="bottom-right">Bottom Right</option>
                                     <option value="bottom-left">Bottom Left</option>
                                     <option value="top-right">Top Right</option>
@@ -262,35 +262,35 @@
                                 </select>
                             </div>
                         </div>
-                        <div class="space-y-3">
+                        <div class="space-y-2">
                             <label class="text-[9px] font-black uppercase text-slate-500 px-1">Welcome Protocol Message</label>
-                            <input x-model="newAgent.welcome_message" type="text" placeholder="Hello! How can I assist you?" class="w-full h-14 bg-muted/20 border border-border rounded-2xl px-5 text-sm font-bold">
+                            <input x-model="newAgent.welcome_message" type="text" placeholder="Hello! How can I assist you?" class="w-full h-11 bg-muted/20 border border-border rounded-xl px-4 text-sm font-bold">
                         </div>
                     </div>
 
                     <!-- Knowledge Sources -->
-                    <div class="space-y-4 pt-6 border-t border-border/50">
+                    <div class="space-y-3 pt-5 border-t border-border/50">
                         <label class="text-[10px] font-black uppercase tracking-widest text-primary italic px-1 flex items-center gap-2">
                             <i data-lucide="link" class="w-3 h-3"></i>
                             Knowledge Grounding
                         </label>
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 max-h-60 overflow-y-auto custom-scrollbar p-1">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-3 max-h-48 overflow-y-auto custom-scrollbar p-1">
                             @foreach($knowledgeAssets as $asset)
-                                <label class="flex items-center gap-4 p-4 rounded-2xl border border-border bg-card hover:border-primary/40 cursor-pointer transition-all group relative overflow-hidden">
+                                <label class="flex items-center gap-3 p-3 rounded-xl border border-border bg-card hover:border-primary/40 cursor-pointer transition-all group relative overflow-hidden">
                                     <div class="absolute inset-0 bg-primary/5 opacity-0 group-hover:opacity-100 transition-opacity"></div>
-                                    <input type="checkbox" value="{{ $asset->id }}" x-model="newAgent.knowledge_sources" class="w-5 h-5 rounded-lg border-slate-300 text-primary focus:ring-primary relative z-10">
-                                    <div class="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 relative z-10 {{ $asset->type === 'folder' ? 'bg-amber-100 text-amber-600' : 'bg-blue-100 text-blue-600' }}">
-                                        <i data-lucide="{{ $asset->type === 'folder' ? 'folder' : 'file-text' }}" class="w-5 h-5"></i>
+                                    <input type="checkbox" value="{{ $asset->id }}" x-model="newAgent.knowledge_sources" class="w-4 h-4 rounded border-slate-300 text-primary focus:ring-primary relative z-10">
+                                    <div class="w-8 h-8 rounded-lg flex items-center justify-center shrink-0 relative z-10 {{ $asset->type === 'folder' ? 'bg-amber-100 text-amber-600' : 'bg-blue-100 text-blue-600' }}">
+                                        <i data-lucide="{{ $asset->type === 'folder' ? 'folder' : 'file-text' }}" class="w-4 h-4"></i>
                                     </div>
                                     <div class="min-w-0 relative z-10">
-                                        <p class="text-sm font-black truncate text-foreground">{{ $asset->title }}</p>
-                                        <p class="text-[9px] text-muted-foreground uppercase font-bold tracking-widest">{{ $asset->category }}</p>
+                                        <p class="text-xs font-black truncate text-foreground">{{ $asset->title }}</p>
+                                        <p class="text-[8px] text-muted-foreground uppercase font-bold tracking-widest">{{ $asset->category }}</p>
                                     </div>
                                 </label>
                             @endforeach
                             @if($knowledgeAssets->isEmpty())
-                                <div class="col-span-2 py-8 text-center bg-muted/10 border-2 border-dashed border-border rounded-3xl">
-                                    <p class="text-xs text-muted-foreground italic">No intelligence nodes available. Index data in the Hub first.</p>
+                                <div class="col-span-2 py-6 text-center bg-muted/10 border-2 border-dashed border-border rounded-2xl">
+                                    <p class="text-[10px] text-muted-foreground italic">No intelligence nodes available.</p>
                                 </div>
                             @endif
                         </div>

@@ -17,6 +17,26 @@ services:
         networks:
             - architect-network
 
+    queue:
+        build:
+            context: .
+            dockerfile: Dockerfile
+        image: architect-ai-app
+        container_name: architect-ai-queue
+        restart: unless-stopped
+        working_dir: /var/www
+        command: php artisan queue:work --tries=3 --timeout=600
+        environment:
+            PHP_MEMORY_LIMIT: 512M
+        volumes:
+            - ./:/var/www
+            - ./docker/php/uploads.ini:/usr/local/etc/php/conf.d/uploads.ini
+        networks:
+            - architect-network
+        depends_on:
+            - app
+            - db
+            - qdrant
     web:
         image: nginx:alpine
         container_name: architect-ai-web

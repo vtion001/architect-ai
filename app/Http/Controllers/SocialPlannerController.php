@@ -9,14 +9,12 @@ use App\Models\Content;
 class SocialPlannerController extends Controller
 {
     public function __construct(
-        protected \App\Services\ResearchService $researchService,
-        protected \App\Models\Tenant $tenant
-    ) {
-        $this->tenant = app(\App\Models\Tenant::class);
-    }
+        protected \App\Services\ResearchService $researchService
+    ) {}
 
     public function index()
     {
+        $tenant = auth()->user()->tenant;
         $scheduledPosts = Content::where('type', 'social-post')
             ->whereIn('status', ['scheduled', 'published'])
             ->latest()
@@ -26,7 +24,8 @@ class SocialPlannerController extends Controller
         $baseUrl = rtrim(config('app.url'), '/');
         
         // Load connected status from Encrypted Metadata
-        $metadata = $this->tenant->metadata ?? [];
+        // Force refresh to ensure we get latest DB state
+        $metadata = $tenant->refresh()->metadata ?? [];
 
         $socialConfig = [
             'facebook' => [
@@ -83,7 +82,7 @@ class SocialPlannerController extends Controller
             'result' => $validated['content'],
             'type' => 'social-post',
             'status' => 'scheduled',
-            'tenant_id' => $this->tenant->id,
+            'tenant_id' => auth()->user()->tenant_id,
             'options' => [
                 'platform' => $validated['platform'] ?? 'generic',
                 'scheduled_at' => $validated['scheduled_at']
@@ -95,7 +94,7 @@ class SocialPlannerController extends Controller
 
     public function update(Request $request, Content $content)
     {
-        if ($content->tenant_id !== $this->tenant->id) {
+        if ($content->tenant_id !== auth()->user()->tenant_id) {
             abort(403);
         }
 
@@ -117,7 +116,7 @@ class SocialPlannerController extends Controller
 
     public function destroy(Content $content)
     {
-        if ($content->tenant_id !== $this->tenant->id) {
+        if ($content->tenant_id !== auth()->user()->tenant_id) {
             abort(403);
         }
         
@@ -150,8 +149,12 @@ class SocialPlannerController extends Controller
             $data = $response->json();
 
             if (isset($data['access_token'])) {
-                $metadata = $this->tenant->metadata ?? [];
+                $tenant = auth()->user()->tenant;
+                // Force refresh to get decrypted metadata
+                $metadata = $tenant->refresh()->metadata ?? [];
                 
+                \Illuminate\Support\Facades\Log::info("Social Auth Success: Saving token for $platform on Tenant {$tenant->id}");
+
                 // Store in Encrypted Metadata (automatically handled by Model mutator)
                 $metadata["{$platform}_access_token"] = $data['access_token'];
                 
@@ -159,7 +162,7 @@ class SocialPlannerController extends Controller
                     $metadata['instagram_access_token'] = $data['access_token'];
                 }
 
-                $this->tenant->update(['metadata' => $metadata]);
+                $tenant->update(['metadata' => $metadata]);
                 
                 return response()->view('social-planner.callback', ['platform' => $platform]);
             } else {
@@ -175,7 +178,8 @@ class SocialPlannerController extends Controller
 
     public function getFacebookPages()
     {
-        $metadata = $this->tenant->metadata ?? [];
+        $tenant = auth()->user()->tenant;
+        $metadata = $tenant->refresh()->metadata ?? [];
         $accessToken = $metadata['facebook_access_token'] ?? null;
 
         if (!$accessToken) {

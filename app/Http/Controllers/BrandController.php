@@ -28,6 +28,17 @@ class BrandController extends Controller
 
     public function store(Request $request)
     {
+        // Decode JSON fields from FormData (frontend sends them as strings)
+        foreach (['colors', 'typography', 'voice_profile', 'contact_info', 'social_handles'] as $field) {
+            if ($request->has($field) && is_string($request->input($field))) {
+                $decoded = json_decode($request->input($field), true);
+                if (json_last_error() === JSON_ERROR_NONE) {
+                    $request->merge([$field => $decoded]);
+                }
+            }
+        }
+
+
         $validated = $request->validate([
             'name' => 'required|string|max:255',
             'tagline' => 'nullable|string|max:255',
@@ -68,6 +79,17 @@ class BrandController extends Controller
 
     public function update(Request $request, Brand $brand)
     {
+        // Decode JSON fields from FormData
+        foreach (['colors', 'typography', 'voice_profile', 'contact_info', 'social_handles'] as $field) {
+            if ($request->has($field) && is_string($request->input($field))) {
+                $decoded = json_decode($request->input($field), true);
+                if (json_last_error() === JSON_ERROR_NONE) {
+                    $request->merge([$field => $decoded]);
+                }
+            }
+        }
+
+
         // Policy-based authorization
         $this->authorize('update', $brand);
 
