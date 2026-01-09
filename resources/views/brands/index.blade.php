@@ -234,7 +234,7 @@
             <div class="p-6 border-t border-border bg-muted/30 flex justify-end gap-3">
                 <button @click="showCreateModal = false" class="px-6 py-3 rounded-xl border border-border font-bold text-xs uppercase">Cancel</button>
                 <button @click="saveBrand" :disabled="isSaving" class="px-8 py-3 rounded-xl bg-primary text-primary-foreground font-black text-xs uppercase tracking-widest shadow-lg">
-                    {{ isSaving ? 'Saving...' : 'Create Kit' }}
+                    <span x-text="isSaving ? 'Saving...' : 'Create Kit'"></span>
                 </button>
             </div>
         </div>
@@ -295,7 +295,7 @@
             <div class="p-6 border-t border-border bg-muted/30 flex justify-end gap-3">
                 <button @click="showEditModal = false" class="px-6 py-3 rounded-xl border border-border font-bold text-xs uppercase">Cancel</button>
                 <button @click="updateBrand" :disabled="isSaving" class="px-8 py-3 rounded-xl bg-primary text-primary-foreground font-black text-xs uppercase tracking-widest shadow-lg">
-                    {{ isSaving ? 'Updating...' : 'Save Changes' }}
+                    <span x-text="isSaving ? 'Updating...' : 'Save Changes'"></span>
                 </button>
             </div>
         </div>
