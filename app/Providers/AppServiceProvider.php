@@ -4,6 +4,9 @@ namespace App\Providers;
 
 use App\Models\AiAgent;
 use App\Models\Brand;
+use App\Models\Content;
+use App\Observers\AiAgentObserver;
+use App\Observers\ContentObserver;
 use App\Policies\AiAgentPolicy;
 use App\Policies\BrandPolicy;
 use Illuminate\Support\ServiceProvider;
@@ -22,6 +25,16 @@ class AppServiceProvider extends ServiceProvider
     ];
 
     /**
+     * The observer mappings for the application.
+     *
+     * @var array<class-string, class-string>
+     */
+    protected $observers = [
+        Content::class => ContentObserver::class,
+        AiAgent::class => AiAgentObserver::class,
+    ];
+
+    /**
      * Register any application services.
      */
     public function register(): void
@@ -37,6 +50,11 @@ class AppServiceProvider extends ServiceProvider
         // Register policies manually for explicit binding
         foreach ($this->policies as $model => $policy) {
             Gate::policy($model, $policy);
+        }
+
+        // Register model observers (Observer Pattern)
+        foreach ($this->observers as $model => $observer) {
+            $model::observe($observer);
         }
 
         Gate::define('is-developer', function ($user) {
