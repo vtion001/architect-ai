@@ -12,6 +12,9 @@ class Research extends Model
 
     protected $table = 'researches';
 
+    public $incrementing = false;
+    protected $keyType = 'string';
+
     protected $guarded = [];
 
     protected $casts = [

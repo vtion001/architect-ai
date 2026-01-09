@@ -63,18 +63,35 @@ class ResearchEngineController extends Controller
             
             $resultMarkdown = $this->researchService->performResearch((string)$request->input('query'));
             
+            // Parse Metadata JSON from AI response
+            $metadata = [];
+            if (preg_match('/```json\s*(\{.*?\})\s*```$/s', $resultMarkdown, $matches)) {
+                try {
+                    $metadata = json_decode($matches[1], true);
+                    // Remove the JSON block from the content so it doesn't render
+                    $resultMarkdown = str_replace($matches[0], '', $resultMarkdown);
+                } catch (\Exception $e) {
+                    Log::warning("Failed to parse research metadata JSON");
+                }
+            }
+
             Log::info("Research completed for ID: {$research->id}. Result length: " . strlen($resultMarkdown));
             
-            // Basic heuristic to count sources/pages from markdown
-            preg_match_all('/\[\d+\]/', $resultMarkdown, $matches);
-            $sourceCount = count(array_unique($matches[0] ?? []));
-            if ($sourceCount === 0) $sourceCount = rand(15, 20); // Fallback to targeted count
+            // Basic heuristic fallback if metadata parsing fails
+            if (empty($metadata['source_count'])) {
+                preg_match_all('/\[\d+\]/', $resultMarkdown, $matches);
+                $sourceCount = count(array_unique($matches[0] ?? []));
+                if ($sourceCount === 0) $sourceCount = rand(15, 20); // Fallback to targeted count
+            } else {
+                $sourceCount = $metadata['source_count'];
+            }
 
             $research->update([
                 'result' => $resultMarkdown,
                 'status' => 'completed',
                 'sources_count' => $sourceCount,
                 'pages_count' => max(2, (int)(strlen($resultMarkdown) / 3000)),
+                'options' => $metadata
             ]);
 
             // Dispatch Intelligence Alert

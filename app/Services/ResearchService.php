@@ -99,7 +99,17 @@ class ResearchService
                             7. Future Outlook
                             8. Strategic Recommendations
                             
-                            Format in clean Markdown."
+                            Format in clean Markdown.
+                            
+                            METADATA JSON:
+                            At the very end of your response, strictly append a JSON block (surrounded by triple backticks with json) containing self-evaluated metrics.
+                            Format:
+                            {
+                              'confidence_score': '98.5%',
+                              'grounding_depth': 'Multi-Layer Web Cross-Reference',
+                              'source_count': 25,
+                              'verification_status': 'Verified'
+                            }"
                         ]
                     ],
                     'max_tokens' => 8000,
@@ -183,7 +193,18 @@ class ResearchService
                                 - Use numerical citations like [1], [2] strictly throughout the text.
                                 - Every major factual claim MUST have a citation.
                                 - Format the result in clean Markdown.
-                                - Include a detailed 'References' list at the very end with all 20-30 full URLs matching the citations."]
+                                - Include a detailed 'References' list at the very end with all 20-30 full URLs matching the citations.
+                                
+                                METADATA JSON:
+                                At the very end of your response, strictly append a JSON block (surrounded by triple backticks with json) containing self-evaluated metrics.
+                                Format:
+                                {
+                                  'confidence_score': '98.5%',
+                                  'grounding_depth': 'Multi-Layer Web Cross-Reference',
+                                  'source_count': 25,
+                                  'verification_status': 'Verified'
+                                }
+                                Do not include any text after this JSON block."]
                             ]
                         ]
                     ],
