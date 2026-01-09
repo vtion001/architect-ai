@@ -402,154 +402,158 @@
     </div>
 
     <!-- Edit Agent Modal -->
-    <div x-show="showEditModal" x-cloak class="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md p-4">
-        <div @click.away="showEditModal = false" class="bg-card w-full max-w-2xl rounded-[40px] shadow-2xl border border-border flex flex-col overflow-hidden animate-in zoom-in-95 duration-200">
-            <div class="p-8 border-b border-border bg-muted/30 flex justify-between items-center">
-                <div>
-                    <h2 class="text-xl font-black uppercase tracking-tighter text-foreground">Configure Agent</h2>
-                    <p class="text-xs text-muted-foreground font-bold uppercase tracking-widest mt-1" x-text="selectedAgent?.name"></p>
-                </div>
-                <button @click="showEditModal = false" class="w-8 h-8 rounded-full hover:bg-muted flex items-center justify-center text-slate-500 transition-colors">
-                    <i data-lucide="x" class="w-4 h-4"></i>
-                </button>
-            </div>
-
-            <div class="p-8 overflow-y-auto max-h-[70vh] custom-scrollbar">
-                <div class="space-y-6">
-                    <div class="grid grid-cols-2 gap-6">
-                        <div class="space-y-2">
-                            <label class="text-[9px] font-black uppercase tracking-widest text-muted-foreground italic px-1">Name</label>
-                            <input x-model="selectedAgent.name" type="text" class="w-full h-12 bg-muted/20 border border-border rounded-xl px-4 text-sm font-bold focus:ring-2 focus:ring-primary/20 outline-none">
-                        </div>
-                        <div class="space-y-2">
-                            <label class="text-[9px] font-black uppercase tracking-widest text-muted-foreground italic px-1">Role</label>
-                            <input x-model="selectedAgent.role" type="text" class="w-full h-12 bg-muted/20 border border-border rounded-xl px-4 text-sm font-bold focus:ring-2 focus:ring-primary/20 outline-none">
-                        </div>
-                    </div>
-                    <div class="space-y-2">
-                        <label class="text-[9px] font-black uppercase tracking-widest text-muted-foreground italic px-1">Goal</label>
-                        <textarea x-model="selectedAgent.goal" rows="3" class="w-full bg-muted/20 border border-border rounded-xl p-4 text-sm font-medium focus:ring-2 focus:ring-primary/20 outline-none"></textarea>
-                    </div>
-                    <div class="space-y-2">
-                        <label class="text-[9px] font-black uppercase tracking-widest text-muted-foreground italic px-1">Backstory</label>
-                        <textarea x-model="selectedAgent.backstory" rows="3" class="w-full bg-muted/20 border border-border rounded-xl p-4 text-sm font-medium focus:ring-2 focus:ring-primary/20 outline-none"></textarea>
-                    </div>
-                    <div class="grid grid-cols-2 gap-4">
-                        <div class="space-y-2">
-                            <label class="text-[9px] font-bold text-slate-500 px-1">Primary Color</label>
-                            <input x-model="selectedAgent.primary_color" type="color" class="w-full h-10 rounded-xl cursor-pointer border border-border">
-                        </div>
-                        <div class="space-y-2">
-                            <label class="text-[9px] font-bold text-slate-500 px-1">Temperature (Creativity)</label>
-                            <input x-model="selectedAgent.temperature" type="range" min="0" max="2" step="0.1" class="w-full">
-                            <span class="text-xs text-slate-500" x-text="selectedAgent?.temperature"></span>
-                        </div>
-                    </div>
-                    <div class="flex items-center gap-4">
-                        <label class="flex items-center gap-2 cursor-pointer">
-                            <input type="checkbox" x-model="selectedAgent.is_active" class="w-4 h-4 rounded text-primary">
-                            <span class="text-sm font-bold">Active</span>
-                        </label>
-                        <label class="flex items-center gap-2 cursor-pointer">
-                            <input type="checkbox" x-model="selectedAgent.widget_enabled" class="w-4 h-4 rounded text-primary">
-                            <span class="text-sm font-bold">Widget Enabled</span>
-                        </label>
-                    </div>
-                </div>
-            </div>
-
-            <div class="p-6 border-t border-border bg-muted/30 flex justify-end gap-3">
-                <button @click="showEditModal = false" class="px-6 py-3 rounded-xl border border-border font-black uppercase text-[10px] tracking-widest hover:bg-white transition-all">Cancel</button>
-                <button @click="updateAgent" :disabled="isSaving" class="px-8 py-3 rounded-xl bg-primary text-primary-foreground font-black uppercase text-[10px] tracking-widest shadow-lg shadow-primary/20 hover:scale-[1.02] transition-all flex items-center gap-2 disabled:opacity-50">
-                    <template x-if="isSaving"><i data-lucide="loader-2" class="w-4 h-4 animate-spin"></i></template>
-                    <span x-text="isSaving ? 'Saving...' : 'Save Changes'"></span>
-                </button>
-            </div>
-        </div>
-    </div>
-
-    <!-- Chat Modal -->
-    <div x-show="showChatModal" x-cloak class="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md p-4">
-        <div @click.away="showChatModal = false" class="bg-card w-full max-w-xl rounded-[32px] shadow-2xl border border-border flex flex-col overflow-hidden animate-in zoom-in-95 duration-200" style="height: 600px;">
-            <!-- Chat Header -->
-            <div class="px-6 py-4 border-b border-border flex items-center justify-between"
-                 :style="{ background: `linear-gradient(135deg, ${selectedAgent?.primary_color || '#00F2FF'}15, ${selectedAgent?.primary_color || '#00F2FF'}05)` }">
-                <div class="flex items-center gap-3">
-                    <div class="w-10 h-10 rounded-xl flex items-center justify-center"
-                         :style="{ backgroundColor: (selectedAgent?.primary_color || '#00F2FF') + '20', color: selectedAgent?.primary_color || '#00F2FF' }">
-                        <i data-lucide="bot" class="w-5 h-5"></i>
-                    </div>
+    <div x-show="showEditModal && selectedAgent" x-cloak class="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md p-4">
+        <template x-if="selectedAgent">
+            <div @click.away="showEditModal = false" class="bg-card w-full max-w-2xl rounded-[40px] shadow-2xl border border-border flex flex-col overflow-hidden animate-in zoom-in-95 duration-200">
+                <div class="p-8 border-b border-border bg-muted/30 flex justify-between items-center">
                     <div>
-                        <h3 class="font-bold text-sm text-foreground" x-text="selectedAgent?.name"></h3>
-                        <p class="text-[10px] text-muted-foreground uppercase tracking-wider" x-text="selectedAgent?.role"></p>
+                        <h2 class="text-xl font-black uppercase tracking-tighter text-foreground">Configure Agent</h2>
+                        <p class="text-xs text-muted-foreground font-bold uppercase tracking-widest mt-1" x-text="selectedAgent.name"></p>
                     </div>
-                </div>
-                <div class="flex items-center gap-2">
-                    <button @click="clearChatHistory()" class="w-8 h-8 rounded-full hover:bg-muted flex items-center justify-center text-muted-foreground transition-colors" title="Clear history">
-                        <i data-lucide="trash-2" class="w-4 h-4"></i>
-                    </button>
-                    <button @click="showChatModal = false" class="w-8 h-8 rounded-full hover:bg-muted flex items-center justify-center text-muted-foreground transition-colors">
+                    <button @click="showEditModal = false" class="w-8 h-8 rounded-full hover:bg-muted flex items-center justify-center text-slate-500 transition-colors">
                         <i data-lucide="x" class="w-4 h-4"></i>
                     </button>
                 </div>
-            </div>
 
-            <!-- Messages -->
-            <div id="chatMessages" class="flex-1 overflow-y-auto p-4 space-y-4 custom-scrollbar">
-                <!-- Welcome -->
-                <template x-if="chatMessages.length === 0">
-                    <div class="flex gap-3">
-                        <div class="w-8 h-8 rounded-lg shrink-0 flex items-center justify-center"
-                             :style="{ backgroundColor: (selectedAgent?.primary_color || '#00F2FF') + '20', color: selectedAgent?.primary_color || '#00F2FF' }">
-                            <i data-lucide="bot" class="w-4 h-4"></i>
-                        </div>
-                        <div class="bg-muted/50 rounded-2xl rounded-tl-md px-4 py-3 max-w-[80%]">
-                            <p class="text-sm text-foreground" x-text="selectedAgent?.welcome_message || 'Hello! How can I help you?'"></p>
-                        </div>
-                    </div>
-                </template>
-
-                <template x-for="(msg, i) in chatMessages" :key="i">
-                    <div :class="msg.role === 'user' ? 'flex justify-end' : 'flex gap-3'">
-                        <template x-if="msg.role === 'assistant'">
-                            <div class="w-8 h-8 rounded-lg shrink-0 flex items-center justify-center"
-                                 :style="{ backgroundColor: (selectedAgent?.primary_color || '#00F2FF') + '20', color: selectedAgent?.primary_color || '#00F2FF' }">
-                                <i data-lucide="bot" class="w-4 h-4"></i>
+                <div class="p-8 overflow-y-auto max-h-[70vh] custom-scrollbar">
+                    <div class="space-y-6">
+                        <div class="grid grid-cols-2 gap-6">
+                            <div class="space-y-2">
+                                <label class="text-[9px] font-black uppercase tracking-widest text-muted-foreground italic px-1">Name</label>
+                                <input x-model="selectedAgent.name" type="text" class="w-full h-12 bg-muted/20 border border-border rounded-xl px-4 text-sm font-bold focus:ring-2 focus:ring-primary/20 outline-none">
                             </div>
-                        </template>
-                        <div :class="msg.role === 'user' ? 'bg-primary text-primary-foreground rounded-2xl rounded-tr-md px-4 py-3 max-w-[80%]' : 'bg-muted/50 rounded-2xl rounded-tl-md px-4 py-3 max-w-[80%]'">
-                            <p class="text-sm whitespace-pre-wrap" x-text="msg.content"></p>
+                            <div class="space-y-2">
+                                <label class="text-[9px] font-black uppercase tracking-widest text-muted-foreground italic px-1">Role</label>
+                                <input x-model="selectedAgent.role" type="text" class="w-full h-12 bg-muted/20 border border-border rounded-xl px-4 text-sm font-bold focus:ring-2 focus:ring-primary/20 outline-none">
+                            </div>
                         </div>
-                    </div>
-                </template>
-
-                <!-- Typing -->
-                <div x-show="isChatting" class="flex gap-3">
-                    <div class="w-8 h-8 rounded-lg shrink-0 flex items-center justify-center"
-                         :style="{ backgroundColor: (selectedAgent?.primary_color || '#00F2FF') + '20', color: selectedAgent?.primary_color || '#00F2FF' }">
-                        <i data-lucide="bot" class="w-4 h-4"></i>
-                    </div>
-                    <div class="bg-muted/50 rounded-2xl rounded-tl-md px-4 py-3">
-                        <div class="flex gap-1">
-                            <span class="w-2 h-2 bg-slate-400 rounded-full animate-bounce" style="animation-delay: 0ms"></span>
-                            <span class="w-2 h-2 bg-slate-400 rounded-full animate-bounce" style="animation-delay: 150ms"></span>
-                            <span class="w-2 h-2 bg-slate-400 rounded-full animate-bounce" style="animation-delay: 300ms"></span>
+                        <div class="space-y-2">
+                            <label class="text-[9px] font-black uppercase tracking-widest text-muted-foreground italic px-1">Goal</label>
+                            <textarea x-model="selectedAgent.goal" rows="3" class="w-full bg-muted/20 border border-border rounded-xl p-4 text-sm font-medium focus:ring-2 focus:ring-primary/20 outline-none"></textarea>
+                        </div>
+                        <div class="space-y-2">
+                            <label class="text-[9px] font-black uppercase tracking-widest text-muted-foreground italic px-1">Backstory</label>
+                            <textarea x-model="selectedAgent.backstory" rows="3" class="w-full bg-muted/20 border border-border rounded-xl p-4 text-sm font-medium focus:ring-2 focus:ring-primary/20 outline-none"></textarea>
+                        </div>
+                        <div class="grid grid-cols-2 gap-4">
+                            <div class="space-y-2">
+                                <label class="text-[9px] font-bold text-slate-500 px-1">Primary Color</label>
+                                <input x-model="selectedAgent.primary_color" type="color" class="w-full h-10 rounded-xl cursor-pointer border border-border">
+                            </div>
+                            <div class="space-y-2">
+                                <label class="text-[9px] font-bold text-slate-500 px-1">Temperature (Creativity)</label>
+                                <input x-model="selectedAgent.temperature" type="range" min="0" max="2" step="0.1" class="w-full">
+                                <span class="text-xs text-slate-500" x-text="selectedAgent.temperature"></span>
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-4">
+                            <label class="flex items-center gap-2 cursor-pointer">
+                                <input type="checkbox" x-model="selectedAgent.is_active" class="w-4 h-4 rounded text-primary">
+                                <span class="text-sm font-bold">Active</span>
+                            </label>
+                            <label class="flex items-center gap-2 cursor-pointer">
+                                <input type="checkbox" x-model="selectedAgent.widget_enabled" class="w-4 h-4 rounded text-primary">
+                                <span class="text-sm font-bold">Widget Enabled</span>
+                            </label>
                         </div>
                     </div>
                 </div>
-            </div>
 
-            <!-- Input -->
-            <div class="p-4 border-t border-border bg-muted/30">
-                <form @submit.prevent="sendChat" class="flex gap-2">
-                    <input type="text" x-model="chatInput" :disabled="isChatting" placeholder="Type your message..." class="flex-1 h-11 px-4 rounded-xl border border-border bg-card text-sm focus:ring-2 focus:ring-primary/20 outline-none disabled:opacity-50">
-                    <button type="submit" :disabled="!chatInput.trim() || isChatting" class="w-11 h-11 rounded-xl flex items-center justify-center text-white transition-all disabled:opacity-50"
-                            :style="{ backgroundColor: selectedAgent?.primary_color || '#00F2FF' }">
-                        <i data-lucide="send" class="w-4 h-4"></i>
+                <div class="p-6 border-t border-border bg-muted/30 flex justify-end gap-3">
+                    <button @click="showEditModal = false" class="px-6 py-3 rounded-xl border border-border font-black uppercase text-[10px] tracking-widest hover:bg-white transition-all">Cancel</button>
+                    <button @click="updateAgent" :disabled="isSaving" class="px-8 py-3 rounded-xl bg-primary text-primary-foreground font-black uppercase text-[10px] tracking-widest shadow-lg shadow-primary/20 hover:scale-[1.02] transition-all flex items-center gap-2 disabled:opacity-50">
+                        <template x-if="isSaving"><i data-lucide="loader-2" class="w-4 h-4 animate-spin"></i></template>
+                        <span x-text="isSaving ? 'Saving...' : 'Save Changes'"></span>
                     </button>
-                </form>
+                </div>
             </div>
-        </div>
+        </template>
+    </div>
+
+    <!-- Chat Modal -->
+    <div x-show="showChatModal && selectedAgent" x-cloak class="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md p-4">
+        <template x-if="selectedAgent">
+            <div @click.away="showChatModal = false" class="bg-card w-full max-w-xl rounded-[32px] shadow-2xl border border-border flex flex-col overflow-hidden animate-in zoom-in-95 duration-200" style="height: 600px;">
+                <!-- Chat Header -->
+                <div class="px-6 py-4 border-b border-border flex items-center justify-between"
+                     :style="{ background: `linear-gradient(135deg, ${selectedAgent.primary_color || '#00F2FF'}15, ${selectedAgent.primary_color || '#00F2FF'}05)` }">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-xl flex items-center justify-center"
+                             :style="{ backgroundColor: (selectedAgent.primary_color || '#00F2FF') + '20', color: selectedAgent.primary_color || '#00F2FF' }">
+                            <i data-lucide="bot" class="w-5 h-5"></i>
+                        </div>
+                        <div>
+                            <h3 class="font-bold text-sm text-foreground" x-text="selectedAgent.name"></h3>
+                            <p class="text-[10px] text-muted-foreground uppercase tracking-wider" x-text="selectedAgent.role"></p>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <button @click="clearChatHistory()" class="w-8 h-8 rounded-full hover:bg-muted flex items-center justify-center text-muted-foreground transition-colors" title="Clear history">
+                            <i data-lucide="trash-2" class="w-4 h-4"></i>
+                        </button>
+                        <button @click="showChatModal = false" class="w-8 h-8 rounded-full hover:bg-muted flex items-center justify-center text-muted-foreground transition-colors">
+                            <i data-lucide="x" class="w-4 h-4"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Messages -->
+                <div id="chatMessages" class="flex-1 overflow-y-auto p-4 space-y-4 custom-scrollbar">
+                    <!-- Welcome -->
+                    <template x-if="chatMessages.length === 0">
+                        <div class="flex gap-3">
+                            <div class="w-8 h-8 rounded-lg shrink-0 flex items-center justify-center"
+                                 :style="{ backgroundColor: (selectedAgent.primary_color || '#00F2FF') + '20', color: selectedAgent.primary_color || '#00F2FF' }">
+                                <i data-lucide="bot" class="w-4 h-4"></i>
+                            </div>
+                            <div class="bg-muted/50 rounded-2xl rounded-tl-md px-4 py-3 max-w-[80%]">
+                                <p class="text-sm text-foreground" x-text="selectedAgent.welcome_message || 'Hello! How can I help you?'"></p>
+                            </div>
+                        </div>
+                    </template>
+
+                    <template x-for="(msg, i) in chatMessages" :key="i">
+                        <div :class="msg.role === 'user' ? 'flex justify-end' : 'flex gap-3'">
+                            <template x-if="msg.role === 'assistant'">
+                                <div class="w-8 h-8 rounded-lg shrink-0 flex items-center justify-center"
+                                     :style="{ backgroundColor: (selectedAgent.primary_color || '#00F2FF') + '20', color: selectedAgent.primary_color || '#00F2FF' }">
+                                    <i data-lucide="bot" class="w-4 h-4"></i>
+                                </div>
+                            </template>
+                            <div :class="msg.role === 'user' ? 'bg-primary text-primary-foreground rounded-2xl rounded-tr-md px-4 py-3 max-w-[80%]' : 'bg-muted/50 rounded-2xl rounded-tl-md px-4 py-3 max-w-[80%]'">
+                                <p class="text-sm whitespace-pre-wrap" x-text="msg.content"></p>
+                            </div>
+                        </div>
+                    </template>
+
+                    <!-- Typing -->
+                    <div x-show="isChatting" class="flex gap-3">
+                        <div class="w-8 h-8 rounded-lg shrink-0 flex items-center justify-center"
+                             :style="{ backgroundColor: (selectedAgent.primary_color || '#00F2FF') + '20', color: selectedAgent.primary_color || '#00F2FF' }">
+                            <i data-lucide="bot" class="w-4 h-4"></i>
+                        </div>
+                        <div class="bg-muted/50 rounded-2xl rounded-tl-md px-4 py-3">
+                            <div class="flex gap-1">
+                                <span class="w-2 h-2 bg-slate-400 rounded-full animate-bounce" style="animation-delay: 0ms"></span>
+                                <span class="w-2 h-2 bg-slate-400 rounded-full animate-bounce" style="animation-delay: 150ms"></span>
+                                <span class="w-2 h-2 bg-slate-400 rounded-full animate-bounce" style="animation-delay: 300ms"></span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Input -->
+                <div class="p-4 border-t border-border bg-muted/30">
+                    <form @submit.prevent="sendChat" class="flex gap-2">
+                        <input type="text" x-model="chatInput" :disabled="isChatting" placeholder="Type your message..." class="flex-1 h-11 px-4 rounded-xl border border-border bg-card text-sm focus:ring-2 focus:ring-primary/20 outline-none disabled:opacity-50">
+                        <button type="submit" :disabled="!chatInput.trim() || isChatting" class="w-11 h-11 rounded-xl flex items-center justify-center text-white transition-all disabled:opacity-50"
+                                :style="{ backgroundColor: selectedAgent.primary_color || '#00F2FF' }">
+                            <i data-lucide="send" class="w-4 h-4"></i>
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </template>
     </div>
 </div>
 @endsection
