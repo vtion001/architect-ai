@@ -11,10 +11,12 @@
     
     .report-header { 
         text-align: center;
-        padding: 80px 60px 40px; 
-        border-bottom: 2px solid #0f172a;
+        padding: 60px 60px 40px; 
+        border-bottom: 2px solid {{ $brandColor }};
         margin-bottom: 40px;
     }
+    
+    .brand-logo { height: 60px; width: auto; object-fit: contain; margin-bottom: 20px; }
     
     .report-header h1 { 
         font-size: 2.5rem; 
@@ -22,6 +24,7 @@
         text-transform: uppercase; 
         letter-spacing: 0.05em;
         margin-bottom: 10px;
+        color: #0f172a;
     }
     
     .report-meta { 
@@ -42,13 +45,14 @@
         color: #0f172a;
     }
     
-    h3 { font-size: 1.1rem; font-style: italic; margin-top: 30px; color: #334155; }
+    h3 { font-size: 1.1rem; font-style: italic; margin-top: 30px; color: {{ $brandColor }}; filter: brightness(0.8); }
     
     p { margin-bottom: 1.5rem; text-align: justify; }
     
     .callout { 
         background: #f8fafc; 
         border: 1px solid #cbd5e1; 
+        border-left: 4px solid {{ $brandColor }};
         padding: 20px; 
         margin: 30px 0; 
         font-family: 'Roboto Mono', monospace; 
@@ -83,6 +87,9 @@
 
 @section('content')
     <div class="report-header">
+        @if(isset($logoUrl) && $logoUrl)
+            <img src="{{ $logoUrl }}" class="brand-logo" alt="Brand Logo">
+        @endif
         <h1>{{ $variant === 'contract-nda' ? 'Non-Disclosure Agreement' : 'Service Agreement' }}</h1>
         <div class="report-meta">
             Reference: #{{ strtoupper(substr(md5(time()), 0, 8)) }} <br>

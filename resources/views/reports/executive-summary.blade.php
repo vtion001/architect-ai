@@ -14,10 +14,27 @@
         padding: 60px 50px; 
         position: relative;
         overflow: hidden;
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
     }
     .report-header::after {
         content: ''; position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-        background-image: radial-gradient(circle at top right, rgba(0, 242, 255, 0.1), transparent 70%);
+        background-image: radial-gradient(circle at top right, {{ $brandColor }}1A, transparent 70%); /* 1A is 10% opacity */
+        pointer-events: none;
+        z-index: 1;
+    }
+    .header-content {
+        position: relative;
+        z-index: 10;
+        max-width: 70%;
+    }
+    .brand-logo {
+        position: relative;
+        z-index: 10;
+        width: 80px;
+        height: 80px;
+        object-fit: contain;
     }
     .report-header h1 { 
         font-family: 'Montserrat', sans-serif; 
@@ -27,8 +44,6 @@
         text-transform: uppercase;
         letter-spacing: -0.05em;
         line-height: 0.9;
-        position: relative;
-        z-index: 10;
     }
     .report-meta { 
         margin-top: 20px; 
@@ -36,9 +51,7 @@
         font-weight: 700; 
         text-transform: uppercase;
         letter-spacing: 0.2em;
-        color: #00F2FF;
-        position: relative;
-        z-index: 10;
+        color: {{ $brandColor }};
     }
     
     .report-content { padding: 60px 50px; flex: 1; }
@@ -53,7 +66,7 @@
         margin-top: 50px; 
         font-size: 1.25rem; 
         letter-spacing: 0.05em;
-        border-bottom: 4px solid #00F2FF;
+        border-bottom: 4px solid {{ $brandColor }};
         display: inline-block;
     }
     h3 { color: #334155; margin-top: 30px; font-weight: 700; font-size: 1.1rem; text-transform: uppercase; letter-spacing: 0.02em; }
@@ -65,7 +78,7 @@
     /* Industrial Components */
     .callout { 
         background: #f8fafc; 
-        border-left: 5px solid #00F2FF; 
+        border-left: 5px solid {{ $brandColor }}; 
         padding: 30px; 
         margin: 40px 0; 
         font-style: italic; 
@@ -95,7 +108,7 @@
         .report-header { background: white; color: #0f172a; padding: 60px 0; margin: 0 50px; border-bottom: 1px solid #e2e8f0; }
         .report-header h1 { font-size: 2.5rem; color: #0f172a; }
         .report-header::after { display: none; }
-        h2 { border-bottom: none; border-left: 6px solid #00F2FF; padding-left: 20px; padding-bottom: 0; }
+        h2 { border-bottom: none; border-left: 6px solid {{ $brandColor }}; padding-left: 20px; padding-bottom: 0; }
     @endif
 
     /* Detailed Variant */
@@ -109,14 +122,19 @@
 
 @section('content')
     <div class="report-header">
-        <h1>Executive <br>Intelligence brief</h1>
-        <div class="report-meta">
-            Session Protocol: {{ date('Y.m.d') }} / 0x{{ substr(md5((string)time()), 0, 8) }}
-        </div>
-        @if($recipientName)
-            <div style="margin-top: 20px; font-size: 0.8rem; font-weight: 600; text-transform: uppercase; color: #94a3b8;">
-                Authorized For: <span style="color: white;">{{ $recipientName }}</span>
+        <div class="header-content">
+            <h1>Executive <br>Intelligence brief</h1>
+            <div class="report-meta">
+                Session Protocol: {{ date('Y.m.d') }} / 0x{{ substr(md5((string)time()), 0, 8) }}
             </div>
+            @if($recipientName)
+                <div style="margin-top: 20px; font-size: 0.8rem; font-weight: 600; text-transform: uppercase; color: #94a3b8;">
+                    Authorized For: <span style="color: white;">{{ $recipientName }}</span>
+                </div>
+            @endif
+        </div>
+        @if(isset($logoUrl) && $logoUrl)
+            <img src="{{ $logoUrl }}" class="brand-logo" alt="Brand Logo">
         @endif
     </div>
 
@@ -126,6 +144,6 @@
 
     <div class="footer">
         <div>ArchitGrid Registry v1.0.4</div>
-        <div style="color: #00F2FF;">Integrity Verified // AES-256</div>
+        <div style="color: {{ $brandColor }};">Integrity Verified // AES-256</div>
     </div>
 @endsection

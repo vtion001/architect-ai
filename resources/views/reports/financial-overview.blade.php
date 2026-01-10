@@ -6,13 +6,14 @@
 @section('styles')
     @import url('https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,700;1,400&display=swap');
     .report-wrapper { font-family: 'Lora', serif; color: #1e293b; }
-    .report-wrapper::before { content: ""; position: absolute; top: 0; left: 0; right: 0; height: 8px; background: #b45309; z-index: 10; }
+    .report-wrapper::before { content: ""; position: absolute; top: 0; left: 0; right: 0; height: 8px; background: {{ $brandColor }}; z-index: 10; }
     .report-header { padding: 60px 40px 40px; border-bottom: 1px solid #e2e8f0; text-align: center; }
+    .brand-logo { height: 60px; width: auto; margin-bottom: 20px; object-fit: contain; }
     .report-header h1 { margin: 0; font-size: 2.2rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; color: #0f172a; }
     .report-meta { margin-top: 20px; font-style: italic; color: #64748b; border-top: 1px solid #f1f5f9; border-bottom: 1px solid #f1f5f9; display: inline-block; padding: 10px 30px; }
     .report-content { padding: 40px; flex: 1; }
     h2 { color: #0f172a; font-size: 1.4rem; text-transform: uppercase; letter-spacing: 0.05em; text-align: center; margin-top: 60px; padding-bottom: 15px; border-bottom: 1px double #cbd5e1; }
-    h3 { color: #b45309; margin-top: 30px; font-style: italic; }
+    h3 { color: {{ $brandColor }}; margin-top: 30px; font-style: italic; filter: brightness(0.8); }
     p { margin: 20px 0; text-align: justify; }
     table { width: 100%; border-collapse: collapse; margin: 30px 0; font-family: sans-serif; font-size: 0.9rem; }
     th { background: #0f172a; color: white; padding: 12px; text-align: left; }
@@ -22,6 +23,9 @@
 
 @section('content')
     <div class="report-header">
+        @if(isset($logoUrl) && $logoUrl)
+            <img src="{{ $logoUrl }}" class="brand-logo" alt="Brand Logo">
+        @endif
         <h1>Financial Overview</h1>
         <div class="report-meta">Fiscal Period | {{ date('Y') }}</div>
         @if($recipientName)

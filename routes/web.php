@@ -73,6 +73,7 @@ Route::middleware(['auth', 'tenant', 'mfa', 'session_security'])->group(function
         Route::post('/mfa/disable', [\App\Http\Controllers\Tenant\SettingsController::class, 'disableMfa'])->name('settings.mfa.disable');
 
         // Brand Kits
+        Route::post('/brands/analyze-blueprint', [\App\Http\Controllers\BrandController::class, 'analyzeBlueprint'])->name('brands.analyze-blueprint');
         Route::get('/brands', [\App\Http\Controllers\BrandController::class, 'index'])->name('brands.index');
         Route::post('/brands', [\App\Http\Controllers\BrandController::class, 'store'])->name('brands.store');
         Route::put('/brands/{brand}', [\App\Http\Controllers\BrandController::class, 'update'])->name('brands.update');

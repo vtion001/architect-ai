@@ -20,6 +20,7 @@ class PreviewReportRequest extends FormRequest
         return [
             'template' => ['required', new Enum(ReportTemplate::class)],
             'variant' => ['nullable', 'string', 'max:255'],
+            'brand_id' => ['nullable', 'string', 'exists:brands,id'],
         ];
     }
 }

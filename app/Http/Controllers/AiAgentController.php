@@ -30,8 +30,10 @@ class AiAgentController extends Controller
         $knowledgeAssets = KnowledgeBaseAsset::where('tenant_id', auth()->user()->tenant_id)
             ->select('id', 'title', 'category', 'type')
             ->get();
+        
+        $brands = auth()->user()->tenant->brands()->get();
 
-        return view('ai-agents.index', compact('agents', 'knowledgeAssets'));
+        return view('ai-agents.index', compact('agents', 'knowledgeAssets', 'brands'));
     }
 
     public function store(Request $request): JsonResponse
@@ -107,6 +109,7 @@ class AiAgentController extends Controller
             'agent_id' => 'required|exists:ai_agents,id',
             'message' => 'required|string|max:5000',
             'session_id' => 'nullable|string',
+            'brand_id' => 'nullable|exists:brands,id',
         ]);
 
         $agent = AiAgent::findOrFail($validated['agent_id']);
@@ -126,6 +129,24 @@ class AiAgentController extends Controller
 
         // Build messages for API
         $systemPrompt = $agent->getFullSystemPrompt();
+        
+        // Inject Brand Context
+        if (!empty($validated['brand_id'])) {
+            $brand = \App\Models\Brand::find($validated['brand_id']);
+            if ($brand) {
+                $systemPrompt .= "\n\n[STRICT BRAND IDENTITY ACTIVE]\n";
+                $systemPrompt .= "You are representing the brand: {$brand->name}\n";
+                if ($brand->voice_profile) {
+                    $voice = $brand->voice_profile;
+                    $systemPrompt .= "Tone: " . ($voice['tone'] ?? 'Standard') . "\n";
+                    $systemPrompt .= "Style: " . ($voice['writing_style'] ?? 'Standard') . "\n";
+                    if (!empty($voice['keywords'])) $systemPrompt .= "Key Phrases: {$voice['keywords']}\n";
+                    if (!empty($voice['avoid_words'])) $systemPrompt .= "Avoid Words: {$voice['avoid_words']}\n";
+                }
+                if ($brand->description) $systemPrompt .= "Context: {$brand->description}\n";
+                $systemPrompt .= "[END BRAND IDENTITY]\n";
+            }
+        }
         
         // Add knowledge context if available (Explicitly Linked)
         $pinnedContext = $agent->getKnowledgeContext();

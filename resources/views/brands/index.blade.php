@@ -18,9 +18,52 @@
         typography: { headings: 'Inter', body: 'Inter' },
         voice_profile: { tone: 'Professional', personality: '', keywords: '', avoid_words: '', writing_style: 'Balanced' },
         contact_info: { website: '', email: '', phone: '' },
-        social_handles: { instagram: '', twitter: '', linkedin: '', facebook: '' }
+        social_handles: { instagram: '', twitter: '', linkedin: '', facebook: '' },
+        blueprints: {
+            'executive-summary': { boilerplate_intro: '', scope_of_work_template: '', legal_terms: '', structure_instruction: '' },
+            'proposal': { boilerplate_intro: '', scope_of_work_template: '', legal_terms: '', structure_instruction: '' },
+            'contract': { boilerplate_intro: '', scope_of_work_template: '', legal_terms: '', structure_instruction: '' }
+        }
     },
     isSaving: false,
+    isAnalyzing: false,
+
+    async analyzeBlueprint(type, isEdit = false) {
+        const fileInput = document.getElementById((isEdit ? 'edit_' : 'create_') + type + '_upload');
+        if (!fileInput || !fileInput.files.length) {
+            alert('Please select a file first.');
+            return;
+        }
+
+        this.isAnalyzing = true;
+        const formData = new FormData();
+        formData.append('document', fileInput.files[0]);
+        formData.append('type', type);
+
+        try {
+            const res = await fetch('{{ route('brands.analyze-blueprint') }}', {
+                method: 'POST',
+                headers: { 'X-CSRF-TOKEN': '{{ csrf_token() }}' },
+                body: formData
+            });
+            const data = await res.json();
+            if (data.success) {
+                const target = isEdit ? this.selectedBrand.blueprints[type] : this.newBrand.blueprints[type];
+                target.boilerplate_intro = data.data.boilerplate_intro || '';
+                target.scope_of_work_template = data.data.scope_of_work_template || '';
+                target.legal_terms = data.data.legal_terms || '';
+                target.structure_instruction = data.data.structure_instruction || '';
+                alert('Blueprint extracted successfully!');
+            } else {
+                alert(data.message || 'Analysis failed.');
+            }
+        } catch (e) {
+            console.error(e);
+            alert('Analysis failed.');
+        } finally {
+            this.isAnalyzing = false;
+        }
+    },
     
     resetNewBrand() {
         this.newBrand = {
@@ -32,7 +75,12 @@
             typography: { headings: 'Inter', body: 'Inter' },
             voice_profile: { tone: 'Professional', personality: '', keywords: '', avoid_words: '', writing_style: 'Balanced' },
             contact_info: { website: '', email: '', phone: '' },
-            social_handles: { instagram: '', twitter: '', linkedin: '', facebook: '' }
+            social_handles: { instagram: '', twitter: '', linkedin: '', facebook: '' },
+            blueprints: {
+                'executive-summary': { boilerplate_intro: '', scope_of_work_template: '', legal_terms: '', structure_instruction: '' },
+                'proposal': { boilerplate_intro: '', scope_of_work_template: '', legal_terms: '', structure_instruction: '' },
+                'contract': { boilerplate_intro: '', scope_of_work_template: '', legal_terms: '', structure_instruction: '' }
+            }
         };
         this.logoFile = null;
         this.logoPreview = null;
@@ -71,6 +119,7 @@
         formData.append('voice_profile', JSON.stringify(this.newBrand.voice_profile));
         formData.append('contact_info', JSON.stringify(this.newBrand.contact_info));
         formData.append('social_handles', JSON.stringify(this.newBrand.social_handles));
+        formData.append('blueprints', JSON.stringify(this.newBrand.blueprints));
         
         if (this.logoFile) {
             formData.append('logo', this.logoFile);
@@ -105,6 +154,15 @@
         this.selectedBrand.voice_profile = this.selectedBrand.voice_profile || { tone: 'Professional', personality: '', keywords: '', avoid_words: '', writing_style: 'Balanced' };
         this.selectedBrand.contact_info = this.selectedBrand.contact_info || { website: '', email: '', phone: '' };
         this.selectedBrand.social_handles = this.selectedBrand.social_handles || { instagram: '', twitter: '', linkedin: '', facebook: '' };
+        this.selectedBrand.blueprints = this.selectedBrand.blueprints || {
+            'executive-summary': { boilerplate_intro: '', scope_of_work_template: '', legal_terms: '', structure_instruction: '' },
+            'proposal': { boilerplate_intro: '', scope_of_work_template: '', legal_terms: '', structure_instruction: '' },
+            'contract': { boilerplate_intro: '', scope_of_work_template: '', legal_terms: '', structure_instruction: '' }
+        };
+        // Ensure sub-fields exist for each blueprint
+        ['executive-summary', 'proposal', 'contract'].forEach(type => {
+            this.selectedBrand.blueprints[type] = this.selectedBrand.blueprints[type] || { boilerplate_intro: '', scope_of_work_template: '', legal_terms: '', structure_instruction: '' };
+        });
         this.editLogoFile = null;
         this.editLogoPreview = null;
         this.showEditModal = true;
@@ -124,6 +182,7 @@
         formData.append('voice_profile', JSON.stringify(this.selectedBrand.voice_profile));
         formData.append('contact_info', JSON.stringify(this.selectedBrand.contact_info));
         formData.append('social_handles', JSON.stringify(this.selectedBrand.social_handles));
+        formData.append('blueprints', JSON.stringify(this.selectedBrand.blueprints));
         
         if (this.editLogoFile) {
             formData.append('logo', this.editLogoFile);
@@ -433,6 +492,56 @@
                     </div>
                 </div>
 
+                <!-- Document Blueprints Section -->
+                <div class="space-y-6 pt-6 border-t border-border/50" x-data="{ activeBlueprintTab: 'proposal' }">
+                    <h3 class="text-[10px] font-black uppercase tracking-widest text-primary flex items-center gap-2">
+                        <i data-lucide="file-text" class="w-3 h-3"></i> Document Blueprints
+                    </h3>
+                    <p class="text-[10px] text-muted-foreground italic">Define strict templates for specific document types (e.g. Monsterbug Contracts).</p>
+
+                    <div class="flex gap-2 p-1 bg-muted/30 rounded-xl mb-4">
+                        <template x-for="type in ['proposal', 'contract', 'executive-summary']">
+                            <button @click="activeBlueprintTab = type" 
+                                    :class="activeBlueprintTab === type ? 'bg-white shadow-sm text-primary' : 'text-muted-foreground'"
+                                    class="flex-1 py-2 text-[10px] font-black uppercase tracking-widest rounded-lg transition-all"
+                                    x-text="type.replace('-', ' ')">
+                            </button>
+                        </template>
+                    </div>
+
+                    <div class="space-y-6 animate-in fade-in duration-300">
+                        <!-- AI Auto-Fill -->
+                        <div class="bg-primary/5 border border-primary/20 rounded-xl p-4 flex items-center justify-between">
+                            <div class="flex-1 mr-4">
+                                <h4 class="text-[10px] font-black uppercase text-primary mb-1">AI Auto-Fill</h4>
+                                <p class="text-[10px] text-muted-foreground">Upload an existing PDF/Text document to automatically extract these fields.</p>
+                                <input type="file" :id="'create_' + activeBlueprintTab + '_upload'" accept=".pdf,.txt,.md" class="mt-2 block w-full text-[10px] text-slate-500 file:mr-2 file:py-1 file:px-2 file:rounded-lg file:border-0 file:text-[10px] file:font-bold file:bg-primary/10 file:text-primary hover:file:bg-primary/20 cursor-pointer">
+                            </div>
+                            <button @click="analyzeBlueprint(activeBlueprintTab, false)" :disabled="isAnalyzing" class="shrink-0 h-8 px-4 rounded-lg bg-primary text-primary-foreground text-[10px] font-black uppercase tracking-widest shadow-lg disabled:opacity-50 flex items-center gap-2">
+                                <template x-if="isAnalyzing"><i data-lucide="loader-2" class="w-3 h-3 animate-spin"></i></template>
+                                <span x-text="isAnalyzing ? 'Scanning...' : 'Extract'"></span>
+                            </button>
+                        </div>
+
+                        <div class="space-y-3">
+                            <label class="text-[10px] font-black uppercase text-slate-500 italic">Standard Introduction (Boilerplate)</label>
+                            <textarea x-model="newBrand.blueprints[activeBlueprintTab].boilerplate_intro" rows="3" placeholder="We would like to thank you very sincerely for..." class="w-full bg-muted/20 border border-border rounded-xl p-4 text-sm"></textarea>
+                        </div>
+                        <div class="space-y-3">
+                            <label class="text-[10px] font-black uppercase text-slate-500 italic">Core Scope / Terms (Static Text)</label>
+                            <textarea x-model="newBrand.blueprints[activeBlueprintTab].scope_of_work_template" rows="5" placeholder="A. SOIL TREATMENT... B. DRILLING..." class="w-full bg-muted/20 border border-border rounded-xl p-4 text-sm"></textarea>
+                        </div>
+                        <div class="space-y-3">
+                            <label class="text-[10px] font-black uppercase text-slate-500 italic">Legal Clauses / Payment Terms</label>
+                            <textarea x-model="newBrand.blueprints[activeBlueprintTab].legal_terms" rows="3" placeholder="NOTE: All chemicals and equipment... Terms of Payment..." class="w-full bg-muted/20 border border-border rounded-xl p-4 text-sm"></textarea>
+                        </div>
+                        <div class="space-y-3">
+                            <label class="text-[10px] font-black uppercase text-slate-500 italic">Structure Instruction for AI</label>
+                            <input x-model="newBrand.blueprints[activeBlueprintTab].structure_instruction" type="text" placeholder="Use Monsterbug standard layout: Intro -> Scope -> Pricing -> Terms." class="w-full h-12 bg-muted/20 border border-border rounded-xl px-4 text-sm">
+                        </div>
+                    </div>
+                </div>
+
             </div>
             <div class="p-6 border-t border-border bg-muted/30 flex justify-end gap-3">
                 <button @click="showCreateModal = false" class="px-6 py-3 rounded-xl border border-border font-bold text-xs uppercase">Cancel</button>
@@ -601,6 +710,56 @@
                         <div class="space-y-3">
                             <label class="text-[10px] font-black uppercase text-slate-500 italic">Brand Personality</label>
                             <input x-model="selectedBrand.voice_profile.personality" type="text" class="w-full h-12 bg-muted/20 border border-border rounded-xl px-4 text-sm">
+                        </div>
+                    </div>
+
+                    <!-- Document Blueprints Section -->
+                    <div class="space-y-6 pt-6 border-t border-border/50" x-data="{ editBlueprintTab: 'proposal' }">
+                        <h3 class="text-[10px] font-black uppercase tracking-widest text-primary flex items-center gap-2">
+                            <i data-lucide="file-text" class="w-3 h-3"></i> Document Blueprints
+                        </h3>
+                        <p class="text-[10px] text-muted-foreground italic">Define strict templates for specific document types (e.g. Monsterbug Contracts).</p>
+
+                        <div class="flex gap-2 p-1 bg-muted/30 rounded-xl mb-4">
+                            <template x-for="type in ['proposal', 'contract', 'executive-summary']">
+                                <button @click="editBlueprintTab = type" 
+                                        :class="editBlueprintTab === type ? 'bg-white shadow-sm text-primary' : 'text-muted-foreground'"
+                                        class="flex-1 py-2 text-[10px] font-black uppercase tracking-widest rounded-lg transition-all"
+                                        x-text="type.replace('-', ' ')">
+                                </button>
+                            </template>
+                        </div>
+
+                        <div class="space-y-6 animate-in fade-in duration-300">
+                            <!-- AI Auto-Fill -->
+                            <div class="bg-primary/5 border border-primary/20 rounded-xl p-4 flex items-center justify-between">
+                                <div class="flex-1 mr-4">
+                                    <h4 class="text-[10px] font-black uppercase text-primary mb-1">AI Auto-Fill</h4>
+                                    <p class="text-[10px] text-muted-foreground">Upload an existing PDF/Text document to automatically extract these fields.</p>
+                                    <input type="file" :id="'edit_' + editBlueprintTab + '_upload'" accept=".pdf,.txt,.md" class="mt-2 block w-full text-[10px] text-slate-500 file:mr-2 file:py-1 file:px-2 file:rounded-lg file:border-0 file:text-[10px] file:font-bold file:bg-primary/10 file:text-primary hover:file:bg-primary/20 cursor-pointer">
+                                </div>
+                                <button @click="analyzeBlueprint(editBlueprintTab, true)" :disabled="isAnalyzing" class="shrink-0 h-8 px-4 rounded-lg bg-primary text-primary-foreground text-[10px] font-black uppercase tracking-widest shadow-lg disabled:opacity-50 flex items-center gap-2">
+                                    <template x-if="isAnalyzing"><i data-lucide="loader-2" class="w-3 h-3 animate-spin"></i></template>
+                                    <span x-text="isAnalyzing ? 'Scanning...' : 'Extract'"></span>
+                                </button>
+                            </div>
+
+                            <div class="space-y-3">
+                                <label class="text-[10px] font-black uppercase text-slate-500 italic">Standard Introduction (Boilerplate)</label>
+                                <textarea x-model="selectedBrand.blueprints[editBlueprintTab].boilerplate_intro" rows="3" class="w-full bg-muted/20 border border-border rounded-xl p-4 text-sm"></textarea>
+                            </div>
+                            <div class="space-y-3">
+                                <label class="text-[10px] font-black uppercase text-slate-500 italic">Core Scope / Terms (Static Text)</label>
+                                <textarea x-model="selectedBrand.blueprints[editBlueprintTab].scope_of_work_template" rows="5" class="w-full bg-muted/20 border border-border rounded-xl p-4 text-sm"></textarea>
+                            </div>
+                            <div class="space-y-3">
+                                <label class="text-[10px] font-black uppercase text-slate-500 italic">Legal Clauses / Payment Terms</label>
+                                <textarea x-model="selectedBrand.blueprints[editBlueprintTab].legal_terms" rows="3" class="w-full bg-muted/20 border border-border rounded-xl p-4 text-sm"></textarea>
+                            </div>
+                            <div class="space-y-3">
+                                <label class="text-[10px] font-black uppercase text-slate-500 italic">Structure Instruction for AI</label>
+                                <input x-model="selectedBrand.blueprints[editBlueprintTab].structure_instruction" type="text" class="w-full h-12 bg-muted/20 border border-border rounded-xl px-4 text-sm">
+                            </div>
                         </div>
                     </div>
 

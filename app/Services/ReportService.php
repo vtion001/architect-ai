@@ -19,26 +19,50 @@ class ReportService
         $tenant = app(\App\Models\Tenant::class);
         $content = $this->generateContent($data);
 
+        // Resolve Brand Logic
+        $brandColor = $tenant->metadata['primary_color'] ?? '#00F2FF';
+        $logoUrl = $tenant->metadata['logo_url'] ?? null;
+
+        if ($data->brandId) {
+            $brand = \App\Models\Brand::find($data->brandId);
+            if ($brand) {
+                $brandColor = $brand->colors['primary'] ?? $brandColor;
+                $logoUrl = $brand->logo_url ?? $logoUrl;
+            }
+        }
+
         return View::make($data->template->view(), [
             'content' => $content,
             'recipientName' => $data->recipientName ?? 'Recipient',
             'variant' => $data->variant,
-            'brandColor' => $tenant->metadata['primary_color'] ?? '#00F2FF',
-            'logoUrl' => $tenant->metadata['logo_url'] ?? null
+            'brandColor' => $brandColor,
+            'logoUrl' => $logoUrl
         ])->render();
     }
 
-    public function generatePreviewHtml(ReportTemplate $template, ?string $variant = null): string
+    public function generatePreviewHtml(ReportTemplate $template, ?string $variant = null, ?string $brandId = null): string
     {
         $tenant = app(\App\Models\Tenant::class);
-        $sampleContent = $this->getSampleContent();
+        $sampleContent = $this->getSampleContentForTemplate($template);
+
+        // Resolve Brand Logic
+        $brandColor = $tenant->metadata['primary_color'] ?? '#00F2FF';
+        $logoUrl = $tenant->metadata['logo_url'] ?? null;
+
+        if ($brandId) {
+            $brand = \App\Models\Brand::find($brandId);
+            if ($brand) {
+                $brandColor = $brand->colors['primary'] ?? $brandColor;
+                $logoUrl = $brand->logo_url ?? $logoUrl;
+            }
+        }
 
         return View::make($template->view(), [
             'content' => $sampleContent,
             'recipientName' => 'Sample Recipient',
             'variant' => $variant,
-            'brandColor' => $tenant->metadata['primary_color'] ?? '#00F2FF',
-            'logoUrl' => $tenant->metadata['logo_url'] ?? null
+            'brandColor' => $brandColor,
+            'logoUrl' => $logoUrl
         ])->render();
     }
 
@@ -59,6 +83,35 @@ class ReportService
             \Illuminate\Support\Facades\Log::info("Performing Gemini deep research for: " . $data->researchTopic);
             $researchData = $this->researchService->performResearch($data->researchTopic);
             \Illuminate\Support\Facades\Log::info("Research received. Length: " . strlen($researchData));
+        }
+
+        // Resolve Brand Blueprints
+        $brandInstructions = "";
+        if ($data->brandId) {
+            $brand = \App\Models\Brand::find($data->brandId);
+            if ($brand && $blueprint = $brand->getBlueprint($data->template->value)) {
+                $brandInstructions = "\n\n[STRICT BRAND PROTOCOL ACTIVE]\n";
+                $brandInstructions .= "You are acting as a compliance agent for {$brand->name}.\n";
+                $brandInstructions .= "You MUST follow this exact content structure:\n";
+                
+                if (!empty($blueprint['boilerplate_intro'])) {
+                    $brandInstructions .= "- INTRODUCTION: Must start with: \"{$blueprint['boilerplate_intro']}\"\n";
+                }
+                
+                if (!empty($blueprint['scope_of_work_template'])) {
+                    $brandInstructions .= "- SCOPE SECTION: Use this exact text: \"{$blueprint['scope_of_work_template']}\" (Adapt variables only if explicitly asked).\n";
+                }
+                
+                if (!empty($blueprint['legal_terms'])) {
+                    $brandInstructions .= "- LEGAL/TERMS: Include verbatim: \"{$blueprint['legal_terms']}\"\n";
+                }
+                
+                if (!empty($blueprint['structure_instruction'])) {
+                    $brandInstructions .= "- LAYOUT RULE: {$blueprint['structure_instruction']}\n";
+                }
+                
+                $brandInstructions .= "\n[END BRAND PROTOCOL]\n";
+            }
         }
 
         try {
@@ -102,7 +155,9 @@ class ReportService
                                              * Use <div class='grid-2'><div>Part 1</div><div>Part 2</div></div> sparingly for small side-by-side data points.
                                          - Do not wrap in <html> or <body> tags.
                                          - Maintain a formal, authoritative, and analytical business tone.
-                                         - YOUR PRIMARY JOB IS DESIGN AND STRUCTURE. Ensure the raw data looks like a premium produced $documentType."
+                                         - YOUR PRIMARY JOB IS DESIGN AND STRUCTURE. Ensure the raw data looks like a premium produced $documentType.
+                                         
+                                         {$brandInstructions}"
                         ],
                         [
                             'role' => 'user',

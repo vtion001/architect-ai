@@ -17,6 +17,7 @@ readonly class ReportRequestData
         public ?string $prompt = null,
         public ?string $contentData = null,
         public ?string $researchTopic = null,
+        public ?string $brandId = null,
     ) {}
 
     public static function fromArray(array $data): self
@@ -30,6 +31,7 @@ readonly class ReportRequestData
             prompt: $data['prompt'] ?? null,
             contentData: $data['contentData'] ?? null,
             researchTopic: $data['researchTopic'] ?? null,
+            brandId: $data['brand_id'] ?? null,
         );
     }
 }

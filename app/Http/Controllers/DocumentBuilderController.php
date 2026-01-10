@@ -119,9 +119,10 @@ class DocumentBuilderController extends Controller
         $validated = $request->validated();
         $template = ReportTemplate::from($validated['template']);
         $variant = $validated['variant'] ?? null;
+        $brandId = $validated['brand_id'] ?? null;
         
         try {
-            $html = $this->reportService->generatePreviewHtml($template, $variant);
+            $html = $this->reportService->generatePreviewHtml($template, $variant, $brandId);
             return response()->json(['html' => $html, 'success' => true]);
         } catch (\Exception $e) {
             return response()->json([

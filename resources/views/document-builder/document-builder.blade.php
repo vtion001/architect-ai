@@ -38,7 +38,8 @@
         this.isLoadingPreview = true;
         const params = new URLSearchParams({
             template: this.template,
-            variant: this.templateVariant
+            variant: this.templateVariant,
+            brand_id: this.selectedBrandId
         });
         fetch('{{ route('document-builder.preview') }}?' + params.toString())
             .then(response => response.json())
@@ -131,6 +132,9 @@
             this.$nextTick(() => {
                 if (window.lucide) window.lucide.createIcons();
             });
+        });
+        this.$watch('selectedBrandId', () => {
+            this.fetchPreview();
         });
         this.$watch('showVariantModal', (value) => {
             if (value) this.$nextTick(() => {

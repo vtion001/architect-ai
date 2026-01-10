@@ -27,6 +27,7 @@ class Brand extends Model
         'social_handles',
         'industry',
         'is_default',
+        'blueprints',
     ];
 
     protected $casts = [
@@ -36,7 +37,16 @@ class Brand extends Model
         'contact_info' => 'array',
         'social_handles' => 'array',
         'is_default' => 'boolean',
+        'blueprints' => 'array',
     ];
+
+    /**
+     * Get a specific blueprint for a template type.
+     */
+    public function getBlueprint(string $templateType): ?array
+    {
+        return $this->blueprints[$templateType] ?? null;
+    }
 
     /**
      * Default color structure

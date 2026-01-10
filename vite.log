@@ -1,0 +1,26 @@
+
+> dev
+> vite
+
+Port 5173 is in use, trying another one...
+
+  VITE v5.4.21  ready in 190 ms
+
+  ➜  Local:   http://localhost:5174/
+  ➜  Network: http://192.168.100.14:5174/
+
+  LARAVEL v11.47.0  plugin v1.3.0
+
+  ➜  APP_URL: https://ade645e539a7.ngrok-free.app
+5:05:33 PM [vite] .env changed, restarting server...
+5:05:33 PM [vite] server restarted.
+5:05:33 PM [vite] .env changed, restarting server...
+
+  LARAVEL v11.47.0  plugin v1.3.0
+
+  ➜  APP_URL: https://ade645e539a7.ngrok-free.app
+5:05:34 PM [vite] server restarted.
+
+  LARAVEL v11.47.0  plugin v1.3.0
+
+  ➜  APP_URL: https://ade645e539a7.ngrok-free.app

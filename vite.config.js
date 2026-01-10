@@ -12,6 +12,7 @@ export default defineConfig(({ command }) => ({
         host: '0.0.0.0',
         port: 5173,
         strictPort: false,
+        allowedHosts: true,
         // For ngrok/tunnel access: disable HMR or use the tunnel URL
         hmr: process.env.VITE_HMR_HOST
             ? { host: process.env.VITE_HMR_HOST }

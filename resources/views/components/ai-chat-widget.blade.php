@@ -6,11 +6,20 @@
     The chat appears as a floating popup in the corner, NOT fullscreen.
 --}}
 
-@props(['agent', 'position' => null])
+@props(['agent', 'position' => null, 'brands' => null])
 
 @php
     $widgetPosition = $position ?? $agent->widget_position ?? 'bottom-right';
     $primaryColor = $agent->primary_color ?? '#00F2FF';
+    
+    // Fallback: If brands are not passed (e.g. from layout), fetch them here.
+    if ($brands === null && auth()->check() && auth()->user()->tenant) {
+        $brands = \App\Models\Brand::where('tenant_id', auth()->user()->tenant_id)
+            ->select('id', 'name')
+            ->get();
+    } else {
+        $brands = $brands ?? [];
+    }
     
     // Position for the floating trigger button
     $buttonPosition = match($widgetPosition) {
@@ -31,7 +40,7 @@
 
 {{-- Main Widget Container --}}
 <div id="ai-chat-widget-{{ $agent->id }}"
-     x-data="aiChatWidget('{{ $agent->id }}', '{{ $agent->name }}', '{{ $primaryColor }}', '{{ $agent->welcome_message ?? 'Hello! How can I help you?' }}')"
+     x-data="aiChatWidget('{{ $agent->id }}', '{{ $agent->name }}', '{{ $primaryColor }}', '{{ $agent->welcome_message ?? 'Hello! How can I help you?' }}', {{ json_encode($brands) }})"
      @open-ai-chat.window="if($event.detail && $event.detail.id === '{{ $agent->id }}') isOpen = true">
     
     {{-- Chat Popup Window - Fixed size, NOT fullscreen --}}
@@ -47,32 +56,46 @@
          class="bg-card border border-border rounded-2xl shadow-2xl overflow-hidden flex flex-col">
         
         {{-- Header --}}
-        <div class="px-5 py-4 border-b border-border flex items-center justify-between shrink-0" 
+        <div class="px-5 py-4 border-b border-border shrink-0" 
              :style="{ background: `linear-gradient(135deg, ${primaryColor}15, ${primaryColor}05)` }">
-            <div class="flex items-center gap-3">
-                <div class="w-10 h-10 rounded-xl flex items-center justify-center"
-                     :style="{ backgroundColor: primaryColor + '20', color: primaryColor }">
-                    @if($agent->avatar_url)
-                        <img src="{{ $agent->avatar_url }}" alt="{{ $agent->name }}" class="w-10 h-10 rounded-xl object-cover">
-                    @else
-                        <i data-lucide="bot" class="w-5 h-5"></i>
-                    @endif
-                </div>
-                <div>
-                    <h3 class="font-bold text-sm text-foreground">{{ $agent->name }}</h3>
-                    <div class="flex items-center gap-1.5">
-                        <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
-                        <p class="text-[10px] text-muted-foreground uppercase tracking-wider">{{ $agent->role ?? 'AI Assistant' }}</p>
+            <div class="flex items-center justify-between mb-3">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-xl flex items-center justify-center"
+                         :style="{ backgroundColor: primaryColor + '20', color: primaryColor }">
+                        @if($agent->avatar_url)
+                            <img src="{{ $agent->avatar_url }}" alt="{{ $agent->name }}" class="w-10 h-10 rounded-xl object-cover">
+                        @else
+                            <i data-lucide="bot" class="w-5 h-5"></i>
+                        @endif
+                    </div>
+                    <div>
+                        <h3 class="font-bold text-sm text-foreground">{{ $agent->name }}</h3>
+                        <div class="flex items-center gap-1.5">
+                            <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                            <p class="text-[10px] text-muted-foreground uppercase tracking-wider">{{ $agent->role ?? 'AI Assistant' }}</p>
+                        </div>
                     </div>
                 </div>
+                <div class="flex items-center gap-1">
+                    <button @click="clearChat()" class="w-8 h-8 rounded-lg hover:bg-red-50 hover:text-red-500 flex items-center justify-center text-muted-foreground transition-colors" title="Clear chat">
+                        <i data-lucide="trash-2" class="w-4 h-4"></i>
+                    </button>
+                    <button @click="isOpen = false" class="w-8 h-8 rounded-lg hover:bg-muted flex items-center justify-center text-muted-foreground transition-colors">
+                        <i data-lucide="x" class="w-4 h-4"></i>
+                    </button>
+                </div>
             </div>
-            <div class="flex items-center gap-1">
-                <button @click="clearChat()" class="w-8 h-8 rounded-lg hover:bg-red-50 hover:text-red-500 flex items-center justify-center text-muted-foreground transition-colors" title="Clear chat">
-                    <i data-lucide="trash-2" class="w-4 h-4"></i>
-                </button>
-                <button @click="isOpen = false" class="w-8 h-8 rounded-lg hover:bg-muted flex items-center justify-center text-muted-foreground transition-colors">
-                    <i data-lucide="x" class="w-4 h-4"></i>
-                </button>
+
+            {{-- Brand Selection --}}
+            <div x-show="brands.length > 0" class="relative">
+                <select x-model="selectedBrandId" 
+                        class="w-full h-8 bg-background/50 border border-border rounded-lg pl-2 pr-8 text-[10px] font-bold uppercase tracking-widest outline-none focus:ring-1 focus:ring-primary/20 appearance-none cursor-pointer">
+                    <option value="">No Brand Context</option>
+                    <template x-for="brand in brands" :key="brand.id">
+                        <option :value="brand.id" x-text="brand.name"></option>
+                    </template>
+                </select>
+                <i data-lucide="chevron-down" class="absolute right-2 top-1/2 -translate-y-1/2 w-3 h-3 text-muted-foreground pointer-events-none"></i>
             </div>
         </div>
 
@@ -159,12 +182,14 @@
 {{-- Inline script --}}
 <script>
 if (typeof window.aiChatWidget === 'undefined') {
-    window.aiChatWidget = function(agentId, agentName, primaryColor, welcomeMessage) {
+    window.aiChatWidget = function(agentId, agentName, primaryColor, welcomeMessage, brands = []) {
         return {
             agentId: agentId,
             agentName: agentName,
             primaryColor: primaryColor,
             welcomeMessage: welcomeMessage,
+            brands: brands,
+            selectedBrandId: '',
             isOpen: false,
             isTyping: false,
             inputMessage: '',
@@ -241,7 +266,8 @@ if (typeof window.aiChatWidget === 'undefined') {
                         body: JSON.stringify({
                             agent_id: this.agentId,
                             message: userMessage,
-                            session_id: this.sessionId
+                            session_id: this.sessionId,
+                            brand_id: this.selectedBrandId
                         })
                     });
 
