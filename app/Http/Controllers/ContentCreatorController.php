@@ -151,7 +151,10 @@ class ContentCreatorController extends Controller
             ->values()
             ->toArray();
         
-        return view('content-creator.content-viewer', compact('content', 'isFacebookConnected', 'publishedIndexes'));
+        // Fetch brands for Image Creator's poster mode
+        $brands = auth()->user()->tenant->brands()->select('id', 'name', 'colors')->get();
+        
+        return view('content-creator.content-viewer', compact('content', 'isFacebookConnected', 'publishedIndexes', 'brands'));
     }
 
     public function getSuggestions(Request $request)
@@ -269,6 +272,10 @@ class ContentCreatorController extends Controller
     {
         $request->validate([
             'prompt' => 'required|string|min:3',
+            'format' => 'nullable|string|in:realistic,poster,asset-reference',
+            'poster_text' => 'nullable|string|max:100',
+            'reference_asset_url' => 'nullable|string',
+            'brand_id' => 'nullable|uuid',
         ]);
 
         $tokenCost = 5;
@@ -281,7 +288,30 @@ class ContentCreatorController extends Controller
             ], 402);
         }
 
-        $generatedUrl = $this->contentService->generateImage($request->prompt);
+        $format = $request->input('format', 'realistic');
+        $options = [];
+
+        // Build format-specific options
+        if ($format === 'poster') {
+            $options['poster_text'] = $request->input('poster_text');
+            
+            // Get brand colors if brand_id provided
+            if ($request->filled('brand_id')) {
+                $brand = \App\Models\Brand::find($request->brand_id);
+                if ($brand) {
+                    $options['brand'] = [
+                        'name' => $brand->name,
+                        'colors' => $brand->colors,
+                        'typography' => $brand->typography ?? [],
+                    ];
+                }
+            }
+        } elseif ($format === 'asset-reference') {
+            $options['reference_url'] = $request->input('reference_asset_url');
+        }
+
+        // Generate image based on format
+        $generatedUrl = $this->contentService->generateImage($request->prompt, $format, $options);
 
         if ($generatedUrl) {
             // Use CloudinaryService for upload with automatic fallback
@@ -306,6 +336,7 @@ class ContentCreatorController extends Controller
                 'prompt' => $request->prompt,
                 'metadata' => [
                     'generator' => 'Banana Pro AI',
+                    'format' => $format,
                     'timestamp' => now()->toIso8601String(),
                     'cloudinary_public_id' => $uploadResult['public_id'] ?? null,
                 ]

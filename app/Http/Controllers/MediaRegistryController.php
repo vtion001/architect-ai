@@ -122,4 +122,21 @@ class MediaRegistryController extends Controller
 
         return response()->json(['success' => true]);
     }
+
+    /**
+     * Get media assets as JSON (for Image Creator reference mode).
+     */
+    public function getAssets(Request $request)
+    {
+        $limit = min((int) $request->input('limit', 20), 50);
+        
+        $assets = MediaAsset::where('tenant_id', auth()->user()->tenant_id)
+            ->where('type', 'image')
+            ->select('id', 'name', 'url')
+            ->latest()
+            ->limit($limit)
+            ->get();
+
+        return response()->json(['assets' => $assets]);
+    }
 }

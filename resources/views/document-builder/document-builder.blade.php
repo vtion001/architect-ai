@@ -9,14 +9,35 @@
     templateVariant: 'exec-corporate',
     recipientName: '',
     recipientTitle: '',
+    targetRole: '',
+    profilePhotoUrl: '',
+    email: '',
+    phone: '',
+    location: '',
+    website: '',
+    personalInfo: {
+        age: '',
+        dob: '',
+        gender: '',
+        civil_status: '',
+        nationality: '',
+        height: '',
+        weight: '',
+        place_of_birth: '',
+        religion: '',
+        languages: ''
+    },
+    isUploadingPhoto: false,
     analysisType: 'Comparative Analysis',
     prompt: @js($selectedResearch?->title ?? ''),
     sourceContent: '',
     researchTopic: @js($selectedResearch?->title ?? ''),
     isGenerating: false,
+    isParsing: false,
     isLoadingPreview: false,
     activeTab: 'preview',
     htmlPreview: '',
+    tailoringReport: '',
     zoomLevel: 0.45,
     showVariantModal: false, 
     selectedCategory: null,
@@ -33,6 +54,62 @@
             return ['Service Agreement', 'Non-Disclosure Agreement', 'Employment Contract', 'Vendor Contract'];
         }
         return ['Comparative Analysis', 'Growth Strategy', 'Financial Audit', 'SWOT Matrix'];
+    },
+    uploadPhoto(event) {
+        const file = event.target.files[0];
+        if (!file) return;
+        this.isUploadingPhoto = true;
+        const formData = new FormData();
+        formData.append('photo', file);
+        
+        fetch('{{ route('document-builder.upload-photo') }}', {
+            method: 'POST',
+            headers: { 'X-CSRF-TOKEN': '{{ csrf_token() }}' },
+            body: formData
+        })
+        .then(res => res.json())
+        .then(data => {
+            if(data.success) {
+                this.profilePhotoUrl = data.url;
+            } else {
+                alert('Upload failed');
+            }
+        })
+        .finally(() => { this.isUploadingPhoto = false; });
+    },
+    parseResume(event) {
+        const file = event.target.files[0];
+        if (!file) return;
+
+        this.isParsing = true;
+        const formData = new FormData();
+        formData.append('resume', file);
+
+        fetch('{{ route('document-builder.parse-resume') }}', {
+            method: 'POST',
+            headers: {
+                'X-CSRF-TOKEN': '{{ csrf_token() }}'
+            },
+            body: formData
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.success) {
+                this.sourceContent = data.text;
+                // Auto-fill recipient name if possible (simple heuristic)
+                // This is a basic improvement; specific extraction would be better done by AI later
+            } else {
+                alert(data.message || 'Failed to parse resume.');
+            }
+        })
+        .catch(err => {
+            console.error(err);
+            alert('Error parsing document.');
+        })
+        .finally(() => {
+            this.isParsing = false;
+            event.target.value = ''; // Reset input
+        });
     },
     fetchPreview() {
         this.isLoadingPreview = true;
@@ -69,12 +146,32 @@
                 prompt: this.prompt,
                 contentData: this.sourceContent,
                 researchTopic: this.researchTopic,
-                brand_id: this.selectedBrandId
+                brand_id: this.selectedBrandId,
+                targetRole: this.targetRole,
+                profilePhotoUrl: this.profilePhotoUrl,
+                email: this.email,
+                phone: this.phone,
+                location: this.location,
+                website: this.website,
+                personalInfo: this.personalInfo
             })
         })
         .then(response => response.json())
         .then(data => {
-            this.htmlPreview = data.html;
+            let finalHtml = data.html;
+            
+            // Extract AI Tailoring Report via Delimiter (Service Layer Split)
+            const splitPattern = /<!-- TAILORING_REPORT_START -->([\s\S]*?)<!-- TAILORING_REPORT_END -->/;
+            const match = finalHtml.match(splitPattern);
+            
+            if (match) {
+                this.tailoringReport = match[1];
+                finalHtml = finalHtml.replace(match[0], ''); // Remove report + delimiters
+            } else {
+                this.tailoringReport = '';
+            }
+
+            this.htmlPreview = finalHtml;
             this.isGenerating = false;
             this.activeTab = 'preview';
         })
@@ -215,7 +312,7 @@
                     </div>
 
                     <!-- Analysis Type -->
-                    <div class="space-y-3">
+                    <div class="space-y-3" x-show="template !== 'cv-resume'">
                         <label class="text-[10px] font-black uppercase tracking-widest text-foreground italic px-1">Intelligence Objective</label>
                         <select x-model="analysisType" class="w-full h-14 bg-muted/20 border border-border rounded-2xl px-5 text-sm font-bold focus:ring-2 focus:ring-primary/20 outline-none">
                             <template x-for="objective in availableObjectives" :key="objective">
@@ -224,14 +321,90 @@
                         </select>
                     </div>
 
-                    <!-- Recipient -->
+                    <!-- Target Role (CV Only) -->
+                    <div class="space-y-3" x-show="template === 'cv-resume'" x-transition>
+                        <label class="text-[10px] font-black uppercase tracking-widest text-primary italic px-1 flex items-center gap-2">
+                            <i data-lucide="crosshair" class="w-3 h-3"></i>
+                            Target Role / Job Description
+                        </label>
+                        <textarea x-model="targetRole" placeholder="Paste the job title or description you are applying for..." rows="3"
+                               class="w-full bg-muted/20 border border-border rounded-2xl p-4 text-sm font-medium focus:ring-2 focus:ring-primary/20 outline-none resize-none"></textarea>
+                        <p class="text-[9px] text-muted-foreground italic px-1">AI will tailor your experience to match this role.</p>
+                    </div>
+
+                    <!-- Recipient / Candidate Identity -->
                     <div class="pt-6 border-t border-border/50">
-                        <label class="text-[10px] font-black uppercase tracking-widest text-primary italic mb-4 block px-1">Identity Destination</label>
+                        <div class="flex items-center justify-between mb-4">
+                            <label class="text-[10px] font-black uppercase tracking-widest text-primary italic px-1" 
+                                   x-text="template === 'cv-resume' ? 'Candidate Identity' : 'Identity Destination'"></label>
+                            
+                            <!-- Photo Upload (CV Only) -->
+                            <div x-show="template === 'cv-resume'" class="relative">
+                                <input type="file" id="photoUpload" class="hidden" accept="image/*" @change="uploadPhoto">
+                                <label for="photoUpload" class="cursor-pointer flex items-center gap-2 text-[9px] font-bold text-muted-foreground hover:text-primary transition-colors">
+                                    <template x-if="!profilePhotoUrl && !isUploadingPhoto">
+                                        <span class="flex items-center gap-1"><i data-lucide="camera" class="w-3 h-3"></i> Add Photo</span>
+                                    </template>
+                                    <template x-if="isUploadingPhoto">
+                                        <span class="flex items-center gap-1"><i data-lucide="loader-2" class="w-3 h-3 animate-spin"></i> Uploading...</span>
+                                    </template>
+                                    <template x-if="profilePhotoUrl">
+                                        <div class="flex items-center gap-2">
+                                            <img :src="profilePhotoUrl" class="w-6 h-6 rounded-full object-cover border border-border">
+                                            <span class="text-green-600">Change</span>
+                                        </div>
+                                    </template>
+                                </label>
+                            </div>
+                        </div>
                         <div class="grid grid-cols-1 gap-4">
-                            <input x-model="recipientName" type="text" placeholder="Recipient Name"
+                            <input x-model="recipientName" type="text" 
+                                   :placeholder="template === 'cv-resume' ? 'Full Name' : 'Recipient Name'"
                                    class="w-full h-12 bg-muted/20 border border-border rounded-xl px-4 text-[11px] font-bold outline-none">
-                            <input x-model="recipientTitle" type="text" placeholder="Identity Role (e.g. CEO)"
+                            <input x-model="recipientTitle" type="text" 
+                                   :placeholder="template === 'cv-resume' ? 'Professional Title (e.g. Senior Architect)' : 'Identity Role (e.g. CEO)'"
                                    class="w-full h-12 bg-muted/20 border border-border rounded-xl px-4 text-[11px] font-bold outline-none">
+                            
+                            <!-- CV Specific Contact Info -->
+                            <div x-show="template === 'cv-resume'" x-transition class="space-y-4 pt-2">
+                                <div class="grid grid-cols-2 gap-4">
+                                    <input x-model="email" type="email" placeholder="Email Address"
+                                           class="w-full h-10 bg-muted/20 border border-border rounded-lg px-4 text-[10px] font-medium outline-none">
+                                    <input x-model="phone" type="text" placeholder="Phone Number"
+                                           class="w-full h-10 bg-muted/20 border border-border rounded-lg px-4 text-[10px] font-medium outline-none">
+                                </div>
+                                <div class="grid grid-cols-2 gap-4">
+                                    <input x-model="location" type="text" placeholder="Location (City, Country)"
+                                           class="w-full h-10 bg-muted/20 border border-border rounded-lg px-4 text-[10px] font-medium outline-none">
+                                    <input x-model="website" type="text" placeholder="Portfolio / LinkedIn"
+                                           class="w-full h-10 bg-muted/20 border border-border rounded-lg px-4 text-[10px] font-medium outline-none">
+                                </div>
+                                
+                                <!-- Extended Bio Data -->
+                                <div class="pt-4 border-t border-border/50">
+                                    <label class="text-[9px] font-black uppercase tracking-widest text-muted-foreground mb-3 block">Professional Information (Bio-Data)</label>
+                                    <div class="grid grid-cols-2 gap-3 mb-3">
+                                        <input x-model="personalInfo.age" type="text" placeholder="Age" class="w-full h-9 bg-muted/20 border border-border rounded-lg px-3 text-[10px] outline-none">
+                                        <input x-model="personalInfo.dob" type="text" placeholder="Date of Birth" class="w-full h-9 bg-muted/20 border border-border rounded-lg px-3 text-[10px] outline-none">
+                                    </div>
+                                    <div class="grid grid-cols-2 gap-3 mb-3">
+                                        <input x-model="personalInfo.gender" type="text" placeholder="Gender" class="w-full h-9 bg-muted/20 border border-border rounded-lg px-3 text-[10px] outline-none">
+                                        <input x-model="personalInfo.civil_status" type="text" placeholder="Civil Status" class="w-full h-9 bg-muted/20 border border-border rounded-lg px-3 text-[10px] outline-none">
+                                    </div>
+                                    <div class="grid grid-cols-2 gap-3 mb-3">
+                                        <input x-model="personalInfo.height" type="text" placeholder="Height" class="w-full h-9 bg-muted/20 border border-border rounded-lg px-3 text-[10px] outline-none">
+                                        <input x-model="personalInfo.weight" type="text" placeholder="Weight" class="w-full h-9 bg-muted/20 border border-border rounded-lg px-3 text-[10px] outline-none">
+                                    </div>
+                                    <div class="grid grid-cols-2 gap-3 mb-3">
+                                        <input x-model="personalInfo.nationality" type="text" placeholder="Nationality" class="w-full h-9 bg-muted/20 border border-border rounded-lg px-3 text-[10px] outline-none">
+                                        <input x-model="personalInfo.religion" type="text" placeholder="Religion" class="w-full h-9 bg-muted/20 border border-border rounded-lg px-3 text-[10px] outline-none">
+                                    </div>
+                                    <div class="space-y-3">
+                                        <input x-model="personalInfo.place_of_birth" type="text" placeholder="Place of Birth" class="w-full h-9 bg-muted/20 border border-border rounded-lg px-3 text-[10px] outline-none">
+                                        <input x-model="personalInfo.languages" type="text" placeholder="Languages / Dialects" class="w-full h-9 bg-muted/20 border border-border rounded-lg px-3 text-[10px] outline-none">
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -239,7 +412,28 @@
 
             <!-- Supplementary Context -->
             <div class="bg-card border border-border rounded-[40px] p-8 shadow-sm">
-                <h3 class="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] mb-6 px-1 italic">Supplementary Context</h3>
+                <div class="flex items-center justify-between mb-6">
+                    <h3 class="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] px-1 italic">Supplementary Context</h3>
+                    
+                    <!-- Resume Uploader -->
+                    <div x-show="template === 'cv-resume'" class="relative">
+                        <input type="file" id="resumeUpload" class="hidden" accept=".pdf,.txt,.md,.docx" @change="parseResume">
+                        <label for="resumeUpload" class="cursor-pointer flex items-center gap-2 px-3 py-1.5 bg-primary/10 text-primary rounded-lg hover:bg-primary/20 transition-colors">
+                            <template x-if="!isParsing">
+                                <div class="flex items-center gap-2">
+                                    <i data-lucide="upload-cloud" class="w-3 h-3"></i>
+                                    <span class="text-[9px] font-black uppercase tracking-widest">Import PDF</span>
+                                </div>
+                            </template>
+                            <template x-if="isParsing">
+                                <div class="flex items-center gap-2">
+                                    <i data-lucide="loader-2" class="w-3 h-3 animate-spin"></i>
+                                    <span class="text-[9px] font-black uppercase tracking-widest">Parsing...</span>
+                                </div>
+                            </template>
+                        </label>
+                    </div>
+                </div>
                 <textarea x-model="sourceContent" rows="6" placeholder="Inject raw data or specific session notes..."
                           class="w-full bg-muted/20 border border-border rounded-3xl p-6 text-xs font-medium italic focus:ring-2 focus:ring-primary/20 outline-none"></textarea>
             </div>
@@ -253,6 +447,23 @@
 
         <!-- Executive Display Node -->
         <div class="lg:col-span-8 space-y-6">
+            
+            <!-- AI Tailoring Insight (Dynamic) -->
+            <div x-show="tailoringReport" x-transition class="bg-blue-50 border border-blue-200 rounded-2xl p-5 shadow-sm relative overflow-hidden">
+                <div class="flex items-start gap-4">
+                    <div class="w-10 h-10 rounded-xl bg-blue-100 flex items-center justify-center text-blue-600 shrink-0">
+                        <i data-lucide="sparkles" class="w-5 h-5"></i>
+                    </div>
+                    <div class="flex-1">
+                        <h4 class="text-sm font-black uppercase tracking-wide text-blue-800 mb-2">Resume Tailoring Active</h4>
+                        <div class="prose prose-sm text-xs text-blue-900/80 leading-relaxed" x-html="tailoringReport"></div>
+                    </div>
+                    <button @click="tailoringReport = ''" class="text-blue-400 hover:text-blue-600">
+                        <i data-lucide="x" class="w-4 h-4"></i>
+                    </button>
+                </div>
+            </div>
+
             <div class="flex items-center justify-between px-1">
                 <div class="flex items-center gap-4 bg-muted/30 p-1 rounded-2xl">
                     <button @click="activeTab = 'preview'" 

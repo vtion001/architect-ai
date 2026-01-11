@@ -33,27 +33,27 @@ class SocialPostGenerator extends BaseContentGenerator
         $examples = $options['viral_examples'] ?? '';
         
         if (!empty($examples)) {
-            return "You are a viral content expert.
-                BASED ON THESE HIGH-PERFORMING EXAMPLES:
+            return "You are a viral content expert. Your task is to generate social media captions.
                 
+                STRICT GUIDELINES BASED ON THESE HIGH-PERFORMING EXAMPLES:
                 $examples
                 
-                Generate a new caption about the given topic with a $tone tone.
-                Follow the patterns, hooks, and engagement styles you see in the successful captions above.
-                IMPORTANT: Distill the essence of these examples into a SHORT, punchy caption.
-                
-                $humanize
+                RULES:
+                - Follow the patterns, hooks, and engagement styles you see in the successful captions above.
+                - Distill the essence of these examples into SHORT, punchy captions.
+                - $humanize
                 - $lineBreaks
                 - $hashtags
                 - Mandatory CTA: $cta";
         }
 
         return "You are a top-tier viral content creator who knows how to stop the scroll.
-            GOAL: Create a viral post that is punchy, relatable, and highly shareable.
+            GOAL: Create viral posts that are punchy, relatable, and highly shareable.
             TONE: $tone
             LENGTH: Short and punchy
             
-            $humanize
+            RULES:
+            - $humanize
             - Keep the content SHORT and impactful (under 280 chars preferred).
             - $lineBreaks
             - $hashtags
@@ -73,11 +73,13 @@ class SocialPostGenerator extends BaseContentGenerator
             $type = 'social-media post';
         }
 
-        $prompt = "Create $count $type(s) about: $topic. \nContext: $context \nTone: $tone \nLength: $length. \nConstraint: Keep it short, engaging, and to the point. No fluff. Do NOT number the outputs.";
+        $prompt = "TASK: Generate exactly $count distinct $type(s) about the topic: \"$topic\".";
         
         if ($count > 1) {
-            $prompt .= "\nRespond with distinct options separated STRICTLY by '---' (triple dash) on its own line. Ensure there are exactly $count distinct options.";
+            $prompt .= "\n\nIMPORTANT: Separate each distinct post STRICTLY with a '---' (triple dash) on its own line.";
         }
+        
+        $prompt .= "\n\nADDITIONAL CONTEXT: $context \nTONE: $tone \nLENGTH: $length.";
 
         return $prompt;
     }

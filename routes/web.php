@@ -98,6 +98,8 @@ Route::middleware(['auth', 'tenant', 'mfa', 'session_security'])->group(function
 
     Route::get('/document-builder', [DocumentBuilderController::class, 'index'])->name('document-builder.index');
     Route::post('/document-builder/generate', [DocumentBuilderController::class, 'generate'])->name('document-builder.generate');
+    Route::post('/document-builder/parse-resume', [DocumentBuilderController::class, 'parseResume'])->name('document-builder.parse-resume');
+    Route::post('/document-builder/upload-photo', [DocumentBuilderController::class, 'uploadPhoto'])->name('document-builder.upload-photo');
     Route::get('/document-builder/preview', [DocumentBuilderController::class, 'preview'])->name('document-builder.preview');
 
     Route::get('/content-creator', [ContentCreatorController::class, 'index'])->name('content-creator.index');
@@ -143,6 +145,7 @@ Route::middleware(['auth', 'tenant', 'mfa', 'session_security'])->group(function
     Route::get('/media-registry', [\App\Http\Controllers\MediaRegistryController::class, 'index'])->name('media-registry.index');
     Route::post('/media-registry', [\App\Http\Controllers\MediaRegistryController::class, 'store'])->name('media-registry.store');
     Route::delete('/media-registry/{asset}', [\App\Http\Controllers\MediaRegistryController::class, 'destroy'])->name('media-registry.destroy');
+    Route::get('/media-assets', [\App\Http\Controllers\MediaRegistryController::class, 'getAssets'])->name('media-assets.json');
 
     Route::get('/analytics', [AnalyticsController::class, 'index'])->name('analytics.index');
 

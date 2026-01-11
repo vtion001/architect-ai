@@ -34,9 +34,18 @@ class ReportService
         return View::make($data->template->view(), [
             'content' => $content,
             'recipientName' => $data->recipientName ?? 'Recipient',
+            'recipientTitle' => $data->recipientTitle,
             'variant' => $data->variant,
             'brandColor' => $brandColor,
-            'logoUrl' => $logoUrl
+            'logoUrl' => $logoUrl,
+            'profilePhotoUrl' => $data->profilePhotoUrl,
+            'contactInfo' => [
+                'email' => $data->email,
+                'phone' => $data->phone,
+                'location' => $data->location,
+                'website' => $data->website,
+            ],
+            'personalInfo' => $data->personalInfo
         ])->render();
     }
 
@@ -127,7 +136,123 @@ class ReportService
                 $roleDescription = "expert legal drafter and contract specialist";
                 $taskDescription = "LEGALLY SOUND business contract";
                 $documentType = "contract";
+            } elseif ($data->template === ReportTemplate::CV_RESUME) {
+                $roleDescription = "expert career coach and resume writer";
+                $taskDescription = "PROFESSIONAL ATS-FRIENDLY resume";
+                $documentType = "resume";
+                
+                $brandInstructions .= "\n\n[RESUME STRUCTURE MANDATE]\n";
+                $brandInstructions .= "You must strictly follow this structure for the resume HTML:\n";
+                $brandInstructions .= "1. PROFESSIONAL SUMMARY: <h2>Professional Summary</h2><p>...</p>\n";
+                $brandInstructions .= "2. EXPERIENCE: <h2>Work Experience</h2> (Use <h3>Job Title | Company</h3> and <div class='job-meta'>Date • Location</div> for each role. Use <ul> for bullets.)\n";
+                $brandInstructions .= "3. EDUCATION: <h2>Education</h2> (Use <h3>University/School</h3> and <div class='job-meta'>Degree • Year</div>)\n";
+                $brandInstructions .= "4. SKILLS: <h2>Skills</h2> (For 'Modern' variants, wrap individual skills in <span class='skill-tag'>Skill Name</span>. For 'Classic', use a simple comma-separated list or <p>.)\n";
+                $brandInstructions .= "CRITICAL: Ensure you extract EDUCATION details from the source content if available. If missing, leave the section blank or omit it.\n";
+
+                if ($data->targetRole) {
+                    $brandInstructions .= "\n\n[RESUME TAILORING ACTIVE]\n";
+                    $brandInstructions .= "TARGET ROLE: {$data->targetRole}\n";
+                    $brandInstructions .= "INSTRUCTION: \n";
+                    $brandInstructions .= "1. Rewrite the professional summary to specifically align with the Target Role.\n";
+                    $brandInstructions .= "2. Re-order or emphasize bullet points in Work Experience that demonstrate relevant skills.\n";
+                    $brandInstructions .= "3. OUTPUT FORMAT: You must wrap your response in these specific tags:\n";
+                    $brandInstructions .= "   <tailoring_report>\n";
+                    $brandInstructions .= "      (Put the HTML for the AI Optimization Log here - the <ul> list of changes)\n";
+                    $brandInstructions .= "   </tailoring_report>\n";
+                    $brandInstructions .= "   <document_content>\n";
+                    $brandInstructions .= "      (Put the main Resume HTML here - Summary, Experience, Education, Skills)\n";
+                    $brandInstructions .= "   </document_content>\n";
+                }
             }
+
+            $response = \Illuminate\Support\Facades\Http::withToken($apiKey)
+                ->timeout(120)
+                ->post('https://api.openai.com/v1/chat/completions', [
+                    'model' => config('services.openai.model', 'gpt-4o-mini'),
+                    'messages' => [
+                        [
+                            'role' => 'system',
+                            'content' => "You are an $roleDescription. 
+                                         Your task is to take RAW research data, INTERNAL knowledge base data, and RAW source content and transform them into a $taskDescription.
+                                         
+                                         CORE DIRECTIVES:
+                                         - **CRITICAL: OUTPUT MUST BE PURE HTML.** Do not use Markdown (no **bold**, no # headers, no -- separators). 
+                                         - **CRITICAL: NO SYMBOLS.** Do not use # or * for formatting. Use <h2>, <h3>, <strong>, <ul>, <li> tags.
+                                         - **CRITICAL: WRAP ALL TEXT.** Every paragraph must be in a <p> tag. Never return a block of text without tags.
+                                         - **CRITICAL: RESTRUCTURE SOURCE CONTENT.** If provided, do not dump the 'Raw Source Content'. You must format it, break it into paragraphs, add headers, and lists.
+                                         - THE 'RESEARCH DATA' AND 'INTERNAL KNOWLEDGE BASE' ARE YOUR PRIMARY SOURCES OF TRUTH. You must include the facts, figures, and insights from them. DO NOT GENERALIZE.
+                                         - THE 'RESEARCH TOPIC' IS THE MANDATORY THEME. Every section must relate back to: {$data->researchTopic}.
+                                         - GENERATE A DETAILED BUSINESS " . strtoupper($documentType) . ". Use a clean, single-column flow.
+                                         - Use <h2> for section titles and <h3> for sub-sections.
+                                         - Use <p>, <ul>, <li>, and <strong> for content.
+                                         - ADVANCED LAYOUTS:
+                                             * Use <table> for any data comparisons or metrics found in the research.
+                                             * Use <div class='callout'>Content</div> for quotes or critical executive findings.
+                                             * Use <div class='grid-2'><div>Part 1</div><div>Part 2</div></div> sparingly for small side-by-side data points.
+                                         - Do not wrap in <html> or <body> tags.
+                                         - Maintain a formal, authoritative, and analytical business tone.
+                                         - YOUR PRIMARY JOB IS DESIGN AND STRUCTURE. Ensure the raw data looks like a premium produced $documentType.
+                                         
+                                         {$brandInstructions}"
+                        ],
+                        [
+                            'role' => 'user',
+                            'content' => "Generate a highly detailed business {$data->template->label()} $documentType. 
+                                         
+                                         MANDATORY RESEARCH TOPIC: {$data->researchTopic}
+                                         
+                                         Analysis Case / Objective: {$data->analysisType}.
+                                         Focus / Strategic Mandate: {$data->prompt}.
+                                         Style Variant: {$data->variant}. 
+                                         Recipient: {$data->recipientName} ({$data->recipientTitle}). 
+                                         
+                                         INTERNAL KNOWLEDGE BASE (CONTEXT):
+                                         ---
+                                         {$kbContext}
+                                         ---
+
+                                         RESEARCH DATA (PRIMARY SOURCE):
+                                         ---
+                                         {$researchData}
+                                         ---
+                                         
+                                         RAW SOURCE CONTENT (SUPPLEMENTARY):
+                                         ---
+                                         {$data->contentData}
+                                         ---
+                                         
+                                         Instruction: Create a comprehensive $documentType specifically about '{$data->researchTopic}'. Use the RESEARCH DATA and INTERNAL KNOWLEDGE BASE provided as your factual base. Build a detailed narrative using the business layout tools (tables, callouts, grids) provided in your system instructions. Do not omit data. Expand the raw research into professional technical analysis. **STRICTLY USE HTML TAGS ONLY. NO MARKDOWN SYMBOLS.**"
+                        ],
+                    ],
+                    'temperature' => 0.5,
+                ]);
+
+            if ($response->successful()) {
+                $rawResult = $response->json('choices.0.message.content');
+                
+                // Parse Split Response (Tailoring + Content)
+                $tailoringReport = '';
+                $cleanContent = $rawResult;
+
+                if (preg_match('/<tailoring_report>(.*?)<\/tailoring_report>/s', $rawResult, $matches)) {
+                    $tailoringReport = trim($matches[1]);
+                }
+                
+                if (preg_match('/<document_content>(.*?)<\/document_content>/s', $rawResult, $matches)) {
+                    $cleanContent = trim($matches[1]);
+                } else {
+                    // Fallback: If tags are missing but tailoring report exists, try to strip it
+                    $cleanContent = preg_replace('/<tailoring_report>.*?<\/tailoring_report>/s', '', $cleanContent);
+                }
+                
+                // Append separate marker for controller/view
+                if ($tailoringReport) {
+                    return $this->sanitizeOutput($cleanContent) . "<!-- TAILORING_REPORT_START -->" . $tailoringReport . "<!-- TAILORING_REPORT_END -->";
+                }
+
+                return $this->sanitizeOutput($cleanContent);
+            }
+        } catch (\Exception $e) {
 
             $response = \Illuminate\Support\Facades\Http::withToken($apiKey)
                 ->timeout(120)
@@ -381,6 +506,29 @@ class ReportService
                 </div>
                 <h3>3. Termination</h3>
                 <p>Either party may terminate this agreement with 30 days written notice. In the event of termination, the Client shall pay for all services rendered up to the termination date.</p>
+            ",
+            ReportTemplate::CV_RESUME => "
+                <h2>Professional Summary</h2>
+                <p>Strategic and results-driven Senior Architect with 8+ years of experience in enterprise system design. Expert in cloud-native infrastructure and AI-driven automation. Proven track record of scaling high-performance teams and delivering multi-tenant SaaS solutions.</p>
+                
+                <h2>Work Experience</h2>
+                <h3>Senior Lead Engineer | TechFlow Corp</h3>
+                <div class='job-meta'>Jan 2022 - Present • San Francisco, CA</div>
+                <ul>
+                    <li>Spearheaded the migration of legacy monoliths to microservices, reducing deployment time by 60%.</li>
+                    <li>Managed a team of 12 full-stack engineers, conducting code reviews and architectural planning.</li>
+                    <li>Implemented a global RAG protocol for internal knowledge sharing.</li>
+                </ul>
+
+                <h3>Software Consultant | Freelance</h3>
+                <div class='job-meta'>Jun 2018 - Dec 2021 • Remote</div>
+                <ul>
+                    <li>Delivered custom ERP solutions for Fortune 500 clients.</li>
+                    <li>Optimized database performance, resulting in a 40% reduction in query latency.</li>
+                </ul>
+
+                <h2>Key Skills</h2>
+                <p>Laravel, Vue.js, AWS, Docker, Kubernetes, System Design, Team Leadership</p>
             ",
             default => $this->getSampleContent(),
         };

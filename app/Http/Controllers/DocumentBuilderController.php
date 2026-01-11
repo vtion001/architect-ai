@@ -9,6 +9,7 @@ use App\Enums\ReportTemplate;
 use App\Http\Requests\GenerateReportRequest;
 use App\Http\Requests\PreviewReportRequest;
 use App\Services\ReportService;
+use App\Services\PdfToTextService;
 use App\Models\Document;
 use App\Services\TokenService;
 use Illuminate\Http\JsonResponse;
@@ -19,7 +20,8 @@ class DocumentBuilderController extends Controller
 {
     public function __construct(
         protected ReportService $reportService,
-        protected TokenService $tokenService
+        protected TokenService $tokenService,
+        protected PdfToTextService $pdfToTextService
     ) {}
 
     public function index(\Illuminate\Http\Request $request): View
@@ -41,6 +43,54 @@ class DocumentBuilderController extends Controller
         $brands = $tenant->brands()->get();
 
         return view('document-builder.document-builder', compact('templateCategories', 'selectedResearch', 'brands'));
+    }
+
+    public function parseResume(\Illuminate\Http\Request $request): JsonResponse
+    {
+        $request->validate([
+            'resume' => 'required|file|mimes:pdf,txt,md,docx|max:5120', // 5MB max
+        ]);
+
+        try {
+            $file = $request->file('resume');
+            $text = '';
+
+            if ($file->getClientOriginalExtension() === 'pdf') {
+                $text = $this->pdfToTextService->extract($file->getPathname());
+            } else {
+                // Fallback for text-based files
+                $text = file_get_contents($file->getPathname());
+            }
+
+            if (empty(trim($text))) {
+                return response()->json(['success' => false, 'message' => 'Could not extract text from the document.'], 422);
+            }
+
+            return response()->json(['success' => true, 'text' => $text]);
+
+        } catch (\Exception $e) {
+            return response()->json(['success' => false, 'message' => 'Parsing failed: ' . $e->getMessage()], 500);
+        }
+    }
+
+    public function uploadPhoto(\Illuminate\Http\Request $request): JsonResponse
+    {
+        $request->validate([
+            'photo' => 'required|image|mimes:jpeg,png,jpg,webp|max:5120',
+        ]);
+
+        if ($request->hasFile('photo')) {
+            $file = $request->file('photo');
+            $filename = 'cv-' . time() . '-' . \Illuminate\Support\Str::random(10) . '.' . $file->getClientOriginalExtension();
+            $file->move(public_path('uploads/cv-photos'), $filename);
+            
+            return response()->json([
+                'success' => true,
+                'url' => asset('uploads/cv-photos/' . $filename)
+            ]);
+        }
+
+        return response()->json(['success' => false, 'message' => 'Upload failed'], 400);
     }
 
     public function generate(GenerateReportRequest $request): JsonResponse

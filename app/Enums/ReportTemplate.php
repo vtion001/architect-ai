@@ -14,6 +14,7 @@ enum ReportTemplate: string
     case TREND_ANALYSIS = 'trend-analysis';
     case PROPOSAL = 'proposal';
     case CONTRACT = 'contract';
+    case CV_RESUME = 'cv-resume';
     case CUSTOM = 'custom';
 
     public function label(): string
@@ -27,6 +28,7 @@ enum ReportTemplate: string
             self::TREND_ANALYSIS => 'Trend Analysis',
             self::PROPOSAL => 'Business Proposal',
             self::CONTRACT => 'Legal Contract',
+            self::CV_RESUME => 'CV / Resume',
             self::CUSTOM => 'Custom Template',
         };
     }
@@ -42,6 +44,7 @@ enum ReportTemplate: string
             self::TREND_ANALYSIS => 'reports.trend-analysis',
             self::PROPOSAL => 'reports.proposal',
             self::CONTRACT => 'reports.contract',
+            self::CV_RESUME => 'reports.cv-resume',
             self::CUSTOM => 'reports.custom',
         };
     }
@@ -57,6 +60,7 @@ enum ReportTemplate: string
             self::TREND_ANALYSIS => 'layers',
             self::PROPOSAL => 'file-text',
             self::CONTRACT => 'scale',
+            self::CV_RESUME => 'user-square',
             self::CUSTOM => 'terminal',
         };
     }
@@ -72,6 +76,7 @@ enum ReportTemplate: string
             self::TREND_ANALYSIS => 'text-slate-500',
             self::PROPOSAL => 'text-orange-500',
             self::CONTRACT => 'text-slate-700',
+            self::CV_RESUME => 'text-violet-500',
             self::CUSTOM => 'text-purple-500',
         };
     }
@@ -87,6 +92,7 @@ enum ReportTemplate: string
             self::TREND_ANALYSIS => '#475569',
             self::PROPOSAL => '#f97316',
             self::CONTRACT => '#334155',
+            self::CV_RESUME => '#8b5cf6',
             self::CUSTOM => '#7c3aed',
         };
     }
@@ -102,6 +108,7 @@ enum ReportTemplate: string
             self::TREND_ANALYSIS => 'trend-analysis',
             self::PROPOSAL => 'proposal',
             self::CONTRACT => 'contract',
+            self::CV_RESUME => 'cv',
             self::CUSTOM => 'custom',
         };
     }
@@ -146,6 +153,11 @@ enum ReportTemplate: string
             self::CONTRACT => [
                 ['id' => 'contract-service', 'name' => 'Service Agreement', 'description' => 'Standard service level agreement terms', 'previewImage' => 'contract', 'tags' => ['Legal', 'SLA']],
                 ['id' => 'contract-nda', 'name' => 'NDA', 'description' => 'Non-disclosure agreement template', 'previewImage' => 'audit', 'tags' => ['Legal', 'Protection']],
+            ],
+            self::CV_RESUME => [
+                ['id' => 'cv-classic', 'name' => 'Classic Professional', 'description' => 'Clean, text-focused layout optimized for ATS', 'previewImage' => 'cv', 'tags' => ['Professional', 'ATS']],
+                ['id' => 'cv-modern', 'name' => 'Modern Creative', 'description' => 'Two-column layout with skills bars and accents', 'previewImage' => 'cv', 'tags' => ['Creative', 'Visual']],
+                ['id' => 'cv-technical', 'name' => 'Technical Expert', 'description' => 'Focused on stack, skills, and project history', 'previewImage' => 'cv', 'tags' => ['Developer', 'Technical']],
             ],
             self::CUSTOM => [
                 ['id' => 'custom-flexible', 'name' => 'Flexible Layout', 'description' => 'Customizable template that adapts to content', 'previewImage' => 'custom', 'tags' => ['Flexible', 'Custom']],

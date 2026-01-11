@@ -18,6 +18,13 @@ readonly class ReportRequestData
         public ?string $contentData = null,
         public ?string $researchTopic = null,
         public ?string $brandId = null,
+        public ?string $targetRole = null,
+        public ?string $profilePhotoUrl = null,
+        public ?string $email = null,
+        public ?string $phone = null,
+        public ?string $location = null,
+        public ?string $website = null,
+        public array $personalInfo = [],
     ) {}
 
     public static function fromArray(array $data): self
@@ -32,6 +39,13 @@ readonly class ReportRequestData
             contentData: $data['contentData'] ?? null,
             researchTopic: $data['researchTopic'] ?? null,
             brandId: $data['brand_id'] ?? null,
+            targetRole: $data['targetRole'] ?? null,
+            profilePhotoUrl: $data['profilePhotoUrl'] ?? null,
+            email: $data['email'] ?? null,
+            phone: $data['phone'] ?? null,
+            location: $data['location'] ?? null,
+            website: $data['website'] ?? null,
+            personalInfo: $data['personalInfo'] ?? [],
         );
     }
 }

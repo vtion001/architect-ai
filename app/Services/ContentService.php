@@ -135,16 +135,10 @@ class ContentService
         return $content;
     }
 
-    public function generateImage(string $prompt): ?string
+    public function generateImage(string $prompt, string $format = 'realistic', array $options = []): ?string
     {
         try {
-            // Enhanced prompt for realism
-            $enhancedPrompt = "A highly realistic, candid photograph capturing the essence of: $prompt. " .
-                              "Style: Documentary or lifestyle photography, appearing 100% authentic and un-staged. " .
-                              "Lighting: Natural, soft, slightly imperfect to add realism (e.g., dappled sunlight, window light). " .
-                              "Texture: Real skin texture, natural material finishes, slight film grain. " .
-                              "Avoid: Hyper-realism, excessive saturation, glossy 3D render aesthetics, surrealism, or 'perfect' stock photo vibes. " .
-                              "Goal: Make it look like a high-quality photo taken by a professional photographer with a DSLR.";
+            $enhancedPrompt = $this->buildImagePrompt($prompt, $format, $options);
 
             $response = Http::withToken($this->apiKey)
                 ->timeout(60)
@@ -153,7 +147,7 @@ class ContentService
                     'prompt' => substr($enhancedPrompt, 0, 4000), // DALL-E 3 limit
                     'n' => 1,
                     'size' => '1024x1024',
-                    'style' => 'natural', // DALL-E 3 specific parameter for less "artistic" output
+                    'style' => $format === 'poster' ? 'vivid' : 'natural',
                 ]);
 
             if ($response->successful()) {
@@ -167,5 +161,90 @@ class ContentService
             Log::error("Image generation exception: " . $e->getMessage());
             return null;
         }
+    }
+
+    /**
+     * Build format-specific prompts for DALL-E 3 image generation.
+     */
+    protected function buildImagePrompt(string $prompt, string $format, array $options): string
+    {
+        switch ($format) {
+            case 'poster':
+                return $this->buildPosterPrompt($prompt, $options);
+            
+            case 'asset-reference':
+                return $this->buildReferencePrompt($prompt, $options);
+            
+            case 'realistic':
+            default:
+                return $this->buildRealisticPrompt($prompt);
+        }
+    }
+
+    /**
+     * Realistic documentary-style photography prompt.
+     */
+    protected function buildRealisticPrompt(string $prompt): string
+    {
+        return "A highly realistic, candid photograph capturing the essence of: $prompt. " .
+               "Style: Documentary or lifestyle photography, appearing 100% authentic and un-staged. " .
+               "Lighting: Natural, soft, slightly imperfect to add realism (e.g., dappled sunlight, window light). " .
+               "Texture: Real skin texture, natural material finishes, slight film grain. " .
+               "Avoid: Hyper-realism, excessive saturation, glossy 3D render aesthetics, surrealism, or 'perfect' stock photo vibes. " .
+               "Goal: Make it look like a high-quality photo taken by a professional photographer with a DSLR.";
+    }
+
+    /**
+     * Marketing poster/graphic design prompt with brand identity.
+     */
+    protected function buildPosterPrompt(string $prompt, array $options): string
+    {
+        $posterText = $options['poster_text'] ?? '';
+        $brand = $options['brand'] ?? null;
+        
+        $colorScheme = 'modern, vibrant colors';
+        $brandContext = '';
+        
+        if ($brand) {
+            $primaryColor = $brand['colors']['primary'] ?? '#000000';
+            $secondaryColor = $brand['colors']['secondary'] ?? '#ffffff';
+            $accentColor = $brand['colors']['accent'] ?? '#3b82f6';
+            
+            $colorScheme = "brand color palette: primary $primaryColor, secondary $secondaryColor, accent $accentColor";
+            $brandContext = " for the brand '{$brand['name']}'";
+        }
+        
+        $textOverlay = '';
+        if ($posterText) {
+            $textOverlay = "Include bold, readable text overlay that says: \"$posterText\". " .
+                          "The text should be prominently placed with excellent contrast. ";
+        }
+        
+        return "Create a professional social media marketing poster/graphic$brandContext. " .
+               "Theme: $prompt. " .
+               $textOverlay .
+               "Design style: Modern, clean, eye-catching marketing graphic suitable for Instagram, Facebook, or LinkedIn. " .
+               "Color scheme: $colorScheme. " .
+               "Layout: Bold typography, clear visual hierarchy, professional marketing aesthetic. " .
+               "Avoid: Photo-realistic imagery. Instead, create a designed graphic with shapes, gradients, and typography. " .
+               "Goal: A scroll-stopping social media graphic that looks professionally designed.";
+    }
+
+    /**
+     * Style reference-based generation prompt.
+     */
+    protected function buildReferencePrompt(string $prompt, array $options): string
+    {
+        $referenceUrl = $options['reference_url'] ?? '';
+        
+        // Note: DALL-E 3 doesn't directly support image-to-image yet,
+        // so we describe the reference style in words
+        return "Create a new image based on this concept: $prompt. " .
+               "Style inspiration: Match the color palette, mood, composition style, and aesthetic feel " .
+               "of professional stock photography with consistent visual branding. " .
+               "Lighting: Consistent, professional studio or natural lighting. " .
+               "Color grading: Cohesive, branded color treatment that would match a curated Instagram feed. " .
+               "Composition: Following the style of curated brand photography with attention to visual balance. " .
+               "Goal: Create an image that would visually complement existing brand photography in a content series.";
     }
 }
