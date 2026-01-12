@@ -38,23 +38,20 @@
         })
         .catch(err => {
             console.error(err);
-            this.errorMessage = 'Communication failure with the Grid.';
+            this.errorMessage = 'Connection failure.';
             this.isLoading = false;
         });
     }
 }">
-    <div class="bg-card border border-border rounded-3xl shadow-2xl relative overflow-hidden">
-        <!-- Decoration -->
-        <div class="absolute -top-10 -right-10 w-32 h-32 bg-primary/10 rounded-full blur-3xl"></div>
-
-        <div class="p-10 space-y-8 relative z-10">
+    <div class="glass-card rounded-[32px] shadow-2xl overflow-hidden border border-white/10">
+        <div class="p-8 md:p-10 space-y-8">
             <div class="text-center">
-                <h2 class="text-2xl font-black uppercase tracking-tighter mb-1">Launch Workspace</h2>
-                <p class="text-sm text-muted-foreground italic font-medium">Establish your agency node on the grid.</p>
+                <h2 class="text-2xl font-bold text-white mb-1">Create Workspace</h2>
+                <p class="text-sm text-slate-400">Launch your agency on ArchitGrid.</p>
             </div>
 
             <template x-if="errorMessage">
-                <div class="p-4 rounded-xl bg-red-50 border border-red-100 text-red-600 text-xs font-bold flex items-center gap-3 animate-in slide-in-from-top-2">
+                <div class="p-4 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-xs font-medium flex items-center gap-3 animate-in slide-in-from-top-2">
                     <i data-lucide="alert-circle" class="w-4 h-4"></i>
                     <span x-text="errorMessage"></span>
                 </div>
@@ -64,62 +61,59 @@
                 <div class="space-y-5">
                     <!-- Agency Name -->
                     <div class="space-y-2">
-                        <label class="text-[10px] font-black uppercase tracking-widest text-muted-foreground italic px-1">Agency Brand</label>
+                        <label class="text-xs font-semibold text-slate-400 px-1">Agency Name</label>
                         <div class="relative">
-                            <i data-lucide="building" class="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground"></i>
+                            <i data-lucide="briefcase" class="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500"></i>
                             <input x-model="companyName" type="text" placeholder="Acme Digital" required
                                    @input="slug = companyName.toLowerCase().replace(/ /g, '-').replace(/[^\w-]+/g, '')"
-                                   class="w-full h-14 pl-11 bg-muted/20 border border-border rounded-2xl text-sm font-bold focus:ring-2 focus:ring-primary/20 outline-none transition-all">
+                                   class="w-full h-12 bg-white/5 border border-white/10 rounded-xl pl-11 text-sm text-white focus:border-cyan-500/50 focus:ring-4 focus:ring-cyan-500/10 outline-none transition-all">
                         </div>
                     </div>
 
                     <!-- Slug -->
                     <div class="space-y-2">
-                        <label class="text-[10px] font-black uppercase tracking-widest text-muted-foreground italic px-1">Workspace Identifier (Slug)</label>
+                        <label class="text-xs font-semibold text-slate-400 px-1">Workspace ID (Slug)</label>
                         <div class="relative">
-                            <i data-lucide="link" class="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground"></i>
+                            <i data-lucide="link" class="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500"></i>
                             <input x-model="slug" type="text" placeholder="acme-digital" required
-                                   class="w-full h-14 pl-11 bg-muted/20 border border-border rounded-2xl text-[11px] font-mono font-bold focus:ring-2 focus:ring-primary/20 outline-none transition-all">
+                                   class="w-full h-12 bg-white/5 border border-white/10 rounded-xl pl-11 text-xs text-cyan-400 font-mono focus:border-cyan-500/50 focus:ring-4 focus:ring-cyan-500/10 outline-none transition-all">
                         </div>
-                        <p class="text-[9px] text-muted-foreground px-1 italic">Internal URL: architgrid.com/login/<span class="text-primary font-bold" x-text="slug || '...'"></span></p>
                     </div>
 
-                    <!-- Owner Email -->
+                    <!-- Email -->
                     <div class="space-y-2">
-                        <label class="text-[10px] font-black uppercase tracking-widest text-muted-foreground italic px-1">Master Identity (Email)</label>
+                        <label class="text-xs font-semibold text-slate-400 px-1">Owner Email</label>
                         <div class="relative">
-                            <i data-lucide="mail" class="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground"></i>
+                            <i data-lucide="mail" class="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500"></i>
                             <input x-model="email" type="email" placeholder="owner@acme.com" required
-                                   class="w-full h-14 bg-muted/20 border border-border rounded-2xl pl-11 text-sm font-bold focus:ring-2 focus:ring-primary/20 outline-none transition-all">
+                                   class="w-full h-12 bg-white/5 border border-white/10 rounded-xl pl-11 text-sm text-white focus:border-cyan-500/50 focus:ring-4 focus:ring-cyan-500/10 outline-none transition-all">
                         </div>
                     </div>
 
-                    <!-- Passphrase -->
+                    <!-- Password -->
                     <div class="space-y-2">
-                        <label class="text-[10px] font-black uppercase tracking-widest text-muted-foreground italic px-1">Security Passphrase</label>
+                        <label class="text-xs font-semibold text-slate-400 px-1">Password</label>
                         <div class="relative">
-                            <i data-lucide="key" class="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground"></i>
-                            <input x-model="password" type="password" placeholder="Min. 12 characters" required
-                                   class="w-full h-14 bg-muted/20 border border-border rounded-2xl pl-11 text-sm font-bold focus:ring-2 focus:ring-primary/20 outline-none transition-all">
+                            <i data-lucide="lock" class="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500"></i>
+                            <input x-model="password" type="password" placeholder="Min. 8 characters" required
+                                   class="w-full h-12 bg-white/5 border border-white/10 rounded-xl pl-11 text-sm text-white focus:border-cyan-500/50 focus:ring-4 focus:ring-cyan-500/10 outline-none transition-all">
                         </div>
                     </div>
                 </div>
 
-                <div class="pt-4">
-                    <button type="submit" :disabled="isLoading"
-                            class="w-full h-16 bg-primary text-primary-foreground rounded-2xl font-black uppercase tracking-[0.3em] text-xs shadow-xl shadow-primary/20 hover:bg-primary/90 transition-all flex items-center justify-center gap-3 disabled:opacity-50">
-                        <template x-if="isLoading">
-                            <i data-lucide="loader-2" class="w-5 h-5 animate-spin text-primary-foreground"></i>
-                        </template>
-                        <span x-text="isLoading ? 'PROVISIONING...' : 'INITIATE WORKSPACE'"></span>
-                    </button>
-                </div>
+                <button type="submit" :disabled="isLoading"
+                        class="w-full h-12 bg-gradient-to-r from-cyan-500 to-blue-600 text-white rounded-xl font-bold text-sm shadow-lg shadow-cyan-500/20 hover:shadow-cyan-500/40 hover:-translate-y-0.5 transition-all flex items-center justify-center gap-2 disabled:opacity-50">
+                    <template x-if="isLoading">
+                        <i data-lucide="loader-2" class="w-4 h-4 animate-spin"></i>
+                    </template>
+                    <span x-text="isLoading ? 'Creating...' : 'Create Workspace'"></span>
+                </button>
             </form>
         </div>
         
-        <div class="bg-muted/30 p-6 border-t border-border text-center">
-            <p class="text-[10px] text-muted-foreground font-black uppercase tracking-widest">
-                Existing Node? <a href="/auth/login" class="text-primary hover:underline ml-1">Connect Here</a>
+        <div class="bg-white/5 p-6 text-center border-t border-white/10">
+            <p class="text-xs text-slate-400">
+                Already have a workspace? <a href="/auth/login" class="text-cyan-400 font-bold hover:underline ml-1">Sign In</a>
             </p>
         </div>
     </div>

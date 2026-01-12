@@ -3,394 +3,314 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    
-    <!-- Primary SEO -->
-    <title>ArchitGrid | The Content Infrastructure for Agencies</title>
-    <meta name="description" content="The operating system for high-scale agencies. Architect industrial-grade content strategies grounded in Deep Research and AI. Multi-tenant infrastructure for automated growth.">
-    <meta name="keywords" content="AI Content Infrastructure, Agency Operating System, Deep Research RAG, Automated Content Architecture, Multi-tenant Agency Grid, Content Operations, Enterprise AI">
-    <meta name="author" content="ArchitGrid Protocol">
-    <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1">
-    <link rel="canonical" href="{{ url()->current() }}">
-
-    <!-- Answer Engine Optimization (AEO) & GEO -->
-    <meta name="geo.region" content="US">
-    <meta name="geo.placename" content="Global Grid">
-    <meta name="audience" content="Agencies, Enterprise, Developers">
-
-    <!-- Favicon & Icons -->
+    <title>ArchitGrid | The OS for High-Growth Agencies</title>
+    <meta name="description" content="Stop trading time for money. The first AI operating system designed to help agencies scale from 10 to 100+ clients without hiring more staff.">
     <link rel="icon" type="image/png" href="https://res.cloudinary.com/dbviya1rj/image/upload/v1767554289/xe54y8zsvhursjrpbnvm.png">
-    <link rel="apple-touch-icon" href="https://res.cloudinary.com/dbviya1rj/image/upload/v1767554289/xe54y8zsvhursjrpbnvm.png">
-    <meta name="theme-color" content="#00F2FF">
 
-    <!-- Open Graph / Facebook -->
-    <meta property="og:type" content="website">
-    <meta property="og:url" content="{{ url()->current() }}">
-    <meta property="og:title" content="ArchitGrid | The Content Infrastructure for Agencies">
-    <meta property="og:description" content="The operating system for high-scale agencies. Architect industrial-grade content strategies grounded in Deep Research and AI.">
-    <meta property="og:image" content="https://images.unsplash.com/photo-1518770660439-4636190af475?q=80&w=1200&auto=format&fit=crop">
-    <meta property="og:site_name" content="ArchitGrid">
-    <meta property="og:locale" content="en_US">
-
-    <!-- Twitter -->
-    <meta name="twitter:card" content="summary_large_image">
-    <meta name="twitter:url" content="{{ url()->current() }}">
-    <meta name="twitter:title" content="ArchitGrid | The Content Infrastructure for Agencies">
-    <meta name="twitter:description" content="The operating system for high-scale agencies. Architect industrial-grade content strategies grounded in Deep Research and AI.">
-    <meta name="twitter:image" content="https://images.unsplash.com/photo-1518770660439-4636190af475?q=80&w=1200&auto=format&fit=crop">
-
-    <!-- Schema.org JSON-LD -->
-    <script type="application/ld+json">
-    {
-        "@context": "https://schema.org",
-        "@type": "SoftwareApplication",
-        "name": "ArchitGrid",
-        "headline": "The Content Infrastructure for Agencies",
-        "description": "ArchitGrid provides the multi-tenant infrastructure for high-scale agency growth, featuring Deep RAG Research and Automated Content Architecture.",
-        "applicationCategory": "BusinessApplication",
-        "operatingSystem": "Web",
-        "offers": {
-            "@type": "Offer",
-            "price": "19.00",
-            "priceCurrency": "USD"
-        },
-        "brand": {
-            "@type": "Brand",
-            "name": "ArchitGrid",
-            "logo": "https://res.cloudinary.com/dbviya1rj/image/upload/v1767554289/xe54y8zsvhursjrpbnvm.png"
-        }
-    }
-    </script>
-
+    <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.bunny.net">
-    <link href="https://fonts.bunny.net/css?family=montserrat:900|inter:400,500,700,800|jetbrains-mono:500" rel="stylesheet" />
+    <link href="https://fonts.bunny.net/css?family=plus-jakarta-sans:400,500,600,700,800|inter:400,500,600" rel="stylesheet" />
+    
+    <!-- Libraries -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <script src="https://unpkg.com/alpinejs" defer></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
+
     <style>
-        body { font-family: 'Inter', sans-serif; background-color: #050505; color: #E2E8F0; overflow-x: hidden; }
-        h1, h2, h3 { font-family: 'Montserrat', sans-serif; }
-        .mono { font-family: 'JetBrains Mono', monospace; }
-        
-        /* Advanced Infrastructure Grid */
-        .grid-canvas {
-            background-image: 
-                linear-gradient(to right, rgba(0, 242, 255, 0.03) 1px, transparent 1px),
-                linear-gradient(to bottom, rgba(0, 242, 255, 0.03) 1px, transparent 1px);
-            background-size: 60px 60px;
-            mask-image: radial-gradient(ellipse at center, black, transparent 80%);
+        :root {
+            --bg: #030712;
+            --card: rgba(255, 255, 255, 0.03);
+            --border: rgba(255, 255, 255, 0.08);
+            --accent: #22d3ee;
         }
 
-        /* Odd & Structural Shapes */
-        .arch-poly-1 { clip-path: polygon(0 0, 100% 0, 100% 85%, 85% 100%, 0 100%); }
-        .arch-poly-2 { clip-path: polygon(15% 0, 100% 0, 100% 100%, 0 100%, 0 15%); }
+        body { 
+            font-family: 'Inter', sans-serif; 
+            background-color: var(--bg);
+            color: #F8FAFC; 
+            overflow-x: hidden; 
+        }
+
+        h1, h2, h3, h4, .heading { font-family: 'Plus Jakarta Sans', sans-serif; }
+
+        /* Loader */
+        .loader-overlay {
+            position: fixed;
+            inset: 0;
+            background: #000;
+            z-index: 9999;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+        }
+        .loader-bar-bg {
+            width: 200px;
+            height: 2px;
+            background: rgba(255,255,255,0.1);
+            position: relative;
+            overflow: hidden;
+            border-radius: 2px;
+        }
+        .loader-progress {
+            position: absolute;
+            left: 0;
+            top: 0;
+            height: 100%;
+            background: var(--accent);
+            width: 0%;
+        }
+
+        /* Marquee */
+        .marquee-container {
+            mask-image: linear-gradient(to right, transparent, black 10%, black 90%, transparent);
+        }
+        .marquee-content {
+            display: flex;
+            gap: 4rem;
+            width: max-content;
+        }
+
+        /* Glass */
+        .glass {
+            background: var(--card);
+            backdrop-filter: blur(12px);
+            border: 1px solid var(--border);
+        }
+        .glass-hover:hover {
+            background: rgba(255,255,255,0.05);
+            border-color: rgba(34,211,238,0.2);
+        }
         
-        .blueprint-border { border: 1px solid rgba(0, 242, 255, 0.1); position: relative; }
-        .blueprint-border::before { content: ''; position: absolute; top: -5px; left: -5px; width: 10px; height: 10px; border-top: 1px solid #00F2FF; border-left: 1px solid #00F2FF; }
-        .blueprint-border::after { content: ''; position: absolute; bottom: -5px; right: -5px; width: 10px; height: 10px; border-bottom: 1px solid #00F2FF; border-right: 1px solid #00F2FF; }
+        /* Smooth Gradient Text */
+        .gradient-text {
+            background: linear-gradient(to right, #22d3ee, #3b82f6, #818cf8);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-size: 200% auto;
+            animation: gradient-move 5s linear infinite;
+        }
+        @keyframes gradient-move { 0% { background-position: 0% 50%; } 100% { background-position: 200% 50%; } }
 
-        .glass-layer { background: rgba(255, 255, 255, 0.01); backdrop-filter: blur(20px); border: 1px solid rgba(255, 255, 255, 0.05); }
-        
-        @keyframes scan { 0% { transform: translateY(-100%); } 100% { transform: translateY(100%); } }
-        .scanner::after { content: ''; position: absolute; top: 0; left: 0; width: 100%; height: 2px; background: #00F2FF; box-shadow: 0 0 20px #00F2FF; animation: scan 4s linear infinite; }
+        /* Grid Background */
+        .bg-grid {
+            background-image: linear-gradient(to right, #ffffff05 1px, transparent 1px),
+                              linear-gradient(to bottom, #ffffff05 1px, transparent 1px);
+            background-size: 50px 50px;
+            mask-image: radial-gradient(circle at center, black, transparent 80%);
+        }
 
-        .btn-protocol { background: #00F2FF; color: #050505; font-weight: 900; text-transform: uppercase; letter-spacing: 0.2em; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
-        .btn-protocol:hover { background: #FFFFFF; transform: translateY(-2px); box-shadow: 0 15px 30px rgba(0, 242, 255, 0.2); }
-
-        [x-cloak] { display: none !important; }
+        /* 3D Tilt */
+        .tilt-card {
+            transform-style: preserve-3d;
+            perspective: 1000px;
+        }
     </style>
 </head>
-<body x-data="{ scrolled: false }" @scroll.window="scrolled = window.pageYOffset > 50">
+<body class="antialiased selection:bg-cyan-500/30 selection:text-cyan-200">
 
-    <!-- Global Background Elements -->
-    <div class="fixed inset-0 grid-canvas pointer-events-none z-0"></div>
-    <div class="fixed top-[-10%] right-[-10%] w-[50%] h-[50%] bg-cyan-500/5 blur-[120px] rounded-full pointer-events-none"></div>
+    <!-- Preloader -->
+    <div class="loader-overlay">
+        <div class="text-xs font-mono text-cyan-500 mb-4 tracking-[0.2em] uppercase">System Boot</div>
+        <div class="loader-bar-bg"><div class="loader-progress"></div></div>
+        <div class="counter text-4xl font-bold mt-4 text-white font-mono">0%</div>
+    </div>
 
-    <!-- Top Navigation Protocol -->
-    <nav class="fixed top-0 w-full z-[100] transition-all duration-500 border-b border-transparent"
-         :class="scrolled ? 'bg-black/80 backdrop-blur-xl border-white/5 py-4' : 'bg-transparent py-8'">
-        <div class="max-w-[1600px] mx-auto px-10 flex items-center justify-between">
-            <div class="flex items-center gap-4">
-                <div class="w-12 h-12 glass-layer rounded-xl flex items-center justify-center border-cyan-400/20">
-                    <img src="https://res.cloudinary.com/dbviya1rj/image/upload/v1767554289/xe54y8zsvhursjrpbnvm.png" class="w-8 h-8 object-contain" alt="ArchitGrid">
+    <!-- Nav -->
+    <nav class="fixed top-0 w-full z-50 border-b border-white/5 bg-[#030712]/80 backdrop-blur-xl">
+        <div class="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
+            <a href="/" class="flex items-center gap-3 group">
+                <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-cyan-400 to-blue-600 flex items-center justify-center text-white shadow-lg shadow-cyan-500/20 group-hover:scale-110 transition-transform">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
                 </div>
-                <div class="flex flex-col">
-                    <span class="text-2xl font-black tracking-tighter uppercase text-white leading-none">ArchitGrid</span>
-                    <span class="text-[8px] font-black uppercase tracking-[0.4em] text-cyan-400 mt-1">Infrastructure protocol v1.0</span>
-                </div>
+                <span class="font-bold text-lg tracking-tight">ArchitGrid</span>
+            </a>
+            <div class="hidden md:flex items-center gap-8 text-sm font-medium text-slate-400">
+                <a href="#features" class="hover:text-white transition-colors">Features</a>
+                <a href="#workflow" class="hover:text-white transition-colors">Workflow</a>
+                <a href="#pricing" class="hover:text-white transition-colors">Pricing</a>
             </div>
-            
-            <div class="hidden lg:flex items-center gap-12">
-                <a href="#vision" class="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 hover:text-cyan-400 transition-colors">01. Vision</a>
-                <a href="#modular" class="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 hover:text-cyan-400 transition-colors">02. Infrastructure</a>
-                <a href="#pricing" class="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 hover:text-cyan-400 transition-colors">03. Pricing</a>
-                <a href="#telemetry" class="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 hover:text-cyan-400 transition-colors">04. Telemetry</a>
-                <a href="/waitlist" class="btn-protocol px-8 py-3 rounded-xl text-[10px]">Initialize Beta</a>
-            </div>
+            <a href="/waitlist" class="px-5 py-2.5 rounded-lg bg-white text-slate-950 text-sm font-bold hover:scale-105 transition-transform">Get Access</a>
         </div>
     </nav>
 
-    <!-- Hero Matrix Section -->
-    <section class="relative min-h-screen flex items-center pt-20 px-10 overflow-hidden">
-        <div class="max-w-[1600px] mx-auto w-full grid grid-cols-1 lg:grid-cols-12 gap-10 items-center">
-            
-            <div class="lg:col-span-7 space-y-10 z-10 animate-in fade-in slide-in-from-left-10 duration-1000">
-                <div class="flex items-center gap-4">
-                    <div class="h-[1px] w-12 bg-cyan-400"></div>
-                    <span class="mono text-[10px] uppercase text-cyan-400 tracking-widest font-black">Identity & Intelligence Layer</span>
-                </div>
-                
-                <h1 class="text-7xl md:text-9xl font-black tracking-tighter leading-[0.85] text-white">
-                    The Content <br>
-                    <span class="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 via-blue-500 to-indigo-600">Operating System.</span>
-                </h1>
-                
-                <p class="text-lg md:text-xl text-slate-400 font-medium max-w-2xl leading-relaxed italic">
-                    Architect industrial-grade content strategies grounded in Deep Research. ArchitGrid provides the multi-tenant infrastructure for high-scale agency growth.
-                </p>
+    <!-- Hero -->
+    <header class="relative pt-32 pb-20 lg:pt-48 overflow-hidden min-h-screen flex flex-col justify-center" id="hero">
+        <!-- Backgrounds -->
+        <div class="absolute inset-0 bg-grid pointer-events-none z-0"></div>
+        <div class="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[500px] bg-cyan-500/10 blur-[120px] rounded-full pointer-events-none z-0"></div>
 
-                <div class="flex flex-col sm:flex-row gap-6 pt-6">
-                    <a href="/waitlist" class="btn-protocol h-20 px-12 rounded-2xl flex items-center justify-center gap-4 group">
-                        <span>Enter the Grid</span>
-                        <i data-lucide="arrow-right" class="w-5 h-5 group-hover:translate-x-2 transition-transform"></i>
-                    </a>
-                    <a href="{{ route('login') }}" class="h-20 px-12 rounded-2xl border border-white/10 glass-layer flex items-center justify-center font-black uppercase tracking-widest text-[10px] hover:bg-white/5 transition-all">
-                        Identity Login
-                    </a>
-                </div>
-
-                <!-- Live Telemetry Bar -->
-                <div class="flex gap-12 pt-10 border-t border-white/5">
-                    <div>
-                        <p class="mono text-[10px] text-slate-500 uppercase mb-1">Active Nodes</p>
-                        <p class="text-2xl font-black text-white">{{ number_format($telemetry['nodes_active']) }}</p>
-                    </div>
-                    <div>
-                        <p class="mono text-[10px] text-slate-500 uppercase mb-1">Identity blocks</p>
-                        <p class="text-2xl font-black text-white">{{ number_format($telemetry['identity_count']) }}</p>
-                    </div>
-                    <div>
-                        <p class="mono text-[10px] text-slate-500 uppercase mb-1">Last Sync</p>
-                        <p class="text-2xl font-black text-white">{{ $telemetry['last_protocol'] }}</p>
-                    </div>
-                </div>
+        <div class="max-w-7xl mx-auto px-6 text-center relative z-10">
+            <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-cyan-950/30 border border-cyan-500/30 text-cyan-400 text-xs font-bold uppercase tracking-wider mb-8 opacity-0 hero-fade">
+                <span class="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse"></span>
+                v2.0 Now Available
             </div>
 
-            <!-- Visual Asset: The Monolith -->
-            <div class="lg:col-span-5 relative z-10 animate-in fade-in zoom-in-95 duration-1000 delay-200">
-                <div class="arch-poly-1 w-full aspect-[4/5] glass-layer p-2 blueprint-border shadow-2xl relative group overflow-hidden">
-                    <div class="scanner absolute inset-0 z-20 pointer-events-none"></div>
-                    <img src="https://images.unsplash.com/photo-1518770660439-4636190af475?q=80&w=1200&auto=format&fit=crop" 
-                         class="w-full h-full object-cover grayscale opacity-40 group-hover:grayscale-0 group-hover:opacity-80 transition-all duration-1000 scale-110 group-hover:scale-100" alt="Tech">
-                    
-                    <!-- Floating Data Block -->
-                    <div class="absolute top-10 left-10 right-10 p-8 glass-layer rounded-2xl border-l-4 border-l-cyan-400 z-30">
-                        <div class="flex justify-between items-start mb-6">
-                            <i data-lucide="shield-check" class="w-8 h-8 text-cyan-400"></i>
-                            <span class="mono text-[8px] text-slate-500 uppercase">Block ID: 0x8842...</span>
-                        </div>
-                        <p class="text-sm font-bold text-white leading-relaxed">Multi-Tenant Data Isolation Active. All research grounding protocols verified across the global grid.</p>
-                    </div>
-                </div>
-                
-                <!-- Bottom Decorative Shape -->
-                <div class="arch-poly-2 absolute -bottom-12 -left-12 w-2/3 aspect-square bg-gradient-to-br from-cyan-500/20 to-transparent border border-cyan-400/20 backdrop-blur-3xl -z-10 shadow-2xl"></div>
-            </div>
-        </div>
-    </section>
+            <h1 class="text-6xl md:text-8xl font-bold tracking-tight mb-8 leading-[1.1]">
+                <div class="overflow-hidden"><span class="hero-text block translate-y-full">The Operating System</span></div>
+                <div class="overflow-hidden"><span class="hero-text block translate-y-full text-slate-500">for <span class="gradient-text">High-Scale Agencies.</span></span></div>
+            </h1>
 
-    <!-- Structural Vision -->
-    <section id="vision" class="py-40 px-10 border-y border-white/5 bg-white/[0.01] relative overflow-hidden">
-        <div class="absolute top-0 left-0 w-full h-full grid-canvas opacity-10 pointer-events-none"></div>
-        <div class="max-w-[1600px] mx-auto grid grid-cols-1 lg:grid-cols-12 gap-20 relative z-10">
-            <div class="lg:col-span-4 space-y-8">
-                <div class="flex items-center gap-4">
-                    <div class="h-[1px] w-8 bg-cyan-400"></div>
-                    <span class="mono text-[10px] uppercase text-cyan-400 tracking-widest font-black italic">01. The Blueprint</span>
-                </div>
-                <h2 class="text-6xl font-black tracking-tighter uppercase leading-[0.9] text-white">Scale <br>Without <br>Fragmentation.</h2>
-                <p class="text-slate-400 font-medium leading-relaxed italic text-lg">ArchitGrid provides the hardened data partitions required to scale agency operations without losing intelligence integrity.</p>
-                <div class="pt-6">
-                    <a href="/waitlist" class="text-cyan-400 font-black uppercase tracking-widest text-[10px] flex items-center gap-3 hover:text-white transition-colors group">
-                        Study the Infrastructure 
-                        <i data-lucide="arrow-right" class="w-4 h-4 group-hover:translate-x-2 transition-transform"></i>
-                    </a>
-                </div>
-            </div>
-            
-            <div class="lg:col-span-8 grid grid-cols-1 md:grid-cols-2 gap-10">
-                <div class="p-12 glass-layer rounded-[40px] blueprint-border hover:border-cyan-400/40 transition-all group relative overflow-hidden">
-                    <div class="absolute -top-10 -right-10 w-32 h-32 bg-cyan-400/5 blur-3xl"></div>
-                    <i data-lucide="layers" class="w-12 h-12 text-cyan-400 mb-10 group-hover:scale-110 transition-transform"></i>
-                    <h3 class="text-3xl font-black uppercase mb-4 text-white tracking-tight">Grid Isolation</h3>
-                    <p class="text-slate-400 leading-relaxed font-medium">Every tenant operates in an air-gapped data partition. Secure your client's business intelligence behind enterprise-grade IAM protocols.</p>
-                </div>
-                <div class="p-12 glass-layer rounded-[40px] blueprint-border hover:border-cyan-400/40 transition-all group relative overflow-hidden">
-                    <div class="absolute -top-10 -right-10 w-32 h-32 bg-blue-500/5 blur-3xl"></div>
-                    <i data-lucide="brain-circuit" class="w-12 h-12 text-cyan-400 mb-10 group-hover:scale-110 transition-transform"></i>
-                    <h3 class="text-3xl font-black uppercase mb-4 text-white tracking-tight">Deep RAG Hub</h3>
-                    <p class="text-slate-400 leading-relaxed font-medium">Your Knowledge Base is the primary context layer. AI modules refer to your indexed documents as the one source of truth for all deployments.</p>
-                </div>
-            </div>
-        </div>
-    </section>
+            <p class="text-xl text-slate-400 max-w-2xl mx-auto mb-10 leading-relaxed opacity-0 hero-fade">
+                Centralize your entire agency. Research, content generation, and client approvals in one unified workspace.
+            </p>
 
-    <!-- Pricing Protocol Grid -->
-    <section id="pricing" class="py-40 px-10 relative">
-        <div class="max-w-[1600px] mx-auto">
-            <div class="text-center mb-24 space-y-4">
-                <div class="mono text-[10px] text-cyan-400 uppercase tracking-[0.5em] font-black">Subscription Tiers</div>
-                <h2 class="text-6xl md:text-8xl font-black uppercase tracking-tighter text-white">Scaling Protocols.</h2>
+            <div class="flex flex-col sm:flex-row items-center justify-center gap-4 mb-20 opacity-0 hero-fade">
+                <a href="/waitlist" class="h-14 px-8 rounded-xl bg-cyan-500 text-slate-950 font-bold flex items-center gap-2 hover:bg-cyan-400 transition-all shadow-[0_0_30px_rgba(34,211,238,0.3)] hover:scale-105">
+                    Start Scaling
+                    <i data-lucide="arrow-right" class="w-4 h-4"></i>
+                </a>
+                <button class="h-14 px-8 rounded-xl bg-white/5 border border-white/10 text-white font-medium hover:bg-white/10 transition-all flex items-center gap-2">
+                    <i data-lucide="play-circle" class="w-4 h-4 text-slate-400"></i>
+                    Watch Demo
+                </button>
             </div>
 
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
-                <!-- Standard -->
-                <div class="bg-card border border-white/5 rounded-[48px] p-12 flex flex-col hover:border-white/10 transition-all group relative">
-                    <div class="mb-12">
-                        <h4 class="text-2xl font-black uppercase tracking-tight text-white mb-2">Standard</h4>
-                        <p class="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Entry-level Node Access</p>
-                    </div>
-                    <div class="flex-1 space-y-6 mb-16">
-                        <div class="flex items-center gap-4 text-sm font-medium italic text-slate-300">
-                            <div class="w-5 h-5 rounded-full bg-cyan-400/10 flex items-center justify-center"><i data-lucide="check" class="w-3 h-3 text-cyan-400"></i></div>
-                            5,000 monthly tokens
-                        </div>
-                        <div class="flex items-center gap-4 text-sm font-medium italic text-slate-300">
-                            <div class="w-5 h-5 rounded-full bg-cyan-400/10 flex items-center justify-center"><i data-lucide="check" class="w-3 h-3 text-cyan-400"></i></div>
-                            3 Sub-account nodes
-                        </div>
-                        <div class="flex items-center gap-4 text-sm font-medium italic text-slate-300">
-                            <div class="w-5 h-5 rounded-full bg-cyan-400/10 flex items-center justify-center"><i data-lucide="check" class="w-3 h-3 text-cyan-400"></i></div>
-                            Secure RAG Knowledge Hub
-                        </div>
-                    </div>
-                    <div class="mb-10">
-                        <span class="text-5xl font-black text-white">$19</span>
-                        <span class="text-sm font-bold text-slate-500 uppercase tracking-widest ml-2">/ month</span>
-                    </div>
-                    <a href="/waitlist" class="w-full h-16 rounded-3xl border border-white/10 flex items-center justify-center font-black uppercase text-[10px] tracking-widest text-white hover:bg-white hover:text-black transition-all">Initialize Node</a>
-                </div>
-
-                <!-- Enterprise -->
-                <div class="bg-slate-900 border border-cyan-400/30 rounded-[48px] p-12 flex flex-col shadow-2xl relative overflow-hidden group">
-                    <div class="absolute top-0 right-0 px-10 py-3 bg-cyan-400 text-black font-black uppercase text-[9px] tracking-widest rounded-bl-3xl">Recommended Node</div>
-                    <div class="mb-12">
-                        <h4 class="text-2xl font-black uppercase tracking-tight text-white mb-2">Enterprise</h4>
-                        <p class="text-[10px] font-bold text-cyan-400 uppercase tracking-widest">Advanced Agency Infrastructure</p>
-                    </div>
-                    <div class="flex-1 space-y-6 mb-16">
-                        <div class="flex items-center gap-4 text-sm font-medium italic text-slate-200">
-                            <div class="w-5 h-5 rounded-full bg-cyan-400 flex items-center justify-center shadow-lg shadow-cyan-400/20"><i data-lucide="check" class="w-3 h-3 text-black"></i></div>
-                            25,000 monthly tokens
-                        </div>
-                        <div class="flex items-center gap-4 text-sm font-medium italic text-slate-200">
-                            <div class="w-5 h-5 rounded-full bg-cyan-400 flex items-center justify-center shadow-lg shadow-cyan-400/20"><i data-lucide="check" class="w-3 h-3 text-black"></i></div>
-                            15 Sub-account nodes
-                        </div>
-                        <div class="flex items-center gap-4 text-sm font-medium italic text-slate-200">
-                            <div class="w-5 h-5 rounded-full bg-cyan-400 flex items-center justify-center shadow-lg shadow-cyan-400/20"><i data-lucide="check" class="w-3 h-3 text-black"></i></div>
-                            Industrial-Grade RAG Hub
-                        </div>
-                        <div class="flex items-center gap-4 text-sm font-medium italic text-slate-200">
-                            <div class="w-5 h-5 rounded-full bg-cyan-400 flex items-center justify-center shadow-lg shadow-cyan-400/20"><i data-lucide="check" class="w-3 h-3 text-black"></i></div>
-                            Full White-label UI Engine
-                        </div>
-                    </div>
-                    <div class="mb-10">
-                        <span class="text-5xl font-black text-cyan-400">$49</span>
-                        <span class="text-sm font-bold text-slate-500 uppercase tracking-widest ml-2">/ month</span>
-                    </div>
-                    <a href="/waitlist" class="w-full h-20 bg-cyan-400 text-black rounded-3xl flex items-center justify-center font-black uppercase text-xs tracking-[0.2em] shadow-2xl shadow-cyan-400/20 hover:bg-white hover:scale-[1.02] transition-all">Engage Enterprise</a>
-                </div>
-
-                <!-- Master -->
-                <div class="bg-card border border-white/5 rounded-[48px] p-12 flex flex-col hover:border-white/10 transition-all group">
-                    <div class="mb-12">
-                        <h4 class="text-2xl font-black uppercase tracking-tight text-white mb-2">Master</h4>
-                        <p class="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Industrial Platform Protocol</p>
-                    </div>
-                    <div class="flex-1 space-y-6 mb-16">
-                        <div class="flex items-center gap-4 text-sm font-medium italic text-slate-300">
-                            <div class="w-5 h-5 rounded-full bg-cyan-400/10 flex items-center justify-center"><i data-lucide="check" class="w-3 h-3 text-cyan-400"></i></div>
-                            Unlimited Resource Hashing
-                        </div>
-                        <div class="flex items-center gap-4 text-sm font-medium italic text-slate-300">
-                            <div class="w-5 h-5 rounded-full bg-cyan-400/10 flex items-center justify-center"><i data-lucide="check" class="w-3 h-3 text-cyan-400"></i></div>
-                            Unlimited Workspace Nodes
-                        </div>
-                        <div class="flex items-center gap-4 text-sm font-medium italic text-slate-300">
-                            <div class="w-5 h-5 rounded-full bg-cyan-400/10 flex items-center justify-center"><i data-lucide="check" class="w-3 h-3 text-cyan-400"></i></div>
-                            Developer API & SSO Protocol
-                        </div>
-                    </div>
-                    <div class="mb-10">
-                        <span class="text-4xl font-black text-white italic">Contact Sales</span>
-                    </div>
-                    <a href="/waitlist" class="w-full h-16 rounded-3xl border border-white/10 flex items-center justify-center font-black uppercase text-[10px] tracking-widest text-white hover:bg-white hover:text-black transition-all">Initiate Inquiry</a>
-                </div>
-            </div>
-        </div>
-    </section>
-
-    <!-- Modular Bento Infrastructure -->
-    <section id="modular" class="py-40 px-10">
-        <div class="max-w-[1600px] mx-auto">
-            <div class="text-center mb-20 space-y-4">
-                <h2 class="text-6xl font-black uppercase tracking-tighter text-white">The Grid Core</h2>
-                <p class="mono text-[10px] text-cyan-400 uppercase tracking-[0.5em] font-black">Architecture components</p>
-            </div>
-
-            <div class="grid grid-cols-1 md:grid-cols-12 gap-8 auto-rows-[280px]">
-                
-                <!-- Research Monolith -->
-                <div class="md:col-span-8 glass-layer rounded-[40px] overflow-hidden relative group blueprint-border">
-                    <img src="https://images.unsplash.com/photo-1451187580459-43490279c0fa?q=80&w=1200&auto=format&fit=crop" class="absolute inset-0 w-full h-full object-cover opacity-20 group-hover:scale-105 transition-transform duration-1000" alt="Core">
-                    <div class="absolute inset-0 bg-gradient-to-r from-black via-black/40 to-transparent p-12 flex flex-col justify-end">
-                        <div class="flex items-center gap-3 mb-4">
-                            <div class="w-10 h-10 bg-cyan-400 text-black flex items-center justify-center rounded-lg shadow-lg">
-                                <i data-lucide="search" class="w-5 h-5"></i>
+            <!-- 3D Interactive Mockup -->
+            <div class="relative mx-auto max-w-6xl opacity-0 hero-dashboard-container perspective-1000">
+                <div class="tilt-inner transform-style-3d transition-transform duration-100 ease-out">
+                    <div class="rounded-xl bg-[#1e293b] p-2 ring-1 ring-white/10 shadow-2xl relative z-10">
+                        <div class="flex items-center gap-2 px-4 py-2 border-b border-white/5 bg-[#0f172a] rounded-t-lg">
+                            <div class="flex gap-1.5">
+                                <div class="w-3 h-3 rounded-full bg-red-500/50"></div>
+                                <div class="w-3 h-3 rounded-full bg-yellow-500/50"></div>
+                                <div class="w-3 h-3 rounded-full bg-green-500/50"></div>
                             </div>
-                            <h3 class="text-4xl font-black uppercase text-white">Research Engine</h3>
+                            <div class="mx-auto text-[10px] text-slate-500 font-mono">dashboard.architgrid.com</div>
                         </div>
-                        <p class="text-slate-300 max-w-xl text-sm font-bold leading-relaxed italic">Deep Gemini-powered research with real-time web grounding and automated citation protocols.</p>
+                        <div class="relative aspect-[16/9] overflow-hidden rounded-b-lg bg-slate-900 group">
+                            <!-- Dashboard Image Placeholder -->
+                            <img src="https://images.unsplash.com/photo-1611162617474-5b21e879e113?q=80&w=2574&auto=format&fit=crop" 
+                                 class="w-full h-full object-cover opacity-90 group-hover:scale-105 transition-transform duration-1000" alt="Dashboard">
+                        </div>
                     </div>
-                </div>
 
-                <!-- Post Creator -->
-                <div class="md:col-span-4 bg-cyan-400 rounded-[40px] p-12 flex flex-col justify-between group cursor-pointer shadow-2xl shadow-cyan-400/10">
-                    <div class="flex justify-between items-start">
-                        <i data-lucide="edit-3" class="w-12 h-12 text-black stroke-[3px]"></i>
-                        <span class="mono text-[8px] font-black text-black/40 uppercase">Module: Content</span>
-                    </div>
-                    <div>
-                        <h3 class="text-3xl font-black uppercase text-black mb-2">Architect</h3>
-                        <p class="text-black/60 text-xs font-black leading-relaxed">Multi-platform campaign generation with human-first optimization.</p>
-                    </div>
-                </div>
-
-                <!-- Social Planner -->
-                <div class="md:col-span-4 glass-layer rounded-[40px] p-12 flex flex-col justify-between hover:bg-white/5 transition-all blueprint-border group">
-                    <div class="w-14 h-14 bg-white/5 rounded-2xl flex items-center justify-center text-cyan-400 border border-white/10 group-hover:bg-cyan-400 group-hover:text-black transition-all">
-                        <i data-lucide="calendar" class="w-6 h-6"></i>
-                    </div>
-                    <div>
-                        <h3 class="text-2xl font-black uppercase text-white mb-2">Social Planner</h3>
-                        <p class="text-slate-500 text-xs font-bold italic leading-relaxed">Integrated Meta & LinkedIn scheduling with automated token management.</p>
-                    </div>
-                </div>
-
-                <!-- Treasury -->
-                <div class="md:col-span-8 glass-layer rounded-[40px] overflow-hidden blueprint-border p-12 flex items-center gap-12 group">
-                    <div class="flex-1 space-y-6">
+                    <!-- Floating Parallax Elements -->
+                    <div class="absolute top-20 -left-12 glass p-4 rounded-xl shadow-2xl border-l-4 border-l-cyan-400 z-20 hero-float">
                         <div class="flex items-center gap-3">
-                            <i data-lucide="coins" class="w-8 h-8 text-cyan-400"></i>
-                            <h3 class="text-3xl font-black uppercase text-white">Token Treasury</h3>
+                            <div class="w-10 h-10 rounded-full bg-cyan-500/20 flex items-center justify-center text-cyan-400">
+                                <i data-lucide="trending-up" class="w-5 h-5"></i>
+                            </div>
+                            <div>
+                                <div class="text-[10px] text-slate-400 uppercase font-bold tracking-wider">Client Growth</div>
+                                <div class="text-xl font-bold text-white">+142%</div>
+                            </div>
                         </div>
-                        <p class="text-slate-400 text-sm font-medium leading-relaxed italic">Manage resource distribution across your entire agency grid. Real-time consumption telemetry for all sub-accounts.</p>
                     </div>
-                    <div class="hidden lg:flex w-64 h-full bg-white/5 rounded-3xl border border-white/10 items-center justify-center group-hover:bg-white/10 transition-all">
-                        <div class="relative">
-                            <div class="w-32 h-32 rounded-full border-4 border-cyan-400/20 border-t-cyan-400 animate-spin"></div>
-                            <div class="absolute inset-0 flex items-center justify-center text-cyan-400 font-black text-xs uppercase">Sync</div>
+                    
+                    <div class="absolute bottom-20 -right-12 glass p-4 rounded-xl shadow-2xl border-l-4 border-l-purple-500 z-20 hero-float">
+                        <div class="flex items-center gap-3">
+                            <div class="w-10 h-10 rounded-full bg-purple-500/20 flex items-center justify-center text-purple-400">
+                                <i data-lucide="check-circle" class="w-5 h-5"></i>
+                            </div>
+                            <div>
+                                <div class="text-[10px] text-slate-400 uppercase font-bold tracking-wider">Auto-Scheduled</div>
+                                <div class="text-xl font-bold text-white">42 Posts</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Infinite Marquee -->
+    <section class="py-12 border-y border-white/5 bg-white/[0.01] overflow-hidden marquee-container">
+        <div class="flex marquee-wrapper">
+            <!-- Duplicated content for seamless loop -->
+            <div class="marquee-content px-8 opacity-40 grayscale hover:grayscale-0 transition-all duration-500">
+                <span class="text-2xl font-black text-white flex items-center gap-2"><i data-lucide="triangle" class="fill-white"></i> VANGUARD</span>
+                <span class="text-2xl font-black text-white flex items-center gap-2"><i data-lucide="circle" class="fill-white"></i> NEXUS</span>
+                <span class="text-2xl font-black text-white flex items-center gap-2"><i data-lucide="square" class="fill-white"></i> STRATOS</span>
+                <span class="text-2xl font-black text-white flex items-center gap-2"><i data-lucide="hexagon" class="fill-white"></i> ELEVATE</span>
+                <span class="text-2xl font-black text-white flex items-center gap-2"><i data-lucide="diamond" class="fill-white"></i> HORIZON</span>
+                <span class="text-2xl font-black text-white flex items-center gap-2"><i data-lucide="triangle" class="fill-white"></i> VANGUARD</span>
+                <span class="text-2xl font-black text-white flex items-center gap-2"><i data-lucide="circle" class="fill-white"></i> NEXUS</span>
+                <span class="text-2xl font-black text-white flex items-center gap-2"><i data-lucide="square" class="fill-white"></i> STRATOS</span>
+                <span class="text-2xl font-black text-white flex items-center gap-2"><i data-lucide="hexagon" class="fill-white"></i> ELEVATE</span>
+                <span class="text-2xl font-black text-white flex items-center gap-2"><i data-lucide="diamond" class="fill-white"></i> HORIZON</span>
+            </div>
+        </div>
+    </section>
+
+    <!-- Bento Grid Features (Value Prop) -->
+    <section id="features" class="py-32 relative">
+        <div class="max-w-7xl mx-auto px-6">
+            <div class="text-center mb-20">
+                <h2 class="text-4xl font-bold text-white mb-6">Everything You Need to Dominate</h2>
+                <p class="text-slate-400 text-lg">Replace your entire fragmented tech stack.</p>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 auto-rows-[300px]">
+                
+                <!-- Card 1: Brand DNA (Large) -->
+                <div class="md:col-span-2 glass glass-hover rounded-3xl p-10 relative overflow-hidden group bento-card">
+                    <div class="absolute top-0 right-0 w-64 h-64 bg-cyan-500/10 blur-[80px] group-hover:bg-cyan-500/20 transition-all duration-500"></div>
+                    <div class="relative z-10 h-full flex flex-col justify-between">
+                        <div>
+                            <div class="w-12 h-12 bg-cyan-500/20 rounded-xl flex items-center justify-center text-cyan-400 mb-6">
+                                <i data-lucide="fingerprint" class="w-6 h-6"></i>
+                            </div>
+                            <h3 class="text-2xl font-bold text-white mb-2">Instant Brand DNA</h3>
+                            <p class="text-slate-400 max-w-md">Our AI ingests your client's website and PDFs to create a "Living Brand Profile." It never sounds robotic.</p>
+                        </div>
+                        <div class="flex gap-2">
+                            <span class="px-3 py-1 rounded-full bg-cyan-950 text-cyan-400 text-xs font-mono border border-cyan-800">Tone: Witty</span>
+                            <span class="px-3 py-1 rounded-full bg-cyan-950 text-cyan-400 text-xs font-mono border border-cyan-800">Voice: Professional</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Card 2: Security -->
+                <div class="md:col-span-1 glass glass-hover rounded-3xl p-8 flex flex-col justify-between group bento-card">
+                    <div>
+                        <i data-lucide="shield-check" class="w-10 h-10 text-emerald-400 mb-6"></i>
+                        <h3 class="text-xl font-bold text-white mb-2">Bank-Grade Security</h3>
+                        <p class="text-sm text-slate-400">Multi-tenant architecture ensures Client A's data never leaks to Client B.</p>
+                    </div>
+                    <div class="mt-4 flex items-center gap-2 text-emerald-400 text-xs font-bold uppercase tracking-widest">
+                        <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span> SOC-2 Ready
+                    </div>
+                </div>
+
+                <!-- Card 3: Whitelabel -->
+                <div class="md:col-span-1 glass glass-hover rounded-3xl p-8 flex flex-col justify-between group bento-card">
+                    <div>
+                        <i data-lucide="layout-template" class="w-10 h-10 text-purple-400 mb-6"></i>
+                        <h3 class="text-xl font-bold text-white mb-2">Whitelabel Portals</h3>
+                        <p class="text-sm text-slate-400">Give clients a professional dashboard on your own domain.</p>
+                    </div>
+                    <div class="h-16 bg-slate-800 rounded-lg border border-white/10 flex items-center justify-center text-xs text-slate-500">
+                        portal.youragency.com
+                    </div>
+                </div>
+
+                <!-- Card 4: Analytics (Large) -->
+                <div class="md:col-span-2 glass glass-hover rounded-3xl p-10 relative overflow-hidden group bento-card">
+                    <div class="flex flex-col md:flex-row items-center gap-10 h-full">
+                        <div class="flex-1">
+                            <div class="w-12 h-12 bg-blue-500/20 rounded-xl flex items-center justify-center text-blue-400 mb-6">
+                                <i data-lucide="bar-chart-2" class="w-6 h-6"></i>
+                            </div>
+                            <h3 class="text-2xl font-bold text-white mb-2">Automated ROI Reports</h3>
+                            <p class="text-slate-400">Prove your value. Auto-send weekly reports showing content performance and engagement.</p>
+                        </div>
+                        <div class="flex-1 w-full bg-slate-950/50 rounded-xl border border-white/5 p-6 shadow-2xl transform rotate-3 group-hover:rotate-0 transition-all duration-500">
+                            <div class="flex justify-between items-end mb-4">
+                                <div>
+                                    <p class="text-xs text-slate-500 uppercase">Impressions</p>
+                                    <p class="text-2xl font-bold text-white">124.5K</p>
+                                </div>
+                                <div class="text-green-400 text-sm font-bold">+24%</div>
+                            </div>
+                            <div class="flex gap-2 items-end h-24">
+                                <div class="w-full bg-slate-800 rounded-t h-[40%]"></div>
+                                <div class="w-full bg-slate-800 rounded-t h-[60%]"></div>
+                                <div class="w-full bg-blue-500 rounded-t h-[80%] shadow-[0_0_15px_rgba(59,130,246,0.5)]"></div>
+                                <div class="w-full bg-slate-800 rounded-t h-[50%]"></div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -399,149 +319,325 @@
         </div>
     </section>
 
-    <!-- Live Telemetry Section -->
-    <section id="telemetry" class="py-40 px-10 border-t border-white/5 bg-gradient-to-b from-transparent to-cyan-400/5">
-        <div class="max-w-[1600px] mx-auto">
-            <div class="text-center mb-20 space-y-4">
-                <div class="flex items-center justify-center gap-4">
-                    <div class="h-[1px] w-12 bg-cyan-400"></div>
-                    <span class="mono text-[10px] uppercase text-cyan-400 tracking-widest font-black italic">System Pulse</span>
-                    <div class="h-[1px] w-12 bg-cyan-400"></div>
-                </div>
-                <h2 class="text-6xl font-black uppercase tracking-tighter text-white">Global Telemetry</h2>
-                <p class="text-slate-400 font-medium italic max-w-xl mx-auto">Real-time infrastructure metrics from the ArchitGrid network. All nodes synchronized.</p>
+    <!-- Workflow (Pin Scroll) -->
+    <section id="workflow" class="py-32 relative border-t border-white/5">
+        <div class="max-w-7xl mx-auto px-6">
+            <div class="mb-24">
+                <h2 class="text-4xl font-bold text-white mb-4">The Workflow</h2>
+                <p class="text-slate-400">Automate the boring stuff. Focus on strategy.</p>
             </div>
 
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-                <!-- Active Nodes -->
-                <div class="glass-layer rounded-[32px] p-10 blueprint-border group hover:border-cyan-400/40 transition-all relative overflow-hidden">
-                    <div class="absolute top-0 right-0 w-32 h-32 bg-cyan-400/5 blur-3xl rounded-full"></div>
-                    <div class="flex items-center gap-3 mb-6">
-                        <div class="w-12 h-12 bg-cyan-400/10 rounded-2xl flex items-center justify-center border border-cyan-400/20 group-hover:bg-cyan-400/20 transition-colors">
-                            <i data-lucide="server" class="w-6 h-6 text-cyan-400"></i>
-                        </div>
-                        <span class="mono text-[8px] uppercase text-slate-600 font-black tracking-widest">Module: Nodes</span>
+            <div class="flex flex-col lg:flex-row gap-20">
+                <!-- Text Steps -->
+                <div class="lg:w-1/2 space-y-40 py-20">
+                    <div class="step-item opacity-20 transition-opacity duration-500" data-index="0">
+                        <div class="text-5xl font-black text-cyan-500/20 mb-4">01</div>
+                        <h3 class="text-2xl font-bold text-white mb-4">Ingest Brand DNA</h3>
+                        <p class="text-slate-400 text-lg leading-relaxed">
+                            Upload a client's URL. We extract fonts, colors, tone, and values to build a style guide instantly.
+                        </p>
                     </div>
-                    <p class="text-5xl font-black text-white mb-2">{{ number_format($telemetry['nodes_active']) }}</p>
-                    <p class="mono text-[10px] uppercase text-slate-500 font-bold tracking-widest">Active Tenant Nodes</p>
-                    <div class="mt-6 flex items-center gap-2">
-                        <span class="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
-                        <span class="mono text-[9px] text-green-500 font-bold uppercase">All Systems Online</span>
+                    <div class="step-item opacity-20 transition-opacity duration-500" data-index="1">
+                        <div class="text-5xl font-black text-purple-500/20 mb-4">02</div>
+                        <h3 class="text-2xl font-bold text-white mb-4">Generate & Refine</h3>
+                        <p class="text-slate-400 text-lg leading-relaxed">
+                            Ask for "10 LinkedIn posts about AI." The engine uses the Brand DNA to write perfect copy.
+                        </p>
                     </div>
-                </div>
-
-                <!-- Identity Count -->
-                <div class="glass-layer rounded-[32px] p-10 blueprint-border group hover:border-cyan-400/40 transition-all relative overflow-hidden">
-                    <div class="absolute top-0 right-0 w-32 h-32 bg-indigo-400/5 blur-3xl rounded-full"></div>
-                    <div class="flex items-center gap-3 mb-6">
-                        <div class="w-12 h-12 bg-indigo-400/10 rounded-2xl flex items-center justify-center border border-indigo-400/20 group-hover:bg-indigo-400/20 transition-colors">
-                            <i data-lucide="users" class="w-6 h-6 text-indigo-400"></i>
-                        </div>
-                        <span class="mono text-[8px] uppercase text-slate-600 font-black tracking-widest">Module: IAM</span>
-                    </div>
-                    <p class="text-5xl font-black text-white mb-2">{{ number_format($telemetry['identity_count']) }}</p>
-                    <p class="mono text-[10px] uppercase text-slate-500 font-bold tracking-widest">Verified Identities</p>
-                    <div class="mt-6 flex items-center gap-2">
-                        <span class="w-2 h-2 rounded-full bg-indigo-400 animate-pulse"></span>
-                        <span class="mono text-[9px] text-indigo-400 font-bold uppercase">Identity Layer Active</span>
+                    <div class="step-item opacity-20 transition-opacity duration-500" data-index="2">
+                        <div class="text-5xl font-black text-green-500/20 mb-4">03</div>
+                        <h3 class="text-2xl font-bold text-white mb-4">Approval & Automate</h3>
+                        <p class="text-slate-400 text-lg leading-relaxed">
+                            One click to send for approval. One click to schedule. Zero friction.
+                        </p>
                     </div>
                 </div>
 
-                <!-- Grid Status -->
-                <div class="glass-layer rounded-[32px] p-10 blueprint-border group hover:border-cyan-400/40 transition-all relative overflow-hidden">
-                    <div class="absolute top-0 right-0 w-32 h-32 bg-emerald-400/5 blur-3xl rounded-full"></div>
-                    <div class="flex items-center gap-3 mb-6">
-                        <div class="w-12 h-12 bg-emerald-400/10 rounded-2xl flex items-center justify-center border border-emerald-400/20 group-hover:bg-emerald-400/20 transition-colors">
-                            <i data-lucide="activity" class="w-6 h-6 text-emerald-400"></i>
+                <!-- Sticky Images -->
+                <div class="hidden lg:block lg:w-1/2 relative">
+                    <div class="sticky top-40 h-[400px]">
+                        <!-- Visual 1 -->
+                        <div class="visual-item absolute inset-0 glass rounded-2xl overflow-hidden border border-cyan-500/20 transform translate-y-10 opacity-0" id="visual-0">
+                             <div class="p-8 bg-gradient-to-br from-cyan-900/20 to-transparent h-full flex flex-col items-center justify-center text-center">
+                                <i data-lucide="scan-line" class="w-16 h-16 text-cyan-400 mb-6"></i>
+                                <h4 class="text-xl font-bold text-white">Scanning Brand...</h4>
+                                <div class="mt-4 w-full bg-white/10 h-1.5 rounded-full overflow-hidden">
+                                    <div class="h-full w-2/3 bg-cyan-400 animate-[pulse_1s_ease-in-out_infinite]"></div>
+                                </div>
+                             </div>
                         </div>
-                        <span class="mono text-[8px] uppercase text-slate-600 font-black tracking-widest">Module: Core</span>
-                    </div>
-                    <p class="text-4xl font-black text-emerald-400 mb-2">{{ $telemetry['grid_status'] }}</p>
-                    <p class="mono text-[10px] uppercase text-slate-500 font-bold tracking-widest">Grid Status</p>
-                    <div class="mt-6 flex items-center gap-2">
-                        <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-                        <span class="mono text-[9px] text-emerald-400 font-bold uppercase">99.99% Uptime</span>
-                    </div>
-                </div>
-
-                <!-- Last Protocol -->
-                <div class="glass-layer rounded-[32px] p-10 blueprint-border group hover:border-cyan-400/40 transition-all relative overflow-hidden">
-                    <div class="absolute top-0 right-0 w-32 h-32 bg-amber-400/5 blur-3xl rounded-full"></div>
-                    <div class="flex items-center gap-3 mb-6">
-                        <div class="w-12 h-12 bg-amber-400/10 rounded-2xl flex items-center justify-center border border-amber-400/20 group-hover:bg-amber-400/20 transition-colors">
-                            <i data-lucide="clock" class="w-6 h-6 text-amber-400"></i>
+                        <!-- Visual 2 -->
+                        <div class="visual-item absolute inset-0 glass rounded-2xl overflow-hidden border border-purple-500/20 transform translate-y-10 opacity-0" id="visual-1">
+                             <div class="p-6 bg-gradient-to-br from-purple-900/20 to-transparent h-full flex flex-col justify-center">
+                                <div class="space-y-4">
+                                    <div class="p-4 bg-white/5 rounded-xl border border-white/5">
+                                        <div class="h-2 w-20 bg-blue-500 rounded mb-2"></div>
+                                        <div class="h-2 w-full bg-white/10 rounded mb-2"></div>
+                                        <div class="h-2 w-3/4 bg-white/10 rounded"></div>
+                                    </div>
+                                </div>
+                             </div>
                         </div>
-                        <span class="mono text-[8px] uppercase text-slate-600 font-black tracking-widest">Module: Audit</span>
-                    </div>
-                    <p class="text-3xl font-black text-white mb-2">{{ $telemetry['last_protocol'] }}</p>
-                    <p class="mono text-[10px] uppercase text-slate-500 font-bold tracking-widest">Last Protocol Sync</p>
-                    <div class="mt-6 flex items-center gap-2">
-                        <span class="w-2 h-2 rounded-full bg-amber-400 animate-pulse"></span>
-                        <span class="mono text-[9px] text-amber-400 font-bold uppercase">Continuous Logging</span>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Live Activity Feed -->
-            <div class="mt-16 glass-layer rounded-[40px] p-10 blueprint-border">
-                <div class="flex items-center justify-between mb-8">
-                    <div class="flex items-center gap-4">
-                        <i data-lucide="radio" class="w-5 h-5 text-cyan-400 animate-pulse"></i>
-                        <span class="mono text-[10px] uppercase text-cyan-400 font-black tracking-widest">Live Network Feed</span>
-                    </div>
-                    <span class="mono text-[8px] uppercase text-slate-600 font-black">Auto-refresh: 30s</span>
-                </div>
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    <div class="p-6 bg-white/[0.02] rounded-2xl border border-white/5">
-                        <p class="mono text-[9px] text-slate-500 uppercase mb-2">Encryption Protocol</p>
-                        <p class="text-sm font-black text-white">AES-256-GCM Active</p>
-                    </div>
-                    <div class="p-6 bg-white/[0.02] rounded-2xl border border-white/5">
-                        <p class="mono text-[9px] text-slate-500 uppercase mb-2">Data Isolation</p>
-                        <p class="text-sm font-black text-white">Multi-Tenant Verified</p>
-                    </div>
-                    <div class="p-6 bg-white/[0.02] rounded-2xl border border-white/5">
-                        <p class="mono text-[9px] text-slate-500 uppercase mb-2">API Gateway</p>
-                        <p class="text-sm font-black text-white">{{ number_format(rand(1200, 2500)) }} req/s</p>
+                        <!-- Visual 3 -->
+                        <div class="visual-item absolute inset-0 glass rounded-2xl overflow-hidden border border-green-500/20 transform translate-y-10 opacity-0" id="visual-2">
+                             <div class="p-8 bg-gradient-to-br from-green-900/20 to-transparent h-full flex flex-col items-center justify-center text-center">
+                                <div class="w-20 h-20 bg-green-500/20 rounded-full flex items-center justify-center mb-6">
+                                    <i data-lucide="check" class="w-10 h-10 text-green-400"></i>
+                                </div>
+                                <h4 class="text-2xl font-bold text-white">Approved</h4>
+                             </div>
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
     </section>
 
-    <!-- Global Telemetry Footer -->
-    <footer class="relative py-40 px-10 border-t border-white/5 overflow-hidden">
-        <div class="max-w-4xl mx-auto text-center space-y-12 relative z-10">
-            <h2 class="text-6xl md:text-8xl font-black tracking-tighter uppercase text-white leading-[0.9]">
-                Architect Your <br>Agency's Future.
-            </h2>
-            <div class="p-8 glass-layer rounded-3xl border border-cyan-400/20 inline-block">
-                <p class="mono text-[10px] text-cyan-400 uppercase font-black tracking-[0.2em]">Closed Beta protocol engaged</p>
-                <p class="text-slate-400 text-sm mt-2 font-medium italic leading-relaxed">Secure a node in our early-access rollout. Identity verification mandatory.</p>
-            </div>
-            
-            <div class="flex flex-col md:flex-row items-center justify-center gap-10">
-                <a href="/waitlist" class="btn-protocol px-16 py-8 rounded-2xl text-sm shadow-2xl">Claim Workspace Identity</a>
-                <span class="mono text-[10px] text-slate-600 font-black tracking-widest uppercase">/ / / / / / / / /</span>
-                <a href="#vision" class="text-white text-[10px] font-black uppercase tracking-widest hover:text-cyan-400 transition-colors">Study Protocol</a>
+    <!-- Testimonials (Wall of Love) -->
+    <section class="py-32 border-t border-white/5 bg-white/[0.01]">
+        <div class="max-w-7xl mx-auto px-6">
+            <h2 class="text-4xl font-bold text-white mb-16 text-center">Agencies Are Scaling Faster</h2>
+            <div class="grid md:grid-cols-3 gap-6">
+                <div class="glass p-8 rounded-2xl">
+                    <p class="text-slate-300 text-sm leading-relaxed mb-6">"ArchitGrid replaced 4 other tools for us. We went from managing 5 clients to 20 in two months without hiring."</p>
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-full bg-slate-700"></div>
+                        <div>
+                            <div class="text-white font-bold text-sm">Sarah Jenkins</div>
+                            <div class="text-slate-500 text-xs">Founder, Apex Digital</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="glass p-8 rounded-2xl">
+                    <p class="text-slate-300 text-sm leading-relaxed mb-6">"The Brand DNA feature is magic. It actually captures our clients' voices perfectly. No more rewrites."</p>
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-full bg-slate-700"></div>
+                        <div>
+                            <div class="text-white font-bold text-sm">Mike Ross</div>
+                            <div class="text-slate-500 text-xs">CEO, Pearson Media</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="glass p-8 rounded-2xl">
+                    <p class="text-slate-300 text-sm leading-relaxed mb-6">"Finally, a tool that understands multi-tenant security. My enterprise clients feel safe."</p>
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-full bg-slate-700"></div>
+                        <div>
+                            <div class="text-white font-bold text-sm">Elena Rodriguez</div>
+                            <div class="text-slate-500 text-xs">Director, CloudScale</div>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
+    </section>
 
-        <div class="mt-40 flex flex-col md:flex-row items-center justify-between max-w-[1600px] mx-auto border-t border-white/5 pt-10 opacity-20 mono text-[10px] uppercase font-black tracking-[0.4em] text-white">
-            <div class="flex items-center gap-4">
-                <span>&copy; 2026 ArchitGrid System</span>
-                <span class="text-cyan-400">Node: {{ gethostname() }}</span>
+    <!-- Pricing -->
+    <section id="pricing" class="py-32 bg-[#05080f] border-t border-white/5">
+        <div class="max-w-7xl mx-auto px-6 text-center">
+            <h2 class="text-4xl font-bold text-white mb-6">Simple, Scalable Pricing</h2>
+            <p class="text-slate-400 mb-12">Cancel anytime. No hidden fees.</p>
+
+            <div class="grid md:grid-cols-3 gap-8 max-w-5xl mx-auto text-left">
+                <!-- Card 1 -->
+                <div class="glass p-8 rounded-3xl hover:-translate-y-2 transition-transform duration-300">
+                    <h3 class="text-xl font-bold text-white">Starter</h3>
+                    <div class="my-4"><span class="text-4xl font-bold text-white">$19</span>/mo</div>
+                    <p class="text-sm text-slate-400 mb-8">For solo freelancers.</p>
+                    <ul class="space-y-3 mb-8 text-sm text-slate-300">
+                        <li class="flex gap-2"><i data-lucide="check" class="w-4 h-4 text-cyan-400"></i> 3 Clients</li>
+                        <li class="flex gap-2"><i data-lucide="check" class="w-4 h-4 text-cyan-400"></i> Basic AI Generation</li>
+                    </ul>
+                    <a href="/waitlist" class="block w-full py-3 bg-white/10 hover:bg-white/20 text-white font-bold text-center rounded-xl transition-colors">Start Trial</a>
+                </div>
+                
+                <!-- Card 2 (Featured) -->
+                <div class="p-8 rounded-3xl bg-gradient-to-b from-cyan-900/20 to-slate-900 border border-cyan-500/50 hover:-translate-y-2 transition-transform duration-300 relative shadow-2xl shadow-cyan-900/20">
+                    <div class="absolute top-0 right-0 px-4 py-1 bg-cyan-500 text-black text-xs font-bold rounded-bl-xl rounded-tr-2xl">POPULAR</div>
+                    <h3 class="text-xl font-bold text-white">Agency</h3>
+                    <div class="my-4"><span class="text-4xl font-bold text-white">$49</span>/mo</div>
+                    <p class="text-sm text-cyan-100/60 mb-8">For scaling teams.</p>
+                    <ul class="space-y-3 mb-8 text-sm text-white">
+                        <li class="flex gap-2"><i data-lucide="check" class="w-4 h-4 text-cyan-400"></i> 15 Clients</li>
+                        <li class="flex gap-2"><i data-lucide="check" class="w-4 h-4 text-cyan-400"></i> Whitelabel Portal</li>
+                        <li class="flex gap-2"><i data-lucide="check" class="w-4 h-4 text-cyan-400"></i> Advanced Brand DNA</li>
+                    </ul>
+                    <a href="/waitlist" class="block w-full py-3 bg-cyan-500 hover:bg-cyan-400 text-black font-bold text-center rounded-xl transition-colors">Get Started</a>
+                </div>
+
+                <!-- Card 3 -->
+                <div class="glass p-8 rounded-3xl hover:-translate-y-2 transition-transform duration-300">
+                    <h3 class="text-xl font-bold text-white">Enterprise</h3>
+                    <div class="my-4"><span class="text-4xl font-bold text-white">Custom</span></div>
+                    <p class="text-sm text-slate-400 mb-8">For large networks.</p>
+                    <ul class="space-y-3 mb-8 text-sm text-slate-300">
+                        <li class="flex gap-2"><i data-lucide="check" class="w-4 h-4 text-cyan-400"></i> Unlimited Clients</li>
+                        <li class="flex gap-2"><i data-lucide="check" class="w-4 h-4 text-cyan-400"></i> API Access</li>
+                    </ul>
+                    <a href="/waitlist" class="block w-full py-3 bg-white/10 hover:bg-white/20 text-white font-bold text-center rounded-xl transition-colors">Contact Sales</a>
+                </div>
             </div>
-            <div class="flex gap-12 mt-8 md:mt-0">
-                <a href="#" class="hover:text-cyan-400 transition-colors">Security</a>
-                <a href="#" class="hover:text-cyan-400 transition-colors">Audit</a>
-                <a href="#" class="hover:text-cyan-400 transition-colors">Status: Stable</a>
-            </div>
+        </div>
+    </section>
+
+    <!-- Final CTA -->
+    <section class="py-40 relative overflow-hidden">
+        <div class="absolute inset-0 bg-gradient-to-t from-cyan-900/20 to-transparent"></div>
+        <div class="max-w-4xl mx-auto px-6 text-center relative z-10">
+            <h2 class="text-5xl md:text-7xl font-bold text-white mb-8 tracking-tight">Ready to join the <br><span class="gradient-text">Top 1% of Agencies?</span></h2>
+            <p class="text-xl text-slate-400 mb-12">Secure your spot in the beta. Slots are limited.</p>
+            <a href="/waitlist" class="inline-flex h-16 px-10 rounded-2xl bg-white text-black font-bold text-lg items-center gap-3 hover:scale-105 transition-transform shadow-[0_0_40px_rgba(255,255,255,0.3)]">
+                Claim Your Workspace
+                <i data-lucide="arrow-right" class="w-5 h-5"></i>
+            </a>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="py-12 border-t border-white/5 bg-[#020617] text-center">
+        <div class="max-w-7xl mx-auto px-6 flex flex-col items-center gap-6">
+            <p class="text-slate-500 text-sm">&copy; 2026 ArchitGrid Inc.</p>
         </div>
     </footer>
 
+    <!-- JS Logic -->
     <script>
-        lucide.createIcons();
+        document.addEventListener('DOMContentLoaded', () => {
+            lucide.createIcons();
+            gsap.registerPlugin(ScrollTrigger);
+
+            // 1. Loader
+            const tlLoader = gsap.timeline({
+                onComplete: () => {
+                    document.querySelector('.loader-overlay').style.display = 'none';
+                    initAnimations();
+                }
+            });
+
+            let countObj = { val: 0 };
+            tlLoader.to(countObj, {
+                val: 100,
+                duration: 1.5,
+                ease: "power2.inOut",
+                onUpdate: () => {
+                    document.querySelector('.counter').innerText = Math.floor(countObj.val) + "%";
+                    document.querySelector('.loader-progress').style.width = Math.floor(countObj.val) + "%";
+                }
+            })
+            .to('.loader-overlay', {
+                yPercent: -100,
+                duration: 0.8,
+                ease: "expo.inOut"
+            });
+
+            // 2. Animations
+            function initAnimations() {
+                // Hero Text Reveal
+                gsap.to('.hero-text', {
+                    y: 0,
+                    duration: 1.2,
+                    stagger: 0.1,
+                    ease: "power4.out"
+                });
+
+                // Hero Fade
+                gsap.to('.hero-fade', {
+                    opacity: 1,
+                    duration: 1,
+                    stagger: 0.1,
+                    delay: 0.5
+                });
+
+                // Dashboard Entry
+                gsap.to('.hero-dashboard-container', {
+                    opacity: 1,
+                    y: 0,
+                    duration: 1.5,
+                    delay: 0.6,
+                    ease: "power3.out"
+                });
+
+                // Marquee Loop
+                gsap.to(".marquee-content", {
+                    xPercent: -50,
+                    repeat: -1,
+                    duration: 20,
+                    ease: "linear"
+                });
+
+                // Bento Grid Stagger
+                gsap.from(".bento-card", {
+                    scrollTrigger: {
+                        trigger: "#features",
+                        start: "top 80%"
+                    },
+                    y: 50,
+                    opacity: 0,
+                    duration: 0.8,
+                    stagger: 0.1,
+                    ease: "power2.out"
+                });
+            }
+
+            // 3. 3D Tilt Effect
+            const heroContainer = document.querySelector('.hero-dashboard-container');
+            const tiltInner = document.querySelector('.tilt-inner');
+
+            document.addEventListener('mousemove', (e) => {
+                if (!heroContainer) return;
+                
+                const { clientX, clientY } = e;
+                const { innerWidth, innerHeight } = window;
+                
+                // Calculate percentages (-1 to 1)
+                const x = (clientX / innerWidth - 0.5) * 2;
+                const y = (clientY / innerHeight - 0.5) * 2;
+
+                gsap.to(tiltInner, {
+                    rotationY: x * 5, // Max 5deg tilt
+                    rotationX: -y * 5,
+                    duration: 0.5,
+                    ease: "power2.out"
+                });
+
+                gsap.to('.hero-float', {
+                    x: x * 20,
+                    y: y * 20,
+                    duration: 0.5,
+                    ease: "power2.out"
+                });
+            });
+
+            // 4. Workflow Pin-Scroll Logic
+            const steps = document.querySelectorAll('.step-item');
+            const visuals = document.querySelectorAll('.visual-item');
+
+            gsap.set(visuals[0], { opacity: 1, y: 0 });
+            gsap.set(steps[0], { opacity: 1 });
+
+            steps.forEach((step, i) => {
+                ScrollTrigger.create({
+                    trigger: step,
+                    start: "top center",
+                    end: "bottom center",
+                    onEnter: () => setActive(i),
+                    onEnterBack: () => setActive(i)
+                });
+            });
+
+            function setActive(index) {
+                steps.forEach((s, i) => {
+                    gsap.to(s, { opacity: i === index ? 1 : 0.2, duration: 0.3 });
+                });
+                visuals.forEach((v, i) => {
+                    if (i === index) {
+                        gsap.to(v, { opacity: 1, y: 0, duration: 0.5 });
+                    } else {
+                        gsap.to(v, { opacity: 0, y: 20, duration: 0.5 });
+                    }
+                });
+            }
+        });
     </script>
 </body>
 </html>
