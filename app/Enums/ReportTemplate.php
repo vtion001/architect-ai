@@ -15,6 +15,7 @@ enum ReportTemplate: string
     case PROPOSAL = 'proposal';
     case CONTRACT = 'contract';
     case CV_RESUME = 'cv-resume';
+    case COVER_LETTER = 'cover-letter';
     case CUSTOM = 'custom';
 
     public function label(): string
@@ -29,6 +30,7 @@ enum ReportTemplate: string
             self::PROPOSAL => 'Business Proposal',
             self::CONTRACT => 'Legal Contract',
             self::CV_RESUME => 'CV / Resume',
+            self::COVER_LETTER => 'Cover Letter',
             self::CUSTOM => 'Custom Template',
         };
     }
@@ -45,6 +47,7 @@ enum ReportTemplate: string
             self::PROPOSAL => 'reports.proposal',
             self::CONTRACT => 'reports.contract',
             self::CV_RESUME => 'reports.cv-resume',
+            self::COVER_LETTER => 'reports.cover-letter',
             self::CUSTOM => 'reports.custom',
         };
     }
@@ -61,6 +64,7 @@ enum ReportTemplate: string
             self::PROPOSAL => 'file-text',
             self::CONTRACT => 'scale',
             self::CV_RESUME => 'user-square',
+            self::COVER_LETTER => 'mail',
             self::CUSTOM => 'terminal',
         };
     }
@@ -77,6 +81,7 @@ enum ReportTemplate: string
             self::PROPOSAL => 'text-orange-500',
             self::CONTRACT => 'text-slate-700',
             self::CV_RESUME => 'text-violet-500',
+            self::COVER_LETTER => 'text-teal-500',
             self::CUSTOM => 'text-purple-500',
         };
     }
@@ -93,6 +98,7 @@ enum ReportTemplate: string
             self::PROPOSAL => '#f97316',
             self::CONTRACT => '#334155',
             self::CV_RESUME => '#8b5cf6',
+            self::COVER_LETTER => '#14b8a6',
             self::CUSTOM => '#7c3aed',
         };
     }
@@ -109,6 +115,7 @@ enum ReportTemplate: string
             self::PROPOSAL => 'proposal',
             self::CONTRACT => 'contract',
             self::CV_RESUME => 'cv',
+            self::COVER_LETTER => 'cover-letter',
             self::CUSTOM => 'custom',
         };
     }
@@ -158,6 +165,10 @@ enum ReportTemplate: string
                 ['id' => 'cv-classic', 'name' => 'Classic Professional', 'description' => 'Clean, text-focused layout optimized for ATS', 'previewImage' => 'cv', 'tags' => ['Professional', 'ATS']],
                 ['id' => 'cv-modern', 'name' => 'Modern Creative', 'description' => 'Two-column layout with skills bars and accents', 'previewImage' => 'cv', 'tags' => ['Creative', 'Visual']],
                 ['id' => 'cv-technical', 'name' => 'Technical Expert', 'description' => 'Focused on stack, skills, and project history', 'previewImage' => 'cv', 'tags' => ['Developer', 'Technical']],
+            ],
+            self::COVER_LETTER => [
+                ['id' => 'cl-standard', 'name' => 'Standard Professional', 'description' => 'Traditional formal letter format', 'previewImage' => 'cover-letter', 'tags' => ['Formal', 'Traditional']],
+                ['id' => 'cl-creative', 'name' => 'Modern Creative', 'description' => 'Contemporary layout with personal branding', 'previewImage' => 'cover-letter', 'tags' => ['Creative', 'Visual']],
             ],
             self::CUSTOM => [
                 ['id' => 'custom-flexible', 'name' => 'Flexible Layout', 'description' => 'Customizable template that adapts to content', 'previewImage' => 'custom', 'tags' => ['Flexible', 'Custom']],

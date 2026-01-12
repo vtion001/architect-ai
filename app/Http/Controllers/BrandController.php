@@ -95,6 +95,78 @@ class BrandController extends Controller
         }
     }
 
+    public function scrape(Request $request)
+    {
+        $request->validate([
+            'url' => 'required|url'
+        ]);
+
+        $url = $request->input('url');
+
+        try {
+            // Fetch website content with a user-agent to avoid 403s
+            $response = Http::withHeaders([
+                'User-Agent' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+            ])->timeout(10)->get($url);
+
+            if ($response->failed()) {
+                return response()->json(['success' => false, 'message' => 'Could not access the website. Please check the URL.'], 422);
+            }
+
+            $html = $response->body();
+            
+            // Basic text extraction: strip tags but try to keep some structure
+            // Remove scripts and styles first
+            $html = preg_replace('/<script\b[^>]*>(.*?)<\/script>/is', "", $html);
+            $html = preg_replace('/<style\b[^>]*>(.*?)<\/style>/is', "", $html);
+            $text = strip_tags($html);
+            $text = preg_replace('/\s+/', ' ', $text); // Compress whitespace
+            $text = substr(trim($text), 0, 15000); // Truncate for token limits
+
+            // AI Analysis
+            $apiKey = config('services.openai.key');
+            if (!$apiKey) {
+                return response()->json(['success' => false, 'message' => 'AI service not configured.'], 500);
+            }
+
+            $aiResponse = Http::withToken($apiKey)->post('https://api.openai.com/v1/chat/completions', [
+                'model' => 'gpt-4o',
+                'messages' => [
+                    [
+                        'role' => 'system',
+                        'content' => "You are a Brand Strategist AI. 
+                        Analyze the provided website text and extract the Brand DNA.
+                        
+                        Return a JSON object with these exact keys:
+                        - `name`: The likely brand name.
+                        - `tagline`: A short slogan found on the site.
+                        - `description`: A 2-3 sentence summary of what they do.
+                        - `industry`: The business sector (e.g., Technology, Healthcare).
+                        - `voice_profile`: An object with `tone` (e.g., Professional, Playful), `personality` (adjectives), and `keywords` (comma-separated).
+                        - `colors`: An object with `primary` (hex code) if mentioned or inferable (default to black/white if unsure).
+                        
+                        If specific fields are missing, make an educated guess based on the context."
+                    ],
+                    [
+                        'role' => 'user',
+                        'content' => "Analyze this website content:\n\n" . $text
+                    ]
+                ],
+                'response_format' => ['type' => 'json_object']
+            ]);
+
+            if ($aiResponse->successful()) {
+                $data = $aiResponse->json('choices.0.message.content');
+                return response()->json(['success' => true, 'data' => json_decode($data)]);
+            }
+
+            return response()->json(['success' => false, 'message' => 'AI analysis failed.'], 500);
+
+        } catch (\Exception $e) {
+            return response()->json(['success' => false, 'message' => 'Scraping failed: ' . $e->getMessage()], 500);
+        }
+    }
+
     public function index()
     {
         $brands = Auth::user()->tenant->brands()->orderBy('is_default', 'desc')->get();

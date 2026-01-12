@@ -107,6 +107,24 @@
             transform-style: preserve-3d;
             perspective: 1000px;
         }
+
+        /* Spotlight Effect */
+        .bento-card, .glass {
+            position: relative;
+        }
+        .bento-card::after, .glass::after {
+            content: "";
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: radial-gradient(800px circle at var(--mouse-x) var(--mouse-y), rgba(34, 211, 238, 0.15), transparent 40%);
+            opacity: 0;
+            transition: opacity 0.5s;
+            pointer-events: none;
+            z-index: 50;
+        }
+        .bento-card:hover::after, .glass:hover::after {
+            opacity: 1;
+        }
     </style>
 </head>
 <body class="antialiased selection:bg-cyan-500/30 selection:text-cyan-200">
@@ -132,7 +150,7 @@
                 <a href="#workflow" class="hover:text-white transition-colors">Workflow</a>
                 <a href="#pricing" class="hover:text-white transition-colors">Pricing</a>
             </div>
-            <a href="/waitlist" class="px-5 py-2.5 rounded-lg bg-white text-slate-950 text-sm font-bold hover:scale-105 transition-transform">Get Access</a>
+            <a href="/waitlist" class="magnetic-btn px-5 py-2.5 rounded-lg bg-white text-slate-950 text-sm font-bold hover:scale-105 transition-transform">Get Access</a>
         </div>
     </nav>
 
@@ -158,11 +176,11 @@
             </p>
 
             <div class="flex flex-col sm:flex-row items-center justify-center gap-4 mb-20 opacity-0 hero-fade">
-                <a href="/waitlist" class="h-14 px-8 rounded-xl bg-cyan-500 text-slate-950 font-bold flex items-center gap-2 hover:bg-cyan-400 transition-all shadow-[0_0_30px_rgba(34,211,238,0.3)] hover:scale-105">
+                <a href="/waitlist" class="magnetic-btn h-14 px-8 rounded-xl bg-cyan-500 text-slate-950 font-bold flex items-center gap-2 hover:bg-cyan-400 transition-all shadow-[0_0_30px_rgba(34,211,238,0.3)] hover:scale-105">
                     Start Scaling
                     <i data-lucide="arrow-right" class="w-4 h-4"></i>
                 </a>
-                <button class="h-14 px-8 rounded-xl bg-white/5 border border-white/10 text-white font-medium hover:bg-white/10 transition-all flex items-center gap-2">
+                <button onclick="openVideoModal()" class="magnetic-btn h-14 px-8 rounded-xl bg-white/5 border border-white/10 text-white font-medium hover:bg-white/10 transition-all flex items-center gap-2">
                     <i data-lucide="play-circle" class="w-4 h-4 text-slate-400"></i>
                     Watch Demo
                 </button>
@@ -182,8 +200,8 @@
                         </div>
                         <div class="relative aspect-[16/9] overflow-hidden rounded-b-lg bg-slate-900 group">
                             <!-- Dashboard Image Placeholder -->
-                            <img src="https://images.unsplash.com/photo-1611162617474-5b21e879e113?q=80&w=2574&auto=format&fit=crop" 
-                                 class="w-full h-full object-cover opacity-90 group-hover:scale-105 transition-transform duration-1000" alt="Dashboard">
+                            <img src="/images/dashboard-ui.png" 
+                                 class="w-full h-full object-cover opacity-90 group-hover:scale-105 transition-transform duration-1000" alt="ArchitGrid AI Dashboard">
                         </div>
                     </div>
 
@@ -500,6 +518,23 @@
         </div>
     </footer>
 
+    <!-- Video Modal -->
+    <div id="demo-modal" class="fixed inset-0 z-[99999] bg-black/90 backdrop-blur-xl hidden opacity-0 transition-opacity duration-300 flex items-center justify-center p-4">
+        <div class="absolute top-8 right-8 cursor-pointer text-white/50 hover:text-white transition-colors" onclick="closeVideoModal()">
+            <i data-lucide="x" class="w-8 h-8"></i>
+        </div>
+        <div class="w-full max-w-6xl aspect-video bg-black rounded-2xl overflow-hidden border border-white/10 shadow-2xl relative" onclick="event.stopPropagation()">
+            <!-- Using the webp recording as the demo 'video' -->
+            <img src="/videos/demo.webp" class="w-full h-full object-contain" alt="ArchitGrid Demo Walkthrough">
+            
+            <div class="absolute inset-0 pointer-events-none flex items-center justify-center bg-black/50 opacity-0 hover:opacity-100 transition-opacity">
+                 <div class="px-4 py-2 bg-black/80 rounded-full text-xs font-mono text-white border border-white/20">
+                     DEMO RECORDING
+                 </div>
+            </div>
+        </div>
+    </div>
+
     <!-- JS Logic -->
     <script>
         document.addEventListener('DOMContentLoaded', () => {
@@ -579,7 +614,7 @@
                 });
             }
 
-            // 3. 3D Tilt Effect
+            // 3. 3D Tilt Effect (Enhanced with Parallax)
             const heroContainer = document.querySelector('.hero-dashboard-container');
             const tiltInner = document.querySelector('.tilt-inner');
 
@@ -593,6 +628,7 @@
                 const x = (clientX / innerWidth - 0.5) * 2;
                 const y = (clientY / innerHeight - 0.5) * 2;
 
+                // Dashboard Tilt
                 gsap.to(tiltInner, {
                     rotationY: x * 5, // Max 5deg tilt
                     rotationX: -y * 5,
@@ -600,15 +636,52 @@
                     ease: "power2.out"
                 });
 
+                // Parallax Floating Elements
                 gsap.to('.hero-float', {
-                    x: x * 20,
-                    y: y * 20,
-                    duration: 0.5,
+                    x: x * 30, // Increased movement
+                    y: y * 30,
+                    duration: 0.8,
                     ease: "power2.out"
                 });
             });
 
-            // 4. Workflow Pin-Scroll Logic
+            // 4. Magnetic Buttons & Spotlight Effect
+            const buttons = document.querySelectorAll('.magnetic-btn');
+            const cards = document.querySelectorAll('.bento-card, .glass');
+
+            // Button Magnetism
+            buttons.forEach(btn => {
+                btn.addEventListener('mousemove', (e) => {
+                    const rect = btn.getBoundingClientRect();
+                    const x = e.clientX - rect.left - rect.width / 2;
+                    const y = e.clientY - rect.top - rect.height / 2;
+                    
+                    gsap.to(btn, {
+                        x: x * 0.3,
+                        y: y * 0.3,
+                        duration: 0.3,
+                        ease: "power2.out"
+                    });
+                });
+
+                btn.addEventListener('mouseleave', () => {
+                    gsap.to(btn, { x: 0, y: 0, duration: 0.5, ease: "elastic.out(1, 0.3)" });
+                });
+            });
+
+            // Card Spotlight
+            cards.forEach(card => {
+                card.addEventListener('mousemove', (e) => {
+                    const rect = card.getBoundingClientRect();
+                    const x = e.clientX - rect.left;
+                    const y = e.clientY - rect.top;
+                    
+                    card.style.setProperty('--mouse-x', `${x}px`);
+                    card.style.setProperty('--mouse-y', `${y}px`);
+                });
+            });
+
+            // 5. Workflow Pin-Scroll Logic
             const steps = document.querySelectorAll('.step-item');
             const visuals = document.querySelectorAll('.visual-item');
 
@@ -636,6 +709,20 @@
                         gsap.to(v, { opacity: 0, y: 20, duration: 0.5 });
                     }
                 });
+            }
+
+            // 6. Video Modal Logic
+            window.openVideoModal = function() {
+                const modal = document.getElementById('demo-modal');
+                modal.classList.remove('hidden');
+                // Small delay to allow display:block to apply before opacity transition
+                setTimeout(() => modal.classList.add('opacity-100'), 10);
+            }
+
+            window.closeVideoModal = function() {
+                const modal = document.getElementById('demo-modal');
+                modal.classList.remove('opacity-100');
+                setTimeout(() => modal.classList.add('hidden'), 300);
             }
         });
     </script>

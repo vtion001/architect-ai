@@ -73,6 +73,7 @@ Route::middleware(['auth', 'tenant', 'mfa', 'session_security'])->group(function
         Route::post('/mfa/disable', [\App\Http\Controllers\Tenant\SettingsController::class, 'disableMfa'])->name('settings.mfa.disable');
 
         // Brand Kits
+        Route::post('/brands/scrape', [\App\Http\Controllers\BrandController::class, 'scrape'])->name('brands.scrape');
         Route::post('/brands/analyze-blueprint', [\App\Http\Controllers\BrandController::class, 'analyzeBlueprint'])->name('brands.analyze-blueprint');
         Route::get('/brands', [\App\Http\Controllers\BrandController::class, 'index'])->name('brands.index');
         Route::post('/brands', [\App\Http\Controllers\BrandController::class, 'store'])->name('brands.store');
@@ -98,6 +99,7 @@ Route::middleware(['auth', 'tenant', 'mfa', 'session_security'])->group(function
 
     Route::get('/document-builder', [DocumentBuilderController::class, 'index'])->name('document-builder.index');
     Route::post('/document-builder/generate', [DocumentBuilderController::class, 'generate'])->name('document-builder.generate');
+    Route::post('/document-builder/draft-cover-letter', [DocumentBuilderController::class, 'draftCoverLetter'])->name('document-builder.draft-cover-letter');
     Route::post('/document-builder/parse-resume', [DocumentBuilderController::class, 'parseResume'])->name('document-builder.parse-resume');
     Route::post('/document-builder/upload-photo', [DocumentBuilderController::class, 'uploadPhoto'])->name('document-builder.upload-photo');
     Route::get('/document-builder/preview', [DocumentBuilderController::class, 'preview'])->name('document-builder.preview');

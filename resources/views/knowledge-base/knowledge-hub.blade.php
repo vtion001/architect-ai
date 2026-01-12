@@ -78,6 +78,23 @@
             console.error(err);
             this.isSaving = false;
         });
+    },
+
+    deleteAsset(id) {
+        if (!confirm('Are you sure you want to delete this asset? This cannot be undone.')) return;
+
+        fetch(`/knowledge-base/${id}`, {
+            method: 'DELETE',
+            headers: { 
+                'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                'Accept': 'application/json'
+            }
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.success) window.location.reload();
+            else alert('Delete failed.');
+        });
     }
 }">
     <div class="mb-8 flex items-center justify-between">
@@ -154,7 +171,12 @@
                         <h3 class="text-lg font-black text-foreground uppercase tracking-tight group-hover:text-primary transition-colors">{{ $asset->title }}</h3>
                         <p class="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Directory</p>
                     </div>
-                    <i data-lucide="chevron-right" class="w-5 h-5 text-muted-foreground ml-auto group-hover:text-primary transition-colors"></i>
+                    <div class="ml-auto flex items-center gap-2 relative z-10">
+                        <button @click.prevent="deleteAsset('{{ $asset->id }}')" class="opacity-0 group-hover:opacity-100 p-2 rounded-lg hover:bg-red-500/10 text-red-500 transition-all">
+                            <i data-lucide="trash-2" class="w-4 h-4"></i>
+                        </button>
+                        <i data-lucide="chevron-right" class="w-5 h-5 text-muted-foreground group-hover:text-primary transition-colors"></i>
+                    </div>
                 </a>
             @else
                 <!-- File/Asset Card -->
@@ -201,6 +223,10 @@
                            class="w-12 h-12 rounded-xl bg-primary/10 text-primary border border-primary/20 flex items-center justify-center hover:bg-primary hover:text-black transition-all">
                             <i data-lucide="zap" class="w-4 h-4 fill-current"></i>
                         </a>
+                        <button @click="deleteAsset('{{ $asset->id }}')" 
+                                class="w-12 h-12 rounded-xl bg-red-500/10 text-red-500 border border-red-500/20 flex items-center justify-center hover:bg-red-500 hover:text-white transition-all">
+                            <i data-lucide="trash-2" class="w-4 h-4"></i>
+                        </button>
                     </div>
                 </div>
             @endif

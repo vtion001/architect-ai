@@ -31,6 +31,10 @@ class ReportService
             }
         }
 
+        // Ensure profile photo URL is passed to the view
+        // If it's a resume, we might want to ensure the photo block is part of the content if not using a separate variable in the view
+        // But the view likely uses $profilePhotoUrl variable.
+        
         return View::make($data->template->view(), [
             'content' => $content,
             'recipientName' => $data->recipientName ?? 'Recipient',
@@ -38,14 +42,18 @@ class ReportService
             'variant' => $data->variant,
             'brandColor' => $brandColor,
             'logoUrl' => $logoUrl,
-            'profilePhotoUrl' => $data->profilePhotoUrl,
+            'profilePhotoUrl' => $data->profilePhotoUrl, // Ensure this is populated in DTO
             'contactInfo' => [
                 'email' => $data->email,
                 'phone' => $data->phone,
                 'location' => $data->location,
                 'website' => $data->website,
             ],
-            'personalInfo' => $data->personalInfo
+            'personalInfo' => $data->personalInfo,
+            // For Cover Letter, map recipient/sender fields appropriately
+            'senderName' => $data->recipientName, // In Cover Letter context, user is sender
+            'senderTitle' => $data->recipientTitle,
+            'companyAddress' => $data->companyAddress,
         ])->render();
     }
 
@@ -69,9 +77,21 @@ class ReportService
         return View::make($template->view(), [
             'content' => $sampleContent,
             'recipientName' => 'Sample Recipient',
+            'recipientTitle' => 'Department Manager',
+            'senderName' => 'Your Name',
+            'senderTitle' => 'Professional Title',
+            'companyAddress' => '123 Business Rd, Tech City',
             'variant' => $variant,
             'brandColor' => $brandColor,
-            'logoUrl' => $logoUrl
+            'logoUrl' => $logoUrl,
+            'profilePhotoUrl' => null,
+            'contactInfo' => [
+                'email' => 'hello@example.com',
+                'phone' => '+1 (555) 000-0000',
+                'location' => 'City, Country',
+                'website' => 'www.portfolio.com',
+            ],
+            'personalInfo' => []
         ])->render();
     }
 
@@ -98,7 +118,7 @@ class ReportService
         $brandInstructions = "";
         $dataIntegrity = "";
 
-        if ($data->template !== ReportTemplate::CV_RESUME) {
+        if ($data->template !== ReportTemplate::CV_RESUME && $data->template !== ReportTemplate::COVER_LETTER) {
             $dataIntegrity = "- **CRITICAL: DATA INTEGRITY.** You must RETAIN all quantitative data, metrics, and specific technical units (e.g., m2, kg, %, $, dates) from the source content. Do not approximate or omit these details.\n";
         }
 
@@ -168,6 +188,25 @@ class ReportService
                     $brandInstructions .= "   <document_content>\n";
                     $brandInstructions .= "      (Put the main Resume HTML here - Summary, Experience, Education, Skills)\n";
                     $brandInstructions .= "   </document_content>\n";
+                }
+            } elseif ($data->template === ReportTemplate::COVER_LETTER) {
+                $roleDescription = "expert career coach and persuasive writer";
+                $taskDescription = "COMPELLING and PERSONALIZED cover letter";
+                $documentType = "letter";
+
+                $brandInstructions .= "\n\n[COVER LETTER STRATEGY]\n";
+                $brandInstructions .= "You must write a highly persuasive cover letter that strictly follows this 4-part structure:\n";
+                $brandInstructions .= "Do not include the Date, Recipient Address, or Subject Line. Start directly with the Salutation.\n";
+                $brandInstructions .= "1. THE HOOK: Start with a strong connection to the company (mission, recent project) and explicitly state the role applied for.\n";
+                $brandInstructions .= "2. THE EVIDENCE: Select 2-3 'Hero Moments' from the source content (CV) that prove capability. Use numbers/metrics if available.\n";
+                $brandInstructions .= "3. THE SOLUTION: Address a potential company pain point and explain how the candidate's skills solve it. Mention cultural fit.\n";
+                $brandInstructions .= "4. CALL TO ACTION: Proactive closing requesting a discussion.\n";
+                $brandInstructions .= "5. SIGN-OFF: A formal closing (e.g., 'Sincerely,') followed by the candidate's name in <strong> tags on a new line.\n";
+                $brandInstructions .= "TONE: Narrative, conversational, enthusiastic, and persuasive.\n";
+                
+                if ($data->targetRole) {
+                    $brandInstructions .= "TARGET ROLE: {$data->targetRole}\n";
+                    $brandInstructions .= "Ensure the tone matches the industry of the target role (e.g., Creative for Design, Formal for Law).\n";
                 }
             }
 
@@ -469,84 +508,20 @@ class ReportService
                 <h2>Key Skills</h2>
                 <p>Laravel, Vue.js, AWS, Docker, Kubernetes, System Design, Team Leadership</p>
             ",
+            ReportTemplate::COVER_LETTER => "
+                <p><strong>[Your Name]</strong><br>[Your Address]<br>[City, State, Zip Code]<br>[Your Email]<br>[Your Phone Number]</p>
+                <p>Date: [Month Day, Year]</p>
+                <p><strong>[Hiring Manager Name]</strong><br>[Title]<br>[Company Name]<br>[Company Address]</p>
+                <p>Dear [Hiring Manager Name],</p>
+                <p>I have been following [Company Name]'s recent work in [Industry/Project], and I am thrilled to apply for the <strong>[Job Title]</strong> position. Your commitment to [Mission/Value] resonates deeply with my professional philosophy, and I see a perfect alignment between my skills and your current goals.</p>
+                <p>Throughout my career, I have consistently delivered results. As a [Previous Role] at [Previous Company], I [Action Verb] [Key Responsibility], resulting in a [Quantifiable Achievement, e.g., 20% increase in efficiency]. In another instance, I led a project that [Another Achievement], demonstrating my ability to [Skill relevant to role].</p>
+                <p>I understand that [Company Name] is currently facing challenges with [Potential Pain Point]. My background in [Skill/Area] allows me to step in and provide immediate solutions. I pride myself on being [Cultural Fit Attribute, e.g., detail-oriented and collaborative], ensuring I can integrate seamlessly into your high-performing team.</p>
+                <p>I would welcome the opportunity to discuss how my background can help [Company Name] achieve its objectives. Thank you for your time and consideration.</p>
+                <p>Sincerely,</p>
+                <p><strong>[Your Name]</strong></p>
+            ",
             default => $this->getSampleContent(),
         };
-    }
-
-    private function getSampleContent(): string
-    {
-        return "
-            <h2>Executive Overview</h2>
-            <p>This is a sample report demonstrating the template layout and styling. The actual content will be generated based on your inputs and data sources.</p>
-            
-            <div class='callout'>
-                <strong>Strategic Note:</strong> This template now supports multi-page dynamic flow. The AI can automatically expand your content based on research depth and provide data-driven tables.
-            </div>
-
-            <h3>Key Metrics Summary</h3>
-            <table>
-                <thead>
-                    <tr>
-                        <th>Metric Category</th>
-                        <th>Current Value</th>
-                        <th>YoY Growth</th>
-                        <th>Target (Q4)</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr>
-                        <td>Revenue Growth</td>
-                        <td>+24.5%</td>
-                        <td>4.2%</td>
-                        <td>+30%</td>
-                    </tr>
-                    <tr>
-                        <td>Market Share</td>
-                        <td>18.3%</td>
-                        <td>2.6%</td>
-                        <td>20%</td>
-                    </tr>
-                    <tr>
-                        <td>Customer NPS</td>
-                        <td>4.8/5.0</td>
-                        <td>0.3</td>
-                        <td>4.9</td>
-                    </tr>
-                </tbody>
-            </table>
-
-            <div class='page-break'></div>
-
-            <h2>Market Analysis</h2>
-            <p>The current market landscape presents significant opportunities for expansion. Key trends indicate a shift towards digital-first solutions, with growing demand in the enterprise segment.</p>
-            
-            <div class='grid-2'>
-                <div>
-                    <h3>Competitive Edge</h3>
-                    <ul>
-                        <li>AI-powered analytics</li>
-                        <li>Seamless integration</li>
-                        <li>Enterprise security</li>
-                    </ul>
-                </div>
-                <div>
-                    <h3>Growth Areas</h3>
-                    <ul>
-                        <li>Cloud Infrastructure</li>
-                        <li>Data Governance</li>
-                        <li>Automated Reporting</li>
-                    </ul>
-                </div>
-            </div>
-
-            <h2>Strategic Recommendations</h2>
-            <p>Based on comprehensive data analysis, we recommend prioritizing the following initiatives:</p>
-            <ul>
-                <li>Expand product portfolio in high-growth segments</li>
-                <li>Invest in R&D for next-generation platform</li>
-                <li>Strengthen partnerships in key markets</li>
-            </ul>
-        ";
     }
 
     /**
@@ -567,6 +542,7 @@ class ReportService
 
         if ($assets->isEmpty()) return null;
 
-        return $assets->map(fn($a) => "--- SOURCE: {$a->title} ---\n{$a->content}")->implode("\n\n");
+        return $assets->map(fn($a) => "--- SOURCE: {$a->title} ---
+{$a->content}")->implode("\n\n");
     }
 }

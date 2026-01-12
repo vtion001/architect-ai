@@ -27,6 +27,57 @@
     },
     isSaving: false,
     isAnalyzing: false,
+    isScraping: false,
+
+    async scrapeWebsite() {
+        const url = this.newBrand.contact_info.website;
+        if (!url) {
+            alert('Please enter a website URL first.');
+            return;
+        }
+
+        this.isScraping = true;
+
+        try {
+            const res = await fetch('{{ route('brands.scrape') }}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                    'Accept': 'application/json'
+                },
+                body: JSON.stringify({ url: url })
+            });
+            const data = await res.json();
+
+            if (data.success) {
+                const dna = data.data;
+                if (dna.name) this.newBrand.name = dna.name;
+                if (dna.tagline) this.newBrand.tagline = dna.tagline;
+                if (dna.description) this.newBrand.description = dna.description;
+                if (dna.industry) this.newBrand.industry = dna.industry;
+                
+                if (dna.colors && dna.colors.primary) {
+                    this.newBrand.colors.primary = dna.colors.primary;
+                }
+                
+                if (dna.voice_profile) {
+                    if (dna.voice_profile.tone) this.newBrand.voice_profile.tone = dna.voice_profile.tone;
+                    if (dna.voice_profile.personality) this.newBrand.voice_profile.personality = dna.voice_profile.personality;
+                    if (dna.voice_profile.keywords) this.newBrand.voice_profile.keywords = dna.voice_profile.keywords;
+                }
+                
+                alert('Brand DNA extracted successfully!');
+            } else {
+                alert(data.message || 'Scraping failed.');
+            }
+        } catch (e) {
+            console.error(e);
+            alert('Failed to analyze website.');
+        } finally {
+            this.isScraping = false;
+        }
+    },
 
     async analyzeBlueprint(type, isEdit = false) {
         const fileInput = document.getElementById((isEdit ? 'edit_' : 'create_') + type + '_upload');
@@ -370,7 +421,13 @@
                         </div>
                         <div class="space-y-3">
                             <label class="text-[10px] font-black uppercase text-slate-500 italic">Website</label>
-                            <input x-model="newBrand.contact_info.website" type="text" placeholder="www.example.com" class="w-full h-12 bg-muted/20 border border-border rounded-xl px-4 text-sm">
+                            <div class="flex gap-2">
+                                <input x-model="newBrand.contact_info.website" type="text" placeholder="https://example.com" class="flex-1 h-12 bg-muted/20 border border-border rounded-xl px-4 text-sm">
+                                <button @click="scrapeWebsite" :disabled="isScraping" type="button" class="h-12 px-4 rounded-xl bg-primary/10 text-primary font-black text-[10px] uppercase tracking-widest hover:bg-primary/20 transition-all flex items-center gap-2 disabled:opacity-50">
+                                    <template x-if="isScraping"><i data-lucide="loader-2" class="w-3 h-3 animate-spin"></i></template>
+                                    <span x-text="isScraping ? 'Scanning...' : 'Scan DNA'"></span>
+                                </button>
+                            </div>
                         </div>
                     </div>
                     

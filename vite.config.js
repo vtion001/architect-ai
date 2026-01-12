@@ -18,8 +18,6 @@ export default defineConfig(({ command }) => ({
             ? { host: process.env.VITE_HMR_HOST }
             : command === 'serve' ? { host: 'localhost' } : false,
         cors: true,
-        // Allow requests from any origin (for ngrok)
-        origin: '*',
     },
     // Ensure assets use relative paths for production
     base: command === 'build' ? '/build/' : '/',

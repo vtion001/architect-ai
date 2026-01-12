@@ -9,6 +9,7 @@
     templateVariant: 'exec-corporate',
     recipientName: '',
     recipientTitle: '',
+    companyAddress: '',
     targetRole: '',
     profilePhotoUrl: '',
     email: '',
@@ -53,6 +54,9 @@
         if (this.template === 'contract') {
             return ['Service Agreement', 'Non-Disclosure Agreement', 'Employment Contract', 'Vendor Contract'];
         }
+        if (this.template === 'cover-letter') {
+            return ['Job Application', 'Networking Letter', 'Follow-Up', 'Prospecting Letter'];
+        }
         return ['Comparative Analysis', 'Growth Strategy', 'Financial Audit', 'SWOT Matrix'];
     },
     uploadPhoto(event) {
@@ -96,8 +100,27 @@
         .then(data => {
             if (data.success) {
                 this.sourceContent = data.text;
-                // Auto-fill recipient name if possible (simple heuristic)
-                // This is a basic improvement; specific extraction would be better done by AI later
+                
+                // AI Autofill
+                if (data.extracted_data) {
+                    const ex = data.extracted_data;
+                    if (ex.full_name) this.recipientName = ex.full_name;
+                    if (ex.title) this.recipientTitle = ex.title;
+                    if (ex.email) this.email = ex.email;
+                    if (ex.phone) this.phone = ex.phone;
+                    if (ex.location) this.location = ex.location;
+                    if (ex.website) this.website = ex.website;
+                    
+                    if (ex.personal_info) {
+                        // Ensure all personal info values are strings
+                        const stringifiedInfo = {};
+                        for (const [key, value] of Object.entries(ex.personal_info)) {
+                            stringifiedInfo[key] = value === null || value === undefined ? '' : String(value);
+                        }
+                        this.personalInfo = { ...this.personalInfo, ...stringifiedInfo };
+                    }
+                    alert('Resume parsed and candidate identity autofilled!');
+                }
             } else {
                 alert(data.message || 'Failed to parse resume.');
             }
@@ -109,6 +132,40 @@
         .finally(() => {
             this.isParsing = false;
             event.target.value = ''; // Reset input
+        });
+    },
+    draftCoverLetter() {
+        if (!this.sourceContent || !this.targetRole) {
+            alert('Please import your CV and paste a Target Role first.');
+            return;
+        }
+        this.isParsing = true;
+        fetch('{{ route('document-builder.draft-cover-letter') }}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': '{{ csrf_token() }}'
+            },
+            body: JSON.stringify({
+                target_role: this.targetRole,
+                source_content: this.sourceContent
+            })
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.success) {
+                this.sourceContent = data.draft;
+                alert('Cover letter drafted! You can now refine it in the box below.');
+            } else {
+                alert(data.message || 'Drafting failed.');
+            }
+        })
+        .catch(err => {
+            console.error(err);
+            alert('Error drafting cover letter.');
+        })
+        .finally(() => {
+            this.isParsing = false;
         });
     },
     fetchPreview() {
@@ -135,6 +192,7 @@
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
+                'Accept': 'application/json',
                 'X-CSRF-TOKEN': '{{ csrf_token() }}'
             },
             body: JSON.stringify({
@@ -142,6 +200,7 @@
                 variant: this.templateVariant,
                 recipientName: this.recipientName,
                 recipientTitle: this.recipientTitle,
+                companyAddress: this.companyAddress,
                 analysisType: this.analysisType,
                 prompt: this.prompt,
                 contentData: this.sourceContent,
@@ -156,7 +215,19 @@
                 personalInfo: this.personalInfo
             })
         })
-        .then(response => response.json())
+        .then(async response => {
+            const contentType = response.headers.get('content-type');
+            if (!contentType || !contentType.includes('application/json')) {
+                const text = await response.text();
+                console.error('Server Error (HTML):', text);
+                throw new Error('Server returned HTML instead of JSON. Check console for details. Preview: ' + text.substring(0, 100));
+            }
+            const data = await response.json();
+            if (!response.ok || !data.success) {
+                throw new Error(data.message || 'Generation failed. Please check inputs.');
+            }
+            return data;
+        })
         .then(data => {
             let finalHtml = data.html;
             
@@ -177,6 +248,7 @@
         })
         .catch(error => {
             console.error('Generation Error:', error);
+            alert('Error: ' + error.message);
             this.isGenerating = false;
         });
     },
@@ -332,41 +404,45 @@
                         <p class="text-[9px] text-muted-foreground italic px-1">AI will tailor your experience to match this role.</p>
                     </div>
 
-                    <!-- Recipient / Candidate Identity -->
-                    <div class="pt-6 border-t border-border/50">
-                        <div class="flex items-center justify-between mb-4">
-                            <label class="text-[10px] font-black uppercase tracking-widest text-primary italic px-1" 
-                                   x-text="template === 'cv-resume' ? 'Candidate Identity' : 'Identity Destination'"></label>
-                            
-                            <!-- Photo Upload (CV Only) -->
-                            <div x-show="template === 'cv-resume'" class="relative">
-                                <input type="file" id="photoUpload" class="hidden" accept="image/*" @change="uploadPhoto">
-                                <label for="photoUpload" class="cursor-pointer flex items-center gap-2 text-[9px] font-bold text-muted-foreground hover:text-primary transition-colors">
-                                    <template x-if="!profilePhotoUrl && !isUploadingPhoto">
-                                        <span class="flex items-center gap-1"><i data-lucide="camera" class="w-3 h-3"></i> Add Photo</span>
-                                    </template>
-                                    <template x-if="isUploadingPhoto">
-                                        <span class="flex items-center gap-1"><i data-lucide="loader-2" class="w-3 h-3 animate-spin"></i> Uploading...</span>
-                                    </template>
-                                    <template x-if="profilePhotoUrl">
-                                        <div class="flex items-center gap-2">
-                                            <img :src="profilePhotoUrl" class="w-6 h-6 rounded-full object-cover border border-border">
-                                            <span class="text-green-600">Change</span>
+                                    <!-- Recipient / Candidate Identity -->
+                                    <div class="pt-6 border-t border-border/50">
+                                        <div class="flex items-center justify-between mb-4">
+                                            <label class="text-[10px] font-black uppercase tracking-widest text-primary italic px-1" 
+                                                   x-text="template === 'cv-resume' ? 'Candidate Identity' : (template === 'cover-letter' ? 'Target Company Details' : 'Identity Destination')"></label>
+                                            
+                                            <!-- Photo Upload (CV Only) -->
+                                            <div x-show="template === 'cv-resume'" class="relative">
+                                                <input type="file" id="photoUpload" class="hidden" accept="image/*" @change="uploadPhoto">
+                                                <label for="photoUpload" class="cursor-pointer flex items-center gap-2 text-[9px] font-bold text-muted-foreground hover:text-primary transition-colors">
+                                                    <template x-if="!profilePhotoUrl && !isUploadingPhoto">
+                                                        <span class="flex items-center gap-1"><i data-lucide="camera" class="w-3 h-3"></i> Add Photo</span>
+                                                    </template>
+                                                    <template x-if="isUploadingPhoto">
+                                                        <span class="flex items-center gap-1"><i data-lucide="loader-2" class="w-3 h-3 animate-spin"></i> Uploading...</span>
+                                                    </template>
+                                                    <template x-if="profilePhotoUrl">
+                                                        <div class="flex items-center gap-2">
+                                                            <img :src="profilePhotoUrl" class="w-6 h-6 rounded-full object-cover border border-border">
+                                                            <span class="text-green-600">Change</span>
+                                                        </div>
+                                                    </template>
+                                                </label>
+                                            </div>
                                         </div>
-                                    </template>
-                                </label>
-                            </div>
-                        </div>
-                        <div class="grid grid-cols-1 gap-4">
-                            <input x-model="recipientName" type="text" 
-                                   :placeholder="template === 'cv-resume' ? 'Full Name' : 'Recipient Name'"
-                                   class="w-full h-12 bg-muted/20 border border-border rounded-xl px-4 text-[11px] font-bold outline-none">
-                            <input x-model="recipientTitle" type="text" 
-                                   :placeholder="template === 'cv-resume' ? 'Professional Title (e.g. Senior Architect)' : 'Identity Role (e.g. CEO)'"
-                                   class="w-full h-12 bg-muted/20 border border-border rounded-xl px-4 text-[11px] font-bold outline-none">
-                            
-                            <!-- CV Specific Contact Info -->
-                            <div x-show="template === 'cv-resume'" x-transition class="space-y-4 pt-2">
+                                        <div class="grid grid-cols-1 gap-4">
+                                            <input x-model="recipientName" type="text" 
+                                                   :placeholder="template === 'cv-resume' ? 'Full Name' : (template === 'cover-letter' ? 'Hiring Manager Name' : 'Recipient Name')"
+                                                   class="w-full h-12 bg-muted/20 border border-border rounded-xl px-4 text-[11px] font-bold outline-none">
+                                            <input x-model="recipientTitle" type="text" 
+                                                   :placeholder="template === 'cv-resume' ? 'Professional Title (e.g. Senior Architect)' : (template === 'cover-letter' ? 'Company Name' : 'Identity Role (e.g. CEO)')"
+                                                   class="w-full h-12 bg-muted/20 border border-border rounded-xl px-4 text-[11px] font-bold outline-none">
+                                            
+                                            <div x-show="template === 'cover-letter'" x-transition>
+                                                <input x-model="companyAddress" type="text" placeholder="Company Address"
+                                                       class="w-full h-12 bg-muted/20 border border-border rounded-xl px-4 text-[11px] font-bold outline-none">
+                                            </div>
+                                            
+                                            <!-- CV Specific Contact Info -->                            <div x-show="template === 'cv-resume'" x-transition class="space-y-4 pt-2">
                                 <div class="grid grid-cols-2 gap-4">
                                     <input x-model="email" type="email" placeholder="Email Address"
                                            class="w-full h-10 bg-muted/20 border border-border rounded-lg px-4 text-[10px] font-medium outline-none">
@@ -411,31 +487,46 @@
             </div>
 
             <!-- Supplementary Context -->
-            <div class="bg-card border border-border rounded-[40px] p-8 shadow-sm">
-                <div class="flex items-center justify-between mb-6">
+            <div class="bg-card border border-border rounded-[40px] p-8 shadow-sm relative overflow-hidden">
+                <div class="absolute inset-0 grid-canvas pointer-events-none opacity-10"></div>
+                <div class="flex items-center justify-between mb-6 relative z-10">
                     <h3 class="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] px-1 italic">Supplementary Context</h3>
                     
-                    <!-- Resume Uploader -->
-                    <div x-show="template === 'cv-resume'" class="relative">
-                        <input type="file" id="resumeUpload" class="hidden" accept=".pdf,.txt,.md,.docx" @change="parseResume">
-                        <label for="resumeUpload" class="cursor-pointer flex items-center gap-2 px-3 py-1.5 bg-primary/10 text-primary rounded-lg hover:bg-primary/20 transition-colors">
-                            <template x-if="!isParsing">
-                                <div class="flex items-center gap-2">
-                                    <i data-lucide="upload-cloud" class="w-3 h-3"></i>
-                                    <span class="text-[9px] font-black uppercase tracking-widest">Import PDF</span>
-                                </div>
-                            </template>
-                            <template x-if="isParsing">
-                                <div class="flex items-center gap-2">
-                                    <i data-lucide="loader-2" class="w-3 h-3 animate-spin"></i>
-                                    <span class="text-[9px] font-black uppercase tracking-widest">Parsing...</span>
-                                </div>
-                            </template>
-                        </label>
+                    <div class="flex gap-2">
+                        <!-- Draft with AI (Cover Letter Assistant) -->
+                        <button x-show="template === 'cover-letter'" 
+                                @click="draftCoverLetter"
+                                :disabled="isGenerating || !sourceContent || !targetRole"
+                                class="flex items-center gap-2 px-3 py-1.5 bg-purple-500/10 text-purple-400 rounded-lg hover:bg-purple-500/20 transition-all disabled:opacity-30">
+                            <i data-lucide="sparkles" class="w-3 h-3"></i>
+                            <span class="text-[9px] font-black uppercase tracking-widest">Draft with AI</span>
+                        </button>
+
+                        <!-- Resume Uploader -->
+                        <div x-show="template === 'cv-resume' || template === 'cover-letter'" class="relative">
+                            <input type="file" id="resumeUpload" class="hidden" accept=".pdf,.txt,.md,.docx" @change="parseResume">
+                            <label for="resumeUpload" class="cursor-pointer flex items-center gap-2 px-3 py-1.5 bg-primary/10 text-primary rounded-lg hover:bg-primary/20 transition-colors">
+                                <template x-if="!isParsing">
+                                    <div class="flex items-center gap-2">
+                                        <i data-lucide="upload-cloud" class="w-3 h-3"></i>
+                                        <span class="text-[9px] font-black uppercase tracking-widest">Import PDF</span>
+                                    </div>
+                                </template>
+                                <template x-if="isParsing">
+                                    <div class="flex items-center gap-2">
+                                        <i data-lucide="loader-2" class="w-3 h-3 animate-spin"></i>
+                                        <span class="text-[9px] font-black uppercase tracking-widest">Parsing...</span>
+                                    </div>
+                                </template>
+                            </label>
+                        </div>
                     </div>
                 </div>
-                <textarea x-model="sourceContent" rows="6" placeholder="Inject raw data or specific session notes..."
-                          class="w-full bg-muted/20 border border-border rounded-3xl p-6 text-xs font-medium italic focus:ring-2 focus:ring-primary/20 outline-none"></textarea>
+                <textarea x-model="sourceContent" rows="8" placeholder="Inject raw data or specific session notes..."
+                          class="w-full bg-muted/20 border border-border rounded-3xl p-6 text-xs font-medium italic focus:ring-2 focus:ring-primary/20 outline-none relative z-10"></textarea>
+                <div x-show="template === 'cover-letter'" class="mt-3 px-2">
+                    <p class="text-[9px] text-muted-foreground italic">Tip: Import your CV first, then click 'Draft with AI' to build your story.</p>
+                </div>
             </div>
 
             <!-- Template Category Grid -->
