@@ -17,10 +17,21 @@
         <!-- Dynamic Branding -->
         @php
             $brandColor = '#22D3EE'; // Cyan-400
-            $slug = request()->route('tenant_slug') ?? request('slug');
-            if ($slug) {
-                $tenant = \App\Models\Tenant::where('slug', $slug)->first();
-                if ($tenant) $brandColor = $tenant->metadata['primary_color'] ?? '#22D3EE';
+            $authLogo = 'https://res.cloudinary.com/dbviya1rj/image/upload/v1767554289/xe54y8zsvhursjrpbnvm.png';
+            $tenantName = 'ArchitGrid';
+            
+            try {
+                $slug = request()->route('tenant_slug') ?? request('slug');
+                if ($slug) {
+                    $tenant = \App\Models\Tenant::where('slug', $slug)->first();
+                    if ($tenant) {
+                        $brandColor = $tenant->metadata['primary_color'] ?? '#22D3EE';
+                        $authLogo = $tenant->metadata['logo_url'] ?? $authLogo;
+                        $tenantName = $tenant->name;
+                    }
+                }
+            } catch (\Exception $e) {
+                // Fallback to defaults if DB fails (e.g. migrations pending)
             }
         @endphp
         
@@ -54,17 +65,6 @@
             <div class="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[600px] bg-cyan-500/5 blur-[120px] rounded-full pointer-events-none -z-10"></div>
             
             <div class="mb-10 text-center">
-                @php
-                    $authLogo = 'https://res.cloudinary.com/dbviya1rj/image/upload/v1767554289/xe54y8zsvhursjrpbnvm.png';
-                    $tenantName = 'ArchitGrid';
-                    if ($slug) {
-                        $tenant = \App\Models\Tenant::where('slug', $slug)->first();
-                        if ($tenant) {
-                            $authLogo = $tenant->metadata['logo_url'] ?? $authLogo;
-                            $tenantName = $tenant->name;
-                        }
-                    }
-                @endphp
                 <a href="/" class="inline-flex flex-col items-center gap-3 group">
                     <div class="w-14 h-14 bg-gradient-to-br from-cyan-400 to-blue-600 rounded-2xl flex items-center justify-center text-white shadow-lg shadow-cyan-500/20 group-hover:scale-105 transition-transform">
                         <img src="{{ $authLogo }}" class="w-8 h-8 object-contain" alt="Logo">
