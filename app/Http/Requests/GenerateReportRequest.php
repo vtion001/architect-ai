@@ -29,6 +29,7 @@ class GenerateReportRequest extends FormRequest
             'researchTopic' => ['nullable', 'string'],
             'brand_id' => ['nullable', 'uuid'],
             'targetRole' => ['nullable', 'string', 'max:500'],
+            'jobDescription' => ['nullable', 'string', 'max:5000'],
             'profilePhotoUrl' => ['nullable', 'string', 'max:4096'],
             'email' => ['nullable', 'string', 'max:255'],
             'phone' => ['nullable', 'string', 'max:50'],

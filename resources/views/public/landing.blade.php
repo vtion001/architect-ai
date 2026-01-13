@@ -140,8 +140,8 @@
     <nav class="fixed top-0 w-full z-50 border-b border-white/5 bg-[#030712]/80 backdrop-blur-xl">
         <div class="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
             <a href="/" class="flex items-center gap-3 group">
-                <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-cyan-400 to-blue-600 flex items-center justify-center text-white shadow-lg shadow-cyan-500/20 group-hover:scale-110 transition-transform">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+                <div class="w-8 h-8 rounded-lg bg-white flex items-center justify-center shadow-lg shadow-cyan-500/20 group-hover:scale-110 transition-transform overflow-hidden">
+                    <img src="https://res.cloudinary.com/dbviya1rj/image/upload/v1767554289/xe54y8zsvhursjrpbnvm.png" class="w-full h-full object-contain p-1.5" alt="ArchitGrid">
                 </div>
                 <span class="font-bold text-lg tracking-tight">ArchitGrid</span>
             </a>
@@ -514,9 +514,11 @@
     <!-- Footer -->
     <footer class="py-12 border-t border-white/5 bg-[#020617] text-center">
         <div class="max-w-7xl mx-auto px-6 flex flex-col items-center gap-6">
-            <p class="text-slate-500 text-sm">&copy; 2026 ArchitGrid Inc.</p>
-        </div>
-    </footer>
+            <div class="w-10 h-10 rounded-xl bg-white flex items-center justify-center overflow-hidden shadow-lg">
+                <img src="https://res.cloudinary.com/dbviya1rj/image/upload/v1767554289/xe54y8zsvhursjrpbnvm.png" class="w-full h-full object-contain p-2" alt="ArchitGrid">
+            </div>
+            <p class="text-slate-500 text-sm">&copy; 2026 ArchitGrid Inc. Building the future of agency work.</p>
+
 
     <!-- Video Modal -->
     <div id="demo-modal" class="fixed inset-0 z-[99999] bg-black/90 backdrop-blur-xl hidden opacity-0 transition-opacity duration-300 flex items-center justify-center p-4">

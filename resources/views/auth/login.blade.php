@@ -41,78 +41,83 @@
         });
     }
 }">
-    <div class="glass-card rounded-[32px] shadow-2xl overflow-hidden border border-white/10">
-        <div class="p-8 md:p-10 space-y-8">
+    <div class="bg-card border border-border rounded-[40px] shadow-2xl overflow-hidden relative">
+        <div class="absolute -top-24 -right-24 w-48 h-48 bg-primary/5 rounded-full blur-3xl"></div>
+        
+        <div class="p-10 md:p-12 space-y-10 relative z-10">
             <div class="text-center">
-                <h2 class="text-2xl font-bold text-white mb-1">Welcome Back</h2>
-                <p class="text-sm text-slate-400">Sign in to manage your workspaces.</p>
+                <h2 class="text-3xl font-black uppercase tracking-tighter text-foreground mb-2">Welcome Back</h2>
+                <p class="text-sm text-muted-foreground font-medium italic">Enter your credentials to access the grid.</p>
             </div>
 
             @if(session('success'))
-                <div class="p-4 rounded-xl bg-green-500/10 border border-green-500/20 text-green-400 text-xs font-medium flex items-center gap-3 animate-in fade-in">
+                <div class="p-4 rounded-2xl bg-primary/10 border border-primary/20 text-primary text-[10px] font-black uppercase tracking-widest flex items-center gap-3 animate-in fade-in">
                     <i data-lucide="check-circle" class="w-4 h-4"></i>
                     <span>{{ session('success') }}</span>
                 </div>
             @endif
 
             <template x-if="errorMessage">
-                <div class="p-4 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-xs font-medium flex items-center gap-3 animate-in slide-in-from-top-2">
+                <div class="p-4 rounded-2xl bg-red-500/10 border border-red-500/20 text-red-400 text-[10px] font-black uppercase tracking-widest flex items-center gap-3 animate-in slide-in-from-top-2">
                     <i data-lucide="alert-circle" class="w-4 h-4"></i>
                     <span x-text="errorMessage"></span>
                 </div>
             </template>
 
             <form @submit.prevent="login" class="space-y-6">
-                <div class="space-y-5">
+                <div class="space-y-6">
                     <!-- Slug -->
-                    <div class="space-y-2">
-                        <label class="text-xs font-semibold text-slate-400 px-1">Workspace ID</label>
+                    <div class="space-y-3">
+                        <label class="text-[10px] font-black uppercase tracking-widest text-muted-foreground italic px-1">Workspace Node</label>
                         <div class="relative">
-                            <i data-lucide="hash" class="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500"></i>
+                            <i data-lucide="hash" class="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground"></i>
                             <input x-model="slug" type="text" placeholder="your-agency-slug" required
-                                   class="w-full h-12 bg-white/5 border border-white/10 rounded-xl pl-11 text-sm text-white focus:border-cyan-500/50 focus:ring-4 focus:ring-cyan-500/10 outline-none transition-all">
+                                   class="w-full h-14 bg-muted/20 border border-border rounded-2xl pl-11 text-sm font-bold text-foreground focus:ring-2 focus:ring-primary/20 outline-none transition-all">
                         </div>
                     </div>
 
                     <!-- Email -->
-                    <div class="space-y-2">
-                        <label class="text-xs font-semibold text-slate-400 px-1">Email Address</label>
+                    <div class="space-y-3">
+                        <label class="text-[10px] font-black uppercase tracking-widest text-muted-foreground italic px-1">Identity (Email)</label>
                         <div class="relative">
-                            <i data-lucide="mail" class="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500"></i>
+                            <i data-lucide="mail" class="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground"></i>
                             <input x-model="email" type="email" placeholder="name@agency.com" required
-                                   class="w-full h-12 bg-white/5 border border-white/10 rounded-xl pl-11 text-sm text-white focus:border-cyan-500/50 focus:ring-4 focus:ring-cyan-500/10 outline-none transition-all">
+                                   class="w-full h-14 bg-muted/20 border border-border rounded-2xl pl-11 text-sm font-bold text-foreground focus:ring-2 focus:ring-primary/20 outline-none transition-all">
                         </div>
                     </div>
 
                     <!-- Password -->
-                    <div class="space-y-2">
+                    <div class="space-y-3">
                         <div class="flex items-center justify-between px-1">
-                            <label class="text-xs font-semibold text-slate-400">Password</label>
-                            <a href="#" class="text-xs text-cyan-400 hover:text-cyan-300 transition-colors">Forgot?</a>
+                            <label class="text-[10px] font-black uppercase tracking-widest text-muted-foreground italic">Access Key</label>
+                            <a href="#" class="text-[9px] font-black uppercase tracking-widest text-primary hover:underline">Forgot?</a>
                         </div>
                         <div class="relative">
-                            <i data-lucide="lock" class="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500"></i>
+                            <i data-lucide="lock" class="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground"></i>
                             <input x-model="password" type="password" placeholder="••••••••••••" required
-                                   class="w-full h-12 bg-white/5 border border-white/10 rounded-xl pl-11 text-sm text-white focus:border-cyan-500/50 focus:ring-4 focus:ring-cyan-500/10 outline-none transition-all">
+                                   class="w-full h-14 bg-muted/20 border border-border rounded-2xl pl-11 text-sm font-bold text-foreground focus:ring-2 focus:ring-primary/20 outline-none transition-all">
                         </div>
                     </div>
                 </div>
 
-                <button type="submit" :disabled="isLoading"
-                        class="w-full h-12 bg-white text-slate-900 rounded-xl font-bold text-sm shadow-lg hover:bg-cyan-50 transition-all hover:-translate-y-0.5 active:translate-y-0 flex items-center justify-center gap-2 disabled:opacity-50">
-                    <template x-if="isLoading">
-                        <i data-lucide="loader-2" class="w-4 h-4 animate-spin"></i>
-                    </template>
-                    <span x-text="isLoading ? 'Signing in...' : 'Sign In'"></span>
-                </button>
+                <div class="pt-4">
+                    <button type="submit" :disabled="isLoading"
+                            class="w-full h-16 bg-primary text-primary-foreground rounded-2xl font-black uppercase tracking-[0.2em] text-xs shadow-xl shadow-primary/20 hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center justify-center gap-3 disabled:opacity-50">
+                        <template x-if="isLoading">
+                            <i data-lucide="loader-2" class="w-5 h-5 animate-spin"></i>
+                        </template>
+                        <span x-text="isLoading ? 'AUTHENTICATING...' : 'ESTABLISH CONNECTION'"></span>
+                    </button>
+                </div>
             </form>
         </div>
         
-        <div class="bg-white/5 p-6 text-center border-t border-white/10">
-            <p class="text-xs text-slate-400">
-                Don't have a workspace? <a href="{{ url('/waitlist') }}" class="text-cyan-400 font-bold hover:underline">Join the Waitlist</a>
+        <div class="bg-muted/30 p-8 text-center border-t border-border">
+            <p class="text-[10px] text-muted-foreground font-black uppercase tracking-widest">
+                Need a workspace? <a href="{{ url('/waitlist') }}" class="text-primary hover:underline ml-1">Join the Waitlist</a>
             </p>
         </div>
+    </div>
     </div>
 </div>
 @endsection

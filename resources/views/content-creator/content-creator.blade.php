@@ -131,6 +131,7 @@
     isGenerating: false,
     showSuccessModal: false,
     createdContentId: null,
+    generatedCalendar: null, // Store calendar JSON
     
     generateContent() {
         if (!this.topic) {
@@ -138,8 +139,8 @@
             return;
         }
         this.isGenerating = true;
+        this.generatedCalendar = null;
         
-        // Bundle parameters based on generator type
         const payload = {
             topic: this.topic,
             generator: this.generator,
@@ -151,13 +152,9 @@
             cta: this.cta,
             addLineBreaks: this.addLineBreaks,
             includeHashtags: this.includeHashtags,
-            
-            // Mode-specific options
             video_platform: this.platform,
             video_hook: this.hookStyle,
             video_duration: this.duration,
-            
-            // New Video Params
             video_style: this.videoStyle,
             video_description: this.topic || this.videoDescription,
             source_image: this.sourceImage,
@@ -165,37 +162,53 @@
             resolution: this.resolution,
             aspect_ratio: this.aspectRatio,
             generation_duration: this.videoDuration,
-
-            // Blog Params
             blog_keywords: this.keywords,
             blog_structure: this.structure,
             is_batch_mode: this.isBatchMode,
             featured_image_type: this.featuredImageType,
-            
-            brand_id: this.selectedBrandId,
+            brand_id: this.selectedBrandId
         };
 
         fetch('{{ route('content-creator.generate') }}', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
+                'Accept': 'application/json',
                 'X-CSRF-TOKEN': '{{ csrf_token() }}'
             },
             body: JSON.stringify(payload)
         })
-        .then(res => res.json())
+        .then(async response => {
+            const contentType = response.headers.get('content-type');
+            if (!contentType || !contentType.includes('application/json')) {
+                const text = await response.text();
+                console.error('Server Error (HTML):', text);
+                throw new Error('Server returned HTML instead of JSON. Check console.');
+            }
+            const data = await response.json();
+            if (!response.ok || !data.success) {
+                throw new Error(data.message || 'Generation failed.');
+            }
+            return data;
+        })
         .then(data => {
-            if (data.success) {
+            if (this.generator === 'framework') {
+                try {
+                    const rawContent = data.content.content;
+                    this.generatedCalendar = typeof rawContent === 'string' ? JSON.parse(rawContent) : rawContent;
+                } catch (e) {
+                    console.error('JSON Parse Error', e);
+                    alert('Calendar generated but format was invalid.');
+                }
+            } else {
                 this.createdContentId = data.content.id;
                 this.showSuccessModal = true;
-                this.isGenerating = false;
-            } else {
-                alert('Generation failed: ' + (data.message || 'Unknown error'));
-                this.isGenerating = false;
             }
+            this.isGenerating = false;
         })
-        .catch(err => {
-            console.error(err);
+        .catch(error => {
+            console.error(error);
+            alert(error.message);
             this.isGenerating = false;
         });
     }
@@ -235,6 +248,10 @@
             <button @click="generator = 'blog'; type = 'blog-post'" :class="generator === 'blog' ? 'bg-slate-800 text-white shadow-xl shadow-black/20 font-bold border-white/10 ring-1 ring-white/20' : 'bg-slate-900 text-white/70 hover:text-white border-white/5 font-medium'" class="flex items-center gap-3 px-4 py-3 rounded-lg transition-all text-sm border">
                 <i data-lucide="book" class="w-4 h-4"></i>
                 Blog Generator
+            </button>
+            <button @click="generator = 'framework'; type = 'framework_calendar'" :class="generator === 'framework' ? 'bg-slate-800 text-white shadow-xl shadow-black/20 font-bold border-white/10 ring-1 ring-white/20' : 'bg-slate-900 text-white/70 hover:text-white border-white/5 font-medium'" class="flex items-center gap-3 px-4 py-3 rounded-lg transition-all text-sm border">
+                <i data-lucide="calendar" class="w-4 h-4"></i>
+                1-Click Calendar
             </button>
         </div>
     </div>
@@ -986,13 +1003,195 @@
                     </div>
                 </div>
 
+                <!-- Framework Calendar Interface -->
+                <div x-show="generator === 'framework'" x-transition:enter="transition ease-out duration-300" x-transition:enter-start="opacity-0 transform -translate-y-2" x-transition:enter-end="opacity-100 transform translate-y-0" class="space-y-8" style="display: none;">
+                    <div class="mb-2">
+                        <div class="flex items-center gap-3 mb-1">
+                            <i data-lucide="calendar" class="w-6 h-6 text-primary"></i>
+                            <h2 class="text-2xl font-black text-foreground">Content Framework</h2>
+                        </div>
+                        <p class="text-sm text-muted-foreground font-medium">Generate a complete weekly content plan based on the 4-Pillar Strategy.</p>
+                    </div>
+
+                    <!-- Brand Persona -->
+                    <div class="space-y-3" x-show="brands.length > 0">
+                        <label class="text-[10px] font-black uppercase tracking-widest text-primary italic flex items-center gap-2">
+                            <i data-lucide="fingerprint" class="w-3 h-3"></i>
+                            Brand Persona
+                        </label>
+                        <div class="relative">
+                            <select x-model="selectedBrandId" class="w-full h-14 bg-muted/20 border border-border rounded-xl px-5 text-sm font-bold focus:ring-1 focus:ring-primary appearance-none cursor-pointer hover:bg-muted/30 transition-colors">
+                                <option value="">No Brand (Generic Voice)</option>
+                                <template x-for="brand in brands" :key="brand.id">
+                                    <option :value="brand.id" x-text="brand.name"></option>
+                                </template>
+                            </select>
+                            <i data-lucide="chevron-down" class="absolute right-5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none"></i>
+                        </div>
+                    </div>
+
+                    <!-- Topic -->
+                    <div class="space-y-4">
+                        <label class="text-[10px] font-black uppercase tracking-widest text-foreground italic">Core Topic / Niche <span class="text-red-500">*</span></label>
+                        <input x-model="topic" type="text" placeholder="e.g., 'Sustainable Interior Design'" class="w-full h-14 bg-muted/20 border border-border rounded-xl px-5 text-sm font-medium focus:ring-1 focus:ring-primary">
+                    </div>
+
+                    <!-- Info Box -->
+                    <div class="bg-primary/5 border border-primary/10 rounded-xl p-6 space-y-4">
+                        <div class="flex items-center gap-2 mb-1">
+                            <i data-lucide="layout-grid" class="w-4 h-4 text-primary"></i>
+                            <h4 class="text-[10px] font-black text-primary uppercase tracking-wider">The 4-Pillar Strategy:</h4>
+                        </div>
+                        <div class="grid grid-cols-2 gap-4">
+                            <div class="p-3 bg-white/5 rounded-lg border border-white/10">
+                                <span class="text-[9px] font-black text-blue-400 uppercase">Educational (3x)</span>
+                                <p class="text-[10px] text-muted-foreground mt-1">Build authority with how-to's and insights.</p>
+                            </div>
+                            <div class="p-3 bg-white/5 rounded-lg border border-white/10">
+                                <span class="text-[9px] font-black text-purple-400 uppercase">Showcase (2x)</span>
+                                <p class="text-[10px] text-muted-foreground mt-1">Demonstrate expertise with case studies.</p>
+                            </div>
+                            <div class="p-3 bg-white/5 rounded-lg border border-white/10">
+                                <span class="text-[9px] font-black text-green-400 uppercase">Conversational (2x)</span>
+                                <p class="text-[10px] text-muted-foreground mt-1">Build community with polls and questions.</p>
+                            </div>
+                            <div class="p-3 bg-white/5 rounded-lg border border-white/10">
+                                <span class="text-[9px] font-black text-amber-400 uppercase">Promotional (1x)</span>
+                                <p class="text-[10px] text-muted-foreground mt-1">Drive conversions with offers.</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Generate Button -->
+                    <div class="pt-4">
+                        <button @click="generateContent" :disabled="isGenerating" class="w-full h-14 bg-primary hover:opacity-90 text-primary-foreground rounded-xl font-black uppercase tracking-[0.2em] shadow-lg shadow-primary/20 hover:scale-[1.01] active:scale-[0.99] transition-all flex items-center justify-center gap-3 text-xs disabled:opacity-50 disabled:pointer-events-none">
+                            <template x-if="!isGenerating">
+                                <div class="flex items-center gap-2">
+                                    <i data-lucide="calendar-check" class="w-5 h-5"></i>
+                                    <span>Generate Weekly Calendar</span>
+                                </div>
+                            </template>
+                            <template x-if="isGenerating">
+                                <div class="flex items-center gap-2">
+                                    <i data-lucide="loader-2" class="w-5 h-5 animate-spin"></i>
+                                    <span>Architecting Strategy...</span>
+                                </div>
+                            </template>
+                        </button>
+                    </div>
+                </div>
+
             </div>
         </div>
 
         <!-- Sidebar: Context Aware Content -->
         <div class="space-y-6">
+            
+            <!-- Calendar Result View (Active when framework generated) -->
+            <div x-show="generatedCalendar" x-transition class="rounded-xl border border-border bg-card text-card-foreground shadow-sm overflow-hidden h-full">
+                <div class="flex flex-col space-y-1.5 p-6 border-b border-border/50 bg-background/50 backdrop-blur-sm sticky top-0 z-10 flex-row items-center justify-between">
+                    <h3 class="text-xl font-bold leading-none tracking-tight flex items-center gap-2">
+                        <i data-lucide="calendar-check" class="w-5 h-5 text-primary"></i>
+                        Weekly Strategy
+                    </h3>
+                    <button @click="generatedCalendar = null" class="text-xs font-bold text-muted-foreground hover:text-foreground">Close</button>
+                </div>
+                
+                <div class="p-6 space-y-8 bg-muted/5 min-h-[600px] overflow-y-auto max-h-[800px] custom-scrollbar">
+                    
+                    <!-- Educational -->
+                    <div class="space-y-4">
+                        <div class="flex items-center gap-2 mb-2">
+                            <div class="w-2 h-2 rounded-full bg-blue-500"></div>
+                            <h4 class="text-xs font-black uppercase tracking-widest text-blue-500">Educational (Authority)</h4>
+                        </div>
+                        <template x-for="post in generatedCalendar.educational">
+                            <div class="bg-card border border-border rounded-xl p-4 space-y-3 hover:border-blue-500/30 transition-all">
+                                <div>
+                                    <span class="text-[9px] font-black bg-blue-500/10 text-blue-500 px-2 py-0.5 rounded uppercase tracking-wider">Hook</span>
+                                    <p class="text-sm font-bold text-foreground mt-1" x-text="post.hook"></p>
+                                </div>
+                                <div>
+                                    <p class="text-xs text-muted-foreground leading-relaxed" x-text="post.caption"></p>
+                                </div>
+                                <div class="bg-muted/30 p-3 rounded-lg border border-border border-dashed flex gap-3 items-start">
+                                    <i data-lucide="image" class="w-4 h-4 text-muted-foreground mt-0.5"></i>
+                                    <p class="text-[10px] text-muted-foreground italic" x-text="post.visual_idea"></p>
+                                </div>
+                            </div>
+                        </template>
+                    </div>
+
+                    <!-- Showcase -->
+                    <div class="space-y-4">
+                        <div class="flex items-center gap-2 mb-2">
+                            <div class="w-2 h-2 rounded-full bg-purple-500"></div>
+                            <h4 class="text-xs font-black uppercase tracking-widest text-purple-500">Showcase (Expertise)</h4>
+                        </div>
+                        <template x-for="post in generatedCalendar.showcase">
+                            <div class="bg-card border border-border rounded-xl p-4 space-y-3 hover:border-purple-500/30 transition-all">
+                                <div>
+                                    <span class="text-[9px] font-black bg-purple-500/10 text-purple-500 px-2 py-0.5 rounded uppercase tracking-wider">Hook</span>
+                                    <p class="text-sm font-bold text-foreground mt-1" x-text="post.hook"></p>
+                                </div>
+                                <div>
+                                    <p class="text-xs text-muted-foreground leading-relaxed" x-text="post.caption"></p>
+                                </div>
+                                <div class="bg-muted/30 p-3 rounded-lg border border-border border-dashed flex gap-3 items-start">
+                                    <i data-lucide="image" class="w-4 h-4 text-muted-foreground mt-0.5"></i>
+                                    <p class="text-[10px] text-muted-foreground italic" x-text="post.visual_idea"></p>
+                                </div>
+                            </div>
+                        </template>
+                    </div>
+
+                    <!-- Conversational -->
+                    <div class="space-y-4">
+                        <div class="flex items-center gap-2 mb-2">
+                            <div class="w-2 h-2 rounded-full bg-green-500"></div>
+                            <h4 class="text-xs font-black uppercase tracking-widest text-green-500">Conversational (Community)</h4>
+                        </div>
+                        <template x-for="post in generatedCalendar.conversational">
+                            <div class="bg-card border border-border rounded-xl p-4 space-y-3 hover:border-green-500/30 transition-all">
+                                <div>
+                                    <span class="text-[9px] font-black bg-green-500/10 text-green-500 px-2 py-0.5 rounded uppercase tracking-wider">Hook</span>
+                                    <p class="text-sm font-bold text-foreground mt-1" x-text="post.hook"></p>
+                                </div>
+                                <div>
+                                    <p class="text-xs text-muted-foreground leading-relaxed" x-text="post.caption"></p>
+                                </div>
+                            </div>
+                        </template>
+                    </div>
+
+                    <!-- Promotional -->
+                    <div class="space-y-4">
+                        <div class="flex items-center gap-2 mb-2">
+                            <div class="w-2 h-2 rounded-full bg-amber-500"></div>
+                            <h4 class="text-xs font-black uppercase tracking-widest text-amber-500">Promotional (Conversion)</h4>
+                        </div>
+                        <template x-for="post in generatedCalendar.promotional">
+                            <div class="bg-card border border-border rounded-xl p-4 space-y-3 hover:border-amber-500/30 transition-all">
+                                <div>
+                                    <span class="text-[9px] font-black bg-amber-500/10 text-amber-500 px-2 py-0.5 rounded uppercase tracking-wider">Hook</span>
+                                    <p class="text-sm font-bold text-foreground mt-1" x-text="post.hook"></p>
+                                </div>
+                                <div>
+                                    <p class="text-xs text-muted-foreground leading-relaxed" x-text="post.caption"></p>
+                                </div>
+                                <div class="bg-muted/30 p-3 rounded-lg border border-border border-dashed flex gap-3 items-start">
+                                    <i data-lucide="image" class="w-4 h-4 text-muted-foreground mt-0.5"></i>
+                                    <p class="text-[10px] text-muted-foreground italic" x-text="post.visual_idea"></p>
+                                </div>
+                            </div>
+                        </template>
+                    </div>
+
+                </div>
+            </div>
+
             <!-- Normal Mode: Recent Content (Facebook Style Feed) -->
-            <div x-show="generator !== 'video'" class="rounded-xl border border-border bg-card text-card-foreground shadow-sm overflow-hidden">
+            <div x-show="generator !== 'video' && !generatedCalendar" class="rounded-xl border border-border bg-card text-card-foreground shadow-sm overflow-hidden">
                 <div class="flex flex-col space-y-1.5 p-6 border-b border-border/50 bg-background/50 backdrop-blur-sm sticky top-0 z-10">
                     <h3 class="text-xl font-bold leading-none tracking-tight flex items-center gap-2">
                         <i data-lucide="activity" class="w-5 h-5 text-primary"></i>

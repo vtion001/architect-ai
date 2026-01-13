@@ -8,6 +8,7 @@ use App\Contracts\ContentGeneratorInterface;
 use App\Services\ContentGenerators\BlogPostGenerator;
 use App\Services\ContentGenerators\SocialPostGenerator;
 use App\Services\ContentGenerators\VideoScriptGenerator;
+use App\Services\ContentGenerators\FrameworkCalendarGenerator;
 use InvalidArgumentException;
 
 /**
@@ -20,7 +21,7 @@ class ContentGeneratorFactory
     /**
      * Get the appropriate generator instance based on type.
      *
-     * @param string $type The generator type (post, blog, video)
+     * @param string $type The generator type (post, blog, video, framework_calendar)
      * @return ContentGeneratorInterface
      * @throws InvalidArgumentException
      */
@@ -29,6 +30,7 @@ class ContentGeneratorFactory
         return match ($type) {
             'blog' => app(BlogPostGenerator::class),
             'video' => app(VideoScriptGenerator::class),
+            'framework_calendar' => app(FrameworkCalendarGenerator::class),
             'post', 'social-media post' => app(SocialPostGenerator::class),
             default => app(SocialPostGenerator::class), // Default fallback
         };

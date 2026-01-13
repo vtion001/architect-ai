@@ -178,6 +178,12 @@ class ReportService
                 if ($data->targetRole) {
                     $brandInstructions .= "\n\n[RESUME TAILORING ACTIVE]\n";
                     $brandInstructions .= "TARGET ROLE: {$data->targetRole}\n";
+                    
+                    if ($data->jobDescription) {
+                        $brandInstructions .= "JOB DESCRIPTION CONTEXT:\n{$data->jobDescription}\n";
+                        $brandInstructions .= "INSTRUCTION: Analyze the Job Description. Identify top 5 keywords/skills. Rewrite the CV to explicitly match these keywords. Prove fit for this specific description.\n";
+                    }
+
                     $brandInstructions .= "INSTRUCTION: \n";
                     $brandInstructions .= "1. Rewrite the professional summary to specifically align with the Target Role.\n";
                     $brandInstructions .= "2. Re-order or emphasize bullet points in Work Experience that demonstrate relevant skills.\n";
@@ -189,23 +195,81 @@ class ReportService
                     $brandInstructions .= "      (Put the main Resume HTML here - Summary, Experience, Education, Skills)\n";
                     $brandInstructions .= "   </document_content>\n";
                 }
+
+                // International CV Variant - Healthcare/MLS Format
+                if ($data->variant === 'cv-international') {
+                    $brandInstructions .= "\n\n[INTERNATIONAL CV FORMAT - HEALTHCARE/MLS STANDARD]\n";
+                    $brandInstructions .= "You must strictly follow this structure for the international healthcare CV:\n\n";
+
+                    $brandInstructions .= "1. PROFILE SECTION:\n";
+                    $brandInstructions .= "   <h2 class='section-title'>PROFILE</h2>\n";
+                    $brandInstructions .= "   <ul class='profile-summary'>\n";
+                    $brandInstructions .= "      <li>Registered Medical Lab Scientist with # years of laboratory experience\n";
+                    $brandInstructions .= "         <ul><li># of years of Current Lab Experience</li><li># of years of Previous Lab Experience</li></ul>\n";
+                    $brandInstructions .= "      </li>\n";
+                    $brandInstructions .= "   </ul>\n\n";
+
+                    $brandInstructions .= "2. EDUCATION SECTION:\n";
+                    $brandInstructions .= "   <h2 class='section-title'>EDUCATION</h2>\n";
+                    $brandInstructions .= "   <div class='education-block'>\n";
+                    $brandInstructions .= "      <div class='dates'>Dates Attended University</div>\n";
+                    $brandInstructions .= "      <div class='institution'>University City, County</div>\n";
+                    $brandInstructions .= "      <div class='degree'>Degree earned</div>\n";
+                    $brandInstructions .= "   </div>\n\n";
+
+                    $brandInstructions .= "3. WORK EXPERIENCE SECTION (for EACH facility, use this structure):\n";
+                    $brandInstructions .= "   <h2 class='section-title'>WORK EXPERIENCE</h2>\n";
+                    $brandInstructions .= "   <div class='facility-block'>\n";
+                    $brandInstructions .= "      <div class='facility-name'>Current Facility Name</div>\n";
+                    $brandInstructions .= "      <div class='facility-dates'>Joining Date (Month/Year) - Present</div>\n";
+                    $brandInstructions .= "      <div class='facility-location'>Facility City, Country</div>\n";
+                    $brandInstructions .= "      <div class='facility-website'>Facility website if any</div>\n";
+                    $brandInstructions .= "      <div class='facility-description'>Brief hospital description: Describe number of beds in facility, type of patients served and list any accreditations</div>\n\n";
+                    $brandInstructions .= "      <div class='job-details'>\n";
+                    $brandInstructions .= "         <p><strong>Medical Laboratory Scientist:</strong> Rotating or Specific Benches</p>\n";
+                    $brandInstructions .= "         <p><strong># Beds in Unit:</strong> # beds</p>\n";
+                    $brandInstructions .= "         <p><strong>Patient Ratio:</strong> #:#</p>\n";
+                    $brandInstructions .= "      </div>\n\n";
+                    $brandInstructions .= "      <p><strong><u>Responsibilities:</u></strong></p>\n";
+                    $brandInstructions .= "      <ul class='responsibility-list'><li>List daily clinical functions</li>...</ul>\n\n";
+                    $brandInstructions .= "      <p><strong><u>Samples Handled:</u></strong></p>\n";
+                    $brandInstructions .= "      <ul class='samples-list'><li>List the types and weekly volume</li>...</ul>\n\n";
+                    $brandInstructions .= "      <p><strong>Equipment</strong></p>\n";
+                    $brandInstructions .= "      <ul class='equipment-list'><li>List the types of lab equipment used</li>...</ul>\n";
+                    $brandInstructions .= "   </div>\n\n";
+                    $brandInstructions .= "   (Repeat facility-block for Previous Facilities)\n\n";
+
+                    $brandInstructions .= "4. LICENSES & CERTIFICATIONS SECTION:\n";
+                    $brandInstructions .= "   <h2 class='section-title'>LICENSES & CERTIFICATIONS</h2>\n";
+                    $brandInstructions .= "   <ul class='certifications-block'>\n";
+                    $brandInstructions .= "      <li>List All Licenses, RMT PRC etc.</li>\n";
+                    $brandInstructions .= "      <li>List English Exams, IELTS Test Dates & Scores</li>\n";
+                    $brandInstructions .= "      <li>List any Certifications, MLS(ASCPi), CGFNS, BLS, etc.</li>\n";
+                    $brandInstructions .= "   </ul>\n\n";
+
+                    $brandInstructions .= "IMPORTANT: Use underlined text formatting (<u>) for section headers like 'Responsibilities:', 'Samples Handled:'. Use the exact CSS classes provided above.\n";
+                }
             } elseif ($data->template === ReportTemplate::COVER_LETTER) {
                 $roleDescription = "expert career coach and persuasive writer";
                 $taskDescription = "COMPELLING and PERSONALIZED cover letter";
                 $documentType = "letter";
 
                 $brandInstructions .= "\n\n[COVER LETTER STRATEGY]\n";
-                $brandInstructions .= "You must write a highly persuasive cover letter that strictly follows this 4-part structure:\n";
-                $brandInstructions .= "Do not include the Date, Recipient Address, or Subject Line. Start directly with the Salutation.\n";
-                $brandInstructions .= "1. THE HOOK: Start with a strong connection to the company (mission, recent project) and explicitly state the role applied for.\n";
-                $brandInstructions .= "2. THE EVIDENCE: Select 2-3 'Hero Moments' from the source content (CV) that prove capability. Use numbers/metrics if available.\n";
-                $brandInstructions .= "3. THE SOLUTION: Address a potential company pain point and explain how the candidate's skills solve it. Mention cultural fit.\n";
-                $brandInstructions .= "4. CALL TO ACTION: Proactive closing requesting a discussion.\n";
-                $brandInstructions .= "5. SIGN-OFF: A formal closing (e.g., 'Sincerely,') followed by the candidate's name in <strong> tags on a new line.\n";
+                $brandInstructions .= "You must write a highly persuasive cover letter body that strictly follows this 4-part structure:\n";
+                $brandInstructions .= "DO NOT include the Header (Date, Address), Subject Line, or Sign-off (Sincerely, Name). These are automatically added by the template.\n";
+                $brandInstructions .= "**IMPORTANT: DO NOT include section headers or labels like 'The Hook' or 'The Evidence'. Output ONLY the paragraphs.**\n";
+                $brandInstructions .= "1. First Paragraph (The Hook): Start with a strong connection to the company (mission, recent project) and explicitly state the role applied for.\n";
+                $brandInstructions .= "2. Middle Paragraphs (The Evidence): Select 2-3 'Hero Moments' from the source content (CV) that prove capability. Use numbers/metrics if available.\n";
+                $brandInstructions .= "3. Later Paragraph (The Solution): Address a potential company pain point and explain how the candidate's skills solve it. Mention cultural fit.\n";
+                $brandInstructions .= "4. Final Paragraph (Call to Action): Proactive closing requesting a discussion.\n";
                 $brandInstructions .= "TONE: Narrative, conversational, enthusiastic, and persuasive.\n";
                 
                 if ($data->targetRole) {
                     $brandInstructions .= "TARGET ROLE: {$data->targetRole}\n";
+                    if ($data->jobDescription) {
+                        $brandInstructions .= "JOB DESCRIPTION CONTEXT:\n{$data->jobDescription}\n";
+                        $brandInstructions .= "INSTRUCTION: Use the Job Description to identify specific pain points. In the 'Solution' paragraph, explicitly address how the candidate solves these specific problems.\n";
+                    }
                     $brandInstructions .= "Ensure the tone matches the industry of the target role (e.g., Creative for Design, Formal for Law).\n";
                 }
             }

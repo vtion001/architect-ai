@@ -165,6 +165,7 @@ enum ReportTemplate: string
                 ['id' => 'cv-classic', 'name' => 'Classic Professional', 'description' => 'Clean, text-focused layout optimized for ATS', 'previewImage' => 'cv', 'tags' => ['Professional', 'ATS']],
                 ['id' => 'cv-modern', 'name' => 'Modern Creative', 'description' => 'Two-column layout with skills bars and accents', 'previewImage' => 'cv', 'tags' => ['Creative', 'Visual']],
                 ['id' => 'cv-technical', 'name' => 'Technical Expert', 'description' => 'Focused on stack, skills, and project history', 'previewImage' => 'cv', 'tags' => ['Developer', 'Technical']],
+                ['id' => 'cv-international', 'name' => 'International Standard', 'description' => 'Healthcare/MLS format with facility details, equipment, samples, and certifications', 'previewImage' => 'cv', 'tags' => ['Healthcare', 'International']],
             ],
             self::COVER_LETTER => [
                 ['id' => 'cl-standard', 'name' => 'Standard Professional', 'description' => 'Traditional formal letter format', 'previewImage' => 'cover-letter', 'tags' => ['Formal', 'Traditional']],

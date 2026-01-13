@@ -105,4 +105,9 @@
         {!! $content !!}
     </div>
 
+    <div class="cl-signoff">
+        <p>Sincerely,</p>
+        <div class="cl-signature">{{ $senderName ?? 'Your Name' }}</div>
+    </div>
+
 @endsection
