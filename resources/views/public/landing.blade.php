@@ -518,7 +518,8 @@
                 <img src="https://res.cloudinary.com/dbviya1rj/image/upload/v1767554289/xe54y8zsvhursjrpbnvm.png" class="w-full h-full object-contain p-2" alt="ArchitGrid">
             </div>
             <p class="text-slate-500 text-sm">&copy; 2026 ArchitGrid Inc. Building the future of agency work.</p>
-
+        </div>
+    </footer>
 
     <!-- Video Modal -->
     <div id="demo-modal" class="fixed inset-0 z-[99999] bg-black/90 backdrop-blur-xl hidden opacity-0 transition-opacity duration-300 flex items-center justify-center p-4">

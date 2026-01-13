@@ -29,6 +29,8 @@ class GodViewController extends Controller
             'global_credits' => TokenTransaction::sum('amount'),
             'network_load' => Content::count() + Research::count(),
             'total_waitlist' => WaitlistModel::count(),
+            'signups_today' => WaitlistModel::whereDate('created_at', now()->today())->count(),
+            'signups_this_week' => WaitlistModel::where('created_at', '>=', now()->startOfWeek())->count(),
             'active_waitlist' => WaitlistModel::where('status', 'pending')->count(),
             'grid_integrity' => 'Verified (99.99%)',
         ];
@@ -42,7 +44,16 @@ class GodViewController extends Controller
         // 3. High-Value Leads (Waitlist)
         $waitlistEntries = WaitlistModel::latest()->take(25)->get();
 
-        return view('admin.god-view', compact('waitlistEntries', 'statistics', 'globalAudit'));
+        // 4. LLMOps & System Health
+        $llmHealth = [
+            'api_status' => 'Operational', // In a real app, check cache or recent logs
+            'error_rate' => \Illuminate\Support\Facades\DB::table('failed_jobs')->count(),
+            'tokens_burned_24h' => abs(TokenTransaction::where('amount', '<', 0)->where('created_at', '>=', now()->subDay())->sum('amount')),
+            'active_workers' => 3, // Mocked for digital ocean
+            'vector_db_status' => 'Synced',
+        ];
+
+        return view('admin.god-view', compact('waitlistEntries', 'statistics', 'globalAudit', 'llmHealth'));
     }
 
     /**

@@ -38,6 +38,11 @@
                         <i data-lucide="layout-grid" class="w-4 h-4"></i>
                         Ops Dashboard
                     </a>
+
+                    <a href="{{ route('god-view.index') }}" class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all {{ request()->routeIs('god-view.*') ? 'bg-amber-500/10 text-amber-500 border border-amber-500/20' : 'text-slate-400 hover:bg-slate-800 hover:text-white' }}">
+                        <i data-lucide="eye" class="w-4 h-4"></i>
+                        Master God View
+                    </a>
                     
                     <a href="{{ route('admin.tenants.index') }}" class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all {{ request()->routeIs('admin.tenants.*') ? 'bg-red-600 text-white' : 'text-slate-400 hover:bg-slate-800 hover:text-white' }}">
                         <i data-lucide="server" class="w-4 h-4"></i>

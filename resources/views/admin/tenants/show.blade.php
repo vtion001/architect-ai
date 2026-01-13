@@ -59,6 +59,26 @@
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
         <!-- Sidebar: Details -->
         <div class="space-y-6">
+            @if(isset($linkedWaitlist))
+            <h3 class="text-[10px] font-black text-amber-500 uppercase tracking-[0.2em]">Linked Lead History</h3>
+            <div class="bg-slate-900 border border-amber-500/20 rounded-3xl p-6 space-y-4 relative overflow-hidden">
+                <div class="absolute inset-0 bg-amber-500/5"></div>
+                <div class="relative z-10">
+                    <p class="text-[10px] font-black text-slate-500 uppercase mb-1">Origin Lead</p>
+                    <p class="text-sm font-bold text-white truncate">{{ $linkedWaitlist->email }}</p>
+                </div>
+                <div class="relative z-10">
+                    <p class="text-[10px] font-black text-slate-500 uppercase mb-1">Acquisition Date</p>
+                    <p class="text-xs font-mono text-amber-400">{{ $linkedWaitlist->created_at->format('M d, Y') }}</p>
+                </div>
+                <div class="relative z-10">
+                    <span class="px-2 py-0.5 rounded border border-amber-500/30 bg-amber-500/10 text-amber-500 text-[9px] font-black uppercase tracking-widest">
+                        Successfully Converted
+                    </span>
+                </div>
+            </div>
+            @endif
+
             <h3 class="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em]">Tenant DNA</h3>
             <div class="bg-slate-900 border border-slate-800 rounded-3xl p-6 space-y-6">
                 <div>

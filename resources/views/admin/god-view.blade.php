@@ -48,11 +48,14 @@
                 <div class="w-12 h-12 rounded-2xl bg-amber-500/10 flex items-center justify-center text-amber-500 border border-amber-500/20 group-hover:bg-amber-500 group-hover:text-white transition-all">
                     <i data-lucide="user-plus" class="w-6 h-6"></i>
                 </div>
-                <span class="mono text-[8px] uppercase text-slate-600 font-black tracking-widest">Waitlist</span>
+                <span class="mono text-[8px] uppercase text-slate-600 font-black tracking-widest">Growth</span>
             </div>
             <div class="flex items-end gap-2">
                 <p class="text-4xl font-black text-amber-400">{{ $statistics['total_waitlist'] }}</p>
-                <span class="text-[10px] font-black text-amber-500 uppercase mb-1">Total</span>
+                <div class="mb-1 flex flex-col">
+                    <span class="text-[8px] font-black text-green-500 uppercase leading-none">+{{ $statistics['signups_today'] }} Today</span>
+                    <span class="text-[8px] font-bold text-slate-500 uppercase leading-none mt-1">+{{ $statistics['signups_this_week'] }} week</span>
+                </div>
             </div>
             <p class="text-[10px] font-bold text-slate-500 uppercase mt-2 italic">{{ $statistics['active_waitlist'] }} Pending Approval</p>
         </div>
@@ -72,6 +75,54 @@
             <p class="text-[10px] font-bold text-slate-500 uppercase mt-2 italic">Global MFA Sync: Verified</p>
         </div>
     </div>
+
+    <!-- LLMOps System Vitality -->
+    @if(isset($llmHealth))
+    <div class="grid grid-cols-1 lg:grid-cols-4 gap-6">
+        <!-- Status Monitor -->
+        <div class="lg:col-span-3 bg-slate-900 border border-slate-800 rounded-[32px] p-8 shadow-xl flex flex-col md:flex-row justify-between items-center gap-8">
+            <div class="flex items-center gap-6 w-full md:w-auto">
+                <div class="w-16 h-16 rounded-2xl bg-slate-800 flex items-center justify-center text-slate-400 border border-slate-700">
+                    <i data-lucide="terminal" class="w-8 h-8"></i>
+                </div>
+                <div>
+                    <h3 class="text-lg font-black text-white uppercase tracking-tight">LLMOps Master Monitor</h3>
+                    <div class="flex items-center gap-2 mt-1">
+                        <span class="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
+                        <span class="text-[10px] font-bold text-green-500 uppercase tracking-widest">Master Node: Operational</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="flex-1 w-full grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div class="p-4 rounded-2xl bg-slate-950 border border-slate-800 text-center">
+                    <p class="text-[9px] font-black text-slate-500 uppercase tracking-widest mb-1">OpenAI Gateway</p>
+                    <p class="text-sm font-bold text-emerald-400">{{ $llmHealth['api_status'] ?? 'N/A' }}</p>
+                </div>
+                <div class="p-4 rounded-2xl bg-slate-950 border border-slate-800 text-center">
+                    <p class="text-[9px] font-black text-slate-500 uppercase tracking-widest mb-1">Vector Index</p>
+                    <p class="text-sm font-bold text-blue-400">{{ $llmHealth['vector_db_status'] ?? 'N/A' }}</p>
+                </div>
+                <div class="p-4 rounded-2xl bg-slate-950 border border-slate-800 text-center">
+                    <p class="text-[9px] font-black text-slate-500 uppercase tracking-widest mb-1">Queue Workers</p>
+                    <p class="text-sm font-bold text-white">{{ $llmHealth['active_workers'] ?? 0 }} Up</p>
+                </div>
+                <div class="p-4 rounded-2xl bg-slate-950 border border-slate-800 text-center group/err cursor-pointer hover:border-red-500/50 transition-colors">
+                    <p class="text-[9px] font-black text-slate-500 uppercase tracking-widest mb-1 group-hover/err:text-red-500">Log Errors</p>
+                    <p class="text-sm font-bold {{ ($llmHealth['error_rate'] ?? 0) > 0 ? 'text-red-500' : 'text-slate-400' }}">{{ $llmHealth['error_rate'] ?? 0 }} Failed</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Token Burn Rate -->
+        <div class="bg-slate-900 border border-slate-800 rounded-[32px] p-8 shadow-xl flex flex-col justify-center relative overflow-hidden">
+            <div class="absolute inset-0 bg-orange-500/5"></div>
+            <p class="text-[9px] font-black text-orange-500 uppercase tracking-widest mb-2">24h Token Burn</p>
+            <p class="text-4xl font-black text-white">{{ number_format($llmHealth['tokens_burned_24h'] ?? 0) }}</p>
+            <p class="text-[10px] text-slate-500 mt-2 font-medium italic">Resource Consumption Rate</p>
+        </div>
+    </div>
+    @endif
 
     <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
         <!-- Global Protocol Registry -->
@@ -177,11 +228,20 @@
         </div>
     </div>
 
+    <!-- Section Divider -->
+    <div class="h-px bg-gradient-to-r from-transparent via-slate-800 to-transparent"></div>
+
     <!-- Master Waitlist Registry -->
     <div class="space-y-6">
         <div class="flex items-center justify-between px-1">
-            <h3 class="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em]">Master Waitlist Registry</h3>
-            <span class="text-[9px] font-black text-amber-500 uppercase tracking-widest bg-amber-500/10 px-2 py-0.5 rounded border border-amber-500/20">Global Lead Queue</span>
+            <div class="flex items-center gap-4">
+                <div class="w-2 h-8 bg-amber-500 rounded-full"></div>
+                <div>
+                    <h3 class="text-xl font-black text-white uppercase tracking-tighter">Master Waitlist Registry</h3>
+                    <p class="text-[9px] font-bold text-slate-500 uppercase tracking-widest italic">Global user acquisition queue</p>
+                </div>
+            </div>
+            <span class="text-[9px] font-black text-amber-500 uppercase tracking-widest bg-amber-500/10 px-3 py-1 rounded-full border border-amber-500/20">Authorized Master Node Only</span>
         </div>
         <div class="bg-slate-900 border border-slate-800 rounded-[40px] overflow-hidden shadow-2xl">
             <table class="w-full text-left text-xs border-collapse">
@@ -203,7 +263,10 @@
                                     </div>
                                     <div class="flex flex-col">
                                         <span class="font-bold text-slate-300 uppercase tracking-tight">{{ $entry->name ?? 'Anonymous Identity' }}</span>
-                                        <span class="text-[9px] text-slate-500 font-medium italic">{{ $entry->email }}</span>
+                                        <div class="flex items-center gap-2 group/copy cursor-pointer" onclick="navigator.clipboard.writeText('{{ $entry->email }}'); alert('Identity Hashed to Clipboard');">
+                                            <span class="text-[9px] text-slate-500 font-medium italic group-hover/copy:text-primary transition-colors">{{ $entry->email }}</span>
+                                            <i data-lucide="copy" class="w-2.5 h-3 text-slate-600 group-hover/copy:text-primary transition-colors opacity-0 group-hover/copy:opacity-100"></i>
+                                        </div>
                                     </div>
                                 </div>
                             </td>

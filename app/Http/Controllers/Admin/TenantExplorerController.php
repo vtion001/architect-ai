@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\Tenant;
 use App\Models\TokenTransaction;
+use App\Models\Waitlist;
 use App\Services\TokenService;
 use Illuminate\Http\Request;
 
@@ -30,8 +31,11 @@ class TenantExplorerController extends Controller
         $tenant->load('users', 'subAccounts.users');
         $tokenBalance = $this->tokenService->getBalance($tenant);
         $transactions = TokenTransaction::where('tenant_id', $tenant->id)->latest()->take(50)->get();
+        
+        // Find associated waitlist lead (if any)
+        $linkedWaitlist = Waitlist::whereIn('email', $tenant->users->pluck('email'))->first();
 
-        return view('admin.tenants.show', compact('tenant', 'tokenBalance', 'transactions'));
+        return view('admin.tenants.show', compact('tenant', 'tokenBalance', 'transactions', 'linkedWaitlist'));
     }
 
     /**
