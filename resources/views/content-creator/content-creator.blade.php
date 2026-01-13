@@ -26,7 +26,6 @@
     selectedBrandId: '',
 
     init() {
-        // Load snippets from local storage if available
         const savedSnippets = localStorage.getItem('arch_ai_cta_snippets');
         if (savedSnippets) {
             try {
@@ -36,7 +35,6 @@
             }
         }
         
-        // Watch for changes to save
         this.$watch('cta_snippets', (value) => {
             localStorage.setItem('arch_ai_cta_snippets', JSON.stringify(value));
         });
@@ -56,13 +54,11 @@
     addLineBreaks: true,
     includeHashtags: false,
     
-    // Blog Specific
     keywords: '',
     structure: 'Standard',
     isBatchMode: false,
     featuredImageType: 'ai',
     
-    // Video Specific
     videoStyle: 'UGC',
     videoDescription: '',
     sourceImage: '',
@@ -77,6 +73,7 @@
     suggestions: '',
     kbDiscovered: 0,
     isLoadingSuggestions: false,
+    
     fetchSuggestions() {
         if (!this.topic || this.isLoadingSuggestions) return;
         this.isLoadingSuggestions = true;
@@ -131,7 +128,7 @@
     isGenerating: false,
     showSuccessModal: false,
     createdContentId: null,
-    generatedCalendar: null, // Store calendar JSON
+    generatedCalendar: null,
     
     generateContent() {
         if (!this.topic) {
@@ -423,244 +420,6 @@
                         <div class="space-y-3">
                             <div class="flex items-center justify-between">
                                 <label class="text-[10px] font-black uppercase tracking-widest text-primary/80 italic">Global Call to Action</label>
-                                <div class="relative">
-                                    <button @click="showCtaSnippets = !showCtaSnippets" type="button" class="text-[10px] font-bold text-primary hover:underline flex items-center gap-1">
-                                        <i data-lucide="list" class="w-3 h-3"></i>
-                                        SNIPPETS
-                                    </button>
-                                    <div x-show="showCtaSnippets" @click.away="showCtaSnippets = false; isManagingSnippets = false" class="absolute right-0 mt-2 w-72 bg-card border border-border rounded-xl shadow-xl z-50 overflow-hidden flex flex-col" x-transition x-cloak>
-                                        <!-- Header -->
-                                        <div class="p-2 bg-muted/50 border-b border-border flex items-center justify-between px-3 shrink-0">
-                                            <span class="text-[9px] font-black uppercase tracking-widest text-muted-foreground" x-text="isManagingSnippets ? 'Manage Snippets' : 'Quick Select'"></span>
-                                            <button @click="isManagingSnippets = !isManagingSnippets" class="text-primary hover:text-primary/80 transition-colors" title="Manage Snippets">
-                                                <i :class="isManagingSnippets ? 'fill-current' : ''" data-lucide="settings-2" class="w-3 h-3"></i>
-                                            </button>
-                                        </div>
-
-                                        <!-- List Content -->
-                                        <div class="max-h-56 overflow-y-auto">
-                                            <!-- Select Mode -->
-                                            <template x-if="!isManagingSnippets">
-                                                <div>
-                                                    <template x-for="snippet in cta_snippets">
-                                                        <button @click="cta = snippet; showCtaSnippets = false" type="button" class="w-full text-left px-4 py-2.5 text-[11px] font-medium hover:bg-primary/10 hover:text-primary transition-colors border-b border-border/50 last:border-0" x-text="snippet"></button>
-                                                    </template>
-                                                    <div x-show="cta_snippets.length === 0" class="p-4 text-center text-[10px] text-muted-foreground italic">
-                                                        No snippets found. Click settings to add one.
-                                                    </div>
-                                                </div>
-                                            </template>
-                                            
-                                            <!-- Manage Mode -->
-                                            <template x-if="isManagingSnippets">
-                                                <div class="p-1">
-                                                    <template x-for="(snippet, index) in cta_snippets" :key="index">
-                                                        <div class="flex items-center gap-1 px-2 py-1 border-b border-border/50 last:border-0 group">
-                                                            <input type="text" x-model="cta_snippets[index]" class="flex-1 bg-transparent text-[11px] font-medium border-none focus:ring-0 px-2 py-1.5 h-auto text-foreground rounded hover:bg-muted/50 focus:bg-muted transition-colors">
-                                                            <button @click="removeSnippet(index)" class="p-1.5 text-muted-foreground hover:text-red-500 hover:bg-red-500/10 rounded transition-colors opacity-0 group-hover:opacity-100 focus:opacity-100">
-                                                                <i data-lucide="trash-2" class="w-3 h-3"></i>
-                                                            </button>
-                                                        </div>
-                                                    </template>
-                                                    
-                                                    <!-- Add New -->
-                                                    <div class="p-2 pt-3 mt-1 border-t border-border/50 bg-muted/20">
-                                                        <div class="flex gap-2">
-                                                            <input x-model="newSnippet" @keydown.enter.prevent="addSnippet()" type="text" placeholder="Type & press Enter..." class="flex-1 h-8 text-[11px] rounded-lg border border-border bg-background px-3 focus:ring-1 focus:ring-primary shadow-sm">
-                                                            <button @click="addSnippet()" class="h-8 w-8 flex items-center justify-center rounded-lg bg-primary text-primary-foreground hover:opacity-90 shadow-sm transition-all active:scale-95">
-                                                                <i data-lucide="plus" class="w-4 h-4"></i>
-                                                            </button>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            </template>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                            <input x-model="cta" type="text" placeholder="e.g., 'Join the waitlist at arch-ai.io/beta'" class="w-full h-12 bg-muted/20 border border-border rounded-xl px-4 text-sm font-medium">
-                        </div>
-
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <label class="flex items-center gap-3 p-4 rounded-xl border border-border bg-muted/10 cursor-pointer hover:bg-muted/20 transition-colors">
-                                <input type="checkbox" x-model="addLineBreaks" class="w-4 h-4 rounded border-input text-primary focus:ring-primary">
-                                <div class="flex items-center gap-1.5">
-                                    <span class="text-xs font-bold leading-none uppercase tracking-tight">Generous Spacing</span>
-                                    <i data-lucide="help-circle" class="w-3.5 h-3.5 text-muted-foreground"></i>
-                                </div>
-                            </label>
-                            <label class="flex items-center gap-3 p-4 rounded-xl border border-border bg-muted/10 cursor-pointer hover:bg-muted/20 transition-colors">
-                                <input type="checkbox" x-model="includeHashtags" class="w-4 h-4 rounded border-input text-primary focus:ring-primary">
-                                <div class="flex items-center gap-1.5">
-                                    <span class="text-xs font-bold leading-none uppercase tracking-tight">Include Hashtags</span>
-                                    <i data-lucide="hash" class="w-3.5 h-3.5 text-muted-foreground"></i>
-                                </div>
-                            </label>
-                        </div>
-                    </div>
-
-                    <div class="text-xs text-muted-foreground mt-4 italic">
-                        Estimated Token Consumption: <span class="font-bold text-foreground" x-text="count"></span>
-                    </div>
-
-                    <!-- Generate Button Area -->
-                    <div class="pt-4">
-                        <button @click="generateContent" :disabled="isGenerating" class="w-full h-14 bg-primary hover:opacity-90 text-primary-foreground rounded-xl font-black uppercase tracking-[0.2em] shadow-lg shadow-primary/20 hover:scale-[1.01] active:scale-[0.99] transition-all flex items-center justify-center gap-3 text-xs disabled:opacity-50 disabled:pointer-events-none">
-                            <template x-if="!isGenerating">
-                                <div class="flex items-center gap-2">
-                                    <i data-lucide="sparkles" class="w-5 h-5"></i>
-                                    <span>Generate & Preview Posts</span>
-                                </div>
-                            </template>
-                            <template x-if="isGenerating">
-                                <div class="flex items-center gap-2">
-                                    <i data-lucide="loader-2" class="w-5 h-5 animate-spin"></i>
-                                    <span>Architecting...</span>
-                                </div>
-                            </template>
-                        </button>
-                    </div>
-
-                    <!-- Features List -->
-                    <div class="bg-primary/5 border border-primary/10 rounded-xl p-6 space-y-4">
-                        <div class="flex items-center gap-2 mb-1">
-                            <i data-lucide="layout" class="w-4 h-4 text-primary"></i>
-                            <h4 class="text-[10px] font-black text-primary uppercase tracking-wider">AI Post Architect Features:</h4>
-                        </div>
-                        <div class="grid grid-cols-1 gap-1.5">
-                            <template x-for="feature in [
-                                'Multi-platform optimization (X, LinkedIn, Meta)',
-                                'Brand voice synchronization from knowledge base',
-                                'Automated hook generation for high engagement',
-                                'Direct scheduling integration',
-                                'Bulk generation capabilities'
-                            ]">
-                                <div class="flex items-start gap-2.5">
-                                    <i data-lucide="check" class="w-3.5 h-3.5 text-primary shrink-0 mt-0.5"></i>
-                                    <p class="text-[10px] font-semibold text-muted-foreground leading-tight" x-text="feature"></p>
-                                </div>
-                            </template>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Video Generator Interface -->
-                <div x-show="generator === 'video'" x-transition:enter="transition ease-out duration-300" x-transition:enter-start="opacity-0 transform -translate-y-2" x-transition:enter-end="opacity-100 transform translate-y-0" class="space-y-8" style="display: none;">
-                    <!-- Secondary Nav Tabs -->
-                    <div class="bg-muted/50 rounded-lg p-1 flex items-center justify-center gap-1 mb-8">
-                        <button class="px-4 py-1.5 rounded-md bg-white shadow-sm text-xs font-bold text-foreground">Generate New Video</button>
-                        <button class="px-4 py-1.5 rounded-md text-xs font-bold text-muted-foreground hover:bg-white/50">Video Queue</button>
-                        <button class="px-4 py-1.5 rounded-md text-xs font-bold text-muted-foreground hover:bg-white/50">Completed</button>
-                    </div>
-
-                    <div class="flex items-center justify-between">
-                        <div>
-                            <h3 class="text-2xl font-bold mb-1">Video Generation</h3>
-                            <p class="text-sm text-muted-foreground font-medium">Enter a prompt and configure your video settings</p>
-                        </div>
-                        <span class="bg-primary/10 text-primary text-xs font-bold px-3 py-1.5 rounded-full border border-primary/20">7 tokens per video</span>
-                    </div>
-
-                    <!-- Style Preset -->
-                    <div class="space-y-4">
-                        <label class="text-sm font-bold uppercase tracking-tight italic">Style Preset <span class="text-muted-foreground ml-1 font-normal opacity-70">(Optional)</span></label>
-                        <div class="grid grid-cols-2 md:grid-cols-5 gap-3">
-                            <template x-for="style in [
-                                { name: 'UGC', id: '1516245834210-c4c142787335' },
-                                { name: 'Cartoon', id: '1578632738980-42445202d089' },
-                                { name: 'Futuristic', id: '1485827404703-89b55fcc595e' },
-                                { name: 'Cinematic', id: '1485846234645-a62644f84728' },
-                                { name: 'Documentary', id: '1526628953301-3e589a6a8b74' },
-                                { name: 'LEGO', id: '1585366119957-e5769bb3f7f3' },
-                                { name: 'Vintage', id: '1524230572899-a752b3835840' },
-                                { name: 'Abstract', id: '1541701494587-cb58502866ab' },
-                                { name: 'Nature', id: '1441974231531-c6227db76b6e' },
-                                { name: 'Urban', id: '1449824913935-59a10b8d2000' }
-                            ]">
-                                <button @click="videoStyle = style.name" :class="videoStyle === style.name ? 'ring-2 ring-primary ring-offset-2 scale-[1.02]' : 'opacity-80 hover:opacity-100'" class="relative group aspect-video rounded-lg overflow-hidden border border-border transition-all">
-                                    <img :src="'https://images.unsplash.com/photo-' + style.id + '?q=80&w=300&auto=format&fit=crop'" class="w-full h-full object-cover">
-                                    <div class="absolute inset-x-0 bottom-0 bg-black/60 backdrop-blur-[2px] p-2">
-                                        <p class="text-[9px] font-black text-white text-center uppercase tracking-[0.1em]" x-text="style.name"></p>
-                                    </div>
-                                </button>
-                            </template>
-                        </div>
-                        <p class="text-[10px] text-muted-foreground font-medium opacity-70">Select a style to automatically enhance your video description</p>
-                    </div>
-
-                    <!-- Info Box -->
-                    <div class="bg-primary/5 border border-primary/10 rounded-lg p-4 flex gap-3">
-                        <i data-lucide="info" class="w-5 h-5 text-primary shrink-0"></i>
-                        <p class="text-xs text-muted-foreground leading-relaxed">
-                            <span class="font-bold text-primary">Add yourselves or friends to your videos!</span> Tag your Sora 2 Cameo or a friend's Sora 2 Cameo using <span class="bg-primary/20 text-primary px-1 rounded">@cameo</span> handle in your video description to add yourself or a friend into your generated videos.
-                        </p>
-                    </div>
-
-                    <!-- Video Description -->
-                    <div class="space-y-4">
-                        <div class="flex items-center justify-between">
-                            <label class="text-sm font-bold uppercase tracking-tight italic">Video Description <span class="text-red-500">*</span></label>
-                            <button class="bg-muted px-3 py-1 rounded border border-border text-[10px] font-bold flex items-center gap-1.5 hover:bg-muted/80">
-                                <i data-lucide="sparkles" class="w-3 h-3 text-primary"></i>
-                                GET SUGGESTIONS
-                            </button>
-                        </div>
-                        <textarea x-model="topic" placeholder="Describe the video you want to generate..." rows="6" class="flex min-h-[140px] w-full rounded-lg border border-input bg-muted/30 px-4 py-3 text-sm focus:ring-1 focus:ring-primary"></textarea>
-                        <p class="text-[10px] text-muted-foreground text-right italic">0 / 1000 characters</p>
-                    </div>
-
-                    <!-- Source Image -->
-                    <div class="space-y-3">
-                        <label class="text-sm font-bold uppercase tracking-tight">Source Image <span class="text-muted-foreground ml-1">(Optional)</span></label>
-                        <div class="flex gap-3">
-                            <input x-model="sourceImage" type="text" placeholder="Enter Image URL..." class="flex-1 h-12 rounded-lg border border-input bg-muted/30 px-4 text-sm">
-                            <button class="bg-muted border border-border rounded-lg px-6 h-12 text-sm font-bold flex items-center gap-2 hover:bg-muted/80 transition-colors">
-                                <i data-lucide="upload" class="w-4 h-4 text-primary"></i>
-                                Upload
-                            </button>
-                        </div>
-                        <p class="text-[10px] text-muted-foreground italic">Coming soon - Image-to-video generation will be available in a future update.</p>
-                    </div>
-
-                    <!-- Settings Grid -->
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6">
-                        <div class="space-y-3">
-                            <label class="text-sm font-bold uppercase tracking-tight italic">AI Model</label>
-                            <select x-model="aiModel" class="flex h-12 w-full rounded-lg border border-input bg-muted/30 px-4 py-2 text-sm focus:ring-1 focus:ring-primary">
-                                <option>Sora 2 BEST</option>
-                            </select>
-                            <p class="text-[10px] text-muted-foreground italic">Best for highly realistic videos with precise physics</p>
-                        </div>
-                        <div class="space-y-3">
-                            <label class="text-sm font-bold uppercase tracking-tight italic">Duration (7 tokens)</label>
-                            <select x-model="videoDuration" class="flex h-12 w-full rounded-lg border border-input bg-muted/30 px-4 py-2 text-sm">
-                                <option>10 seconds (7 tokens)</option>
-                                <option>15 seconds (10 tokens)</option>
-                            </select>
-                            <p class="text-[10px] text-muted-foreground italic">Range: 10-15s</p>
-                        </div>
-                        <div class="space-y-3">
-                            <label class="text-sm font-bold uppercase tracking-tight italic">Resolution</label>
-                            <select x-model="resolution" class="flex h-12 w-full rounded-lg border border-input bg-muted/30 px-4 py-2 text-sm focus:ring-1 focus:ring-primary">
-                                <option>1080p</option>
-                            </select>
-                            <p class="text-[10px] text-muted-foreground italic">Only 1080p supported</p>
-                        </div>
-                        <div class="space-y-3">
-                            <label class="text-sm font-bold uppercase tracking-tight italic">Aspect Ratio</label>
-                            <select x-model="aspectRatio" class="flex h-12 w-full rounded-lg border border-input bg-muted/30 px-4 py-2 text-sm focus:ring-1 focus:ring-primary">
-                                <option>Portrait</option>
-                                <option>Square</option>
-                                <option>Widescreen</option>
-                            </select>
-                        </div>
-                    </div>
-
-                    <!-- Shared Parameters (Integrated) -->
-                    <div class="space-y-6 pt-6 border-t border-border/50">
-                        <div class="space-y-3">
-                            <div class="flex items-center justify-between">
-                                <label class="text-[10px] font-black uppercase tracking-widest text-primary italic">Prompt Call to Action</label>
                                 <div class="relative">
                                     <button @click="showCtaSnippets = !showCtaSnippets" type="button" class="text-[10px] font-bold text-primary hover:underline flex items-center gap-1">
                                         <i data-lucide="list" class="w-3 h-3"></i>

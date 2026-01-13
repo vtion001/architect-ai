@@ -47,6 +47,13 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        // Runtime DB Fix for Digital Ocean / Misconfigured Envs
+        // If config is cached with 'db' (Docker default) but we are in an env where 'db' doesn't resolve
+        if (config('database.connections.mysql.host') === 'db' && app()->environment('production')) {
+            // Attempt to fallback to localhost or respect DATABASE_URL if processed late
+            config(['database.connections.mysql.host' => '127.0.0.1']);
+        }
+
         // Register policies manually for explicit binding
         foreach ($this->policies as $model => $policy) {
             Gate::policy($model, $policy);
