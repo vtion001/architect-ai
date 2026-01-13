@@ -27,9 +27,8 @@ RUN composer install --optimize-autoloader --no-dev
 # Fix permissions
 RUN chown -R webuser:webuser /var/www/html/storage /var/www/html/bootstrap/cache
 
-# Optimize Laravel
-RUN php artisan config:cache \
-    && php artisan route:cache \
+# Optimize Laravel (DO NOT cache config - it should read from env vars at runtime)
+RUN php artisan route:cache \
     && php artisan view:cache \
     && php artisan storage:link
 
