@@ -5,7 +5,7 @@
 @section('content')
 <div class="space-y-12 animate-in fade-in duration-700">
     <!-- Global Telemetry Matrix -->
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+    <div class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-6">
         <div class="bg-slate-900 border border-slate-800 rounded-[32px] p-8 relative overflow-hidden group shadow-xl">
             <div class="absolute -top-10 -right-10 w-32 h-32 bg-blue-500/5 blur-3xl rounded-full group-hover:bg-blue-500/10 transition-colors"></div>
             <div class="flex items-center justify-between mb-6">
@@ -40,6 +40,21 @@
             </div>
             <p class="text-4xl font-black text-cyan-400">{{ number_format($statistics['global_credits']) }}</p>
             <p class="text-[10px] font-bold text-slate-500 uppercase mt-2 italic">Global Token Hashing</p>
+        </div>
+
+        <div class="bg-slate-900 border border-slate-800 rounded-[32px] p-8 relative overflow-hidden group shadow-xl">
+            <div class="absolute -top-10 -right-10 w-32 h-32 bg-amber-500/5 blur-3xl rounded-full group-hover:bg-amber-500/10 transition-colors"></div>
+            <div class="flex items-center justify-between mb-6">
+                <div class="w-12 h-12 rounded-2xl bg-amber-500/10 flex items-center justify-center text-amber-500 border border-amber-500/20 group-hover:bg-amber-500 group-hover:text-white transition-all">
+                    <i data-lucide="user-plus" class="w-6 h-6"></i>
+                </div>
+                <span class="mono text-[8px] uppercase text-slate-600 font-black tracking-widest">Waitlist</span>
+            </div>
+            <div class="flex items-end gap-2">
+                <p class="text-4xl font-black text-amber-400">{{ $statistics['total_waitlist'] }}</p>
+                <span class="text-[10px] font-black text-amber-500 uppercase mb-1">Total</span>
+            </div>
+            <p class="text-[10px] font-bold text-slate-500 uppercase mt-2 italic">{{ $statistics['active_waitlist'] }} Pending Approval</p>
         </div>
 
         <div class="bg-slate-900 border border-slate-800 rounded-[32px] p-8 relative overflow-hidden group shadow-xl">
@@ -159,6 +174,63 @@
                     <i data-lucide="arrow-right" class="w-4 h-4"></i>
                 </a>
             </div>
+        </div>
+    </div>
+
+    <!-- Master Waitlist Registry -->
+    <div class="space-y-6">
+        <div class="flex items-center justify-between px-1">
+            <h3 class="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em]">Master Waitlist Registry</h3>
+            <span class="text-[9px] font-black text-amber-500 uppercase tracking-widest bg-amber-500/10 px-2 py-0.5 rounded border border-amber-500/20">Global Lead Queue</span>
+        </div>
+        <div class="bg-slate-900 border border-slate-800 rounded-[40px] overflow-hidden shadow-2xl">
+            <table class="w-full text-left text-xs border-collapse">
+                <thead class="bg-slate-950/50 text-slate-500 font-black uppercase tracking-widest border-b border-slate-800">
+                    <tr>
+                        <th class="p-6">Lead Identity</th>
+                        <th class="p-6">Agency / Brand</th>
+                        <th class="p-6">Status</th>
+                        <th class="p-6 text-right">Acquisition Date</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-800/50">
+                    @forelse($waitlistEntries as $entry)
+                        <tr class="hover:bg-slate-800/30 transition-colors group">
+                            <td class="p-6">
+                                <div class="flex items-center gap-3">
+                                    <div class="w-8 h-8 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center text-[10px] font-black text-slate-500 uppercase">
+                                        {{ substr($entry->name ?? $entry->email, 0, 1) }}
+                                    </div>
+                                    <div class="flex flex-col">
+                                        <span class="font-bold text-slate-300 uppercase tracking-tight">{{ $entry->name ?? 'Anonymous Identity' }}</span>
+                                        <span class="text-[9px] text-slate-500 font-medium italic">{{ $entry->email }}</span>
+                                    </div>
+                                </div>
+                            </td>
+                            <td class="p-6">
+                                <span class="text-slate-400 font-medium uppercase tracking-widest text-[10px]">{{ $entry->agency_name ?? 'Individual Node' }}</span>
+                            </td>
+                            <td class="p-6">
+                                <div class="flex items-center gap-2">
+                                    <div class="w-1.5 h-1.5 rounded-full {{ $entry->status === 'pending' ? 'bg-amber-500 animate-pulse' : 'bg-green-500' }}"></div>
+                                    <span class="text-[9px] font-black uppercase tracking-widest {{ $entry->status === 'pending' ? 'text-amber-500' : 'text-green-500' }}">
+                                        {{ $entry->status }}
+                                    </span>
+                                </div>
+                            </td>
+                            <td class="p-6 text-right text-slate-500 font-medium italic">
+                                {{ $entry->created_at->format('M d, Y • H:i') }}
+                            </td>
+                        </tr>
+                    @empty
+                        <tr>
+                            <td colspan="4" class="p-20 text-center opacity-30 italic text-slate-500">
+                                No master leads found in the grid queue.
+                            </td>
+                        </tr>
+                    @endforelse
+                </tbody>
+            </table>
         </div>
     </div>
 </div>

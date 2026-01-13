@@ -28,6 +28,7 @@ class GodViewController extends Controller
             'total_identities' => User::withoutGlobalScope('tenant')->count(),
             'global_credits' => TokenTransaction::sum('amount'),
             'network_load' => Content::count() + Research::count(),
+            'total_waitlist' => WaitlistModel::count(),
             'active_waitlist' => WaitlistModel::where('status', 'pending')->count(),
             'grid_integrity' => 'Verified (99.99%)',
         ];
@@ -39,7 +40,7 @@ class GodViewController extends Controller
             ->get();
 
         // 3. High-Value Leads (Waitlist)
-        $waitlistEntries = WaitlistModel::latest()->take(10)->get();
+        $waitlistEntries = WaitlistModel::latest()->take(25)->get();
 
         return view('admin.god-view', compact('waitlistEntries', 'statistics', 'globalAudit'));
     }
