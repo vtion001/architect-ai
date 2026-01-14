@@ -386,6 +386,11 @@
             }
         </script>
 
+        {{-- Task & Note Widget --}}
+        @auth
+            @include('components.note-task-widget')
+        @endauth
+
         {{-- Global AI Agent Chat Widget --}}
         @auth
             @php

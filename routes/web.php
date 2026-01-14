@@ -54,6 +54,14 @@ Route::prefix('auth')->group(function () {
 // Protected Workspace Routes
 Route::middleware(['auth', 'tenant', 'mfa', 'session_security'])->group(function () {
     
+    // Task & Note Management
+    Route::resource('tasks', \App\Http\Controllers\TaskController::class)->only(['index', 'store', 'update', 'destroy']);
+    Route::post('tasks/{task}/restore', [\App\Http\Controllers\TaskController::class, 'restore'])->name('tasks.restore');
+    Route::delete('tasks/{task}/force', [\App\Http\Controllers\TaskController::class, 'forceDelete'])->name('tasks.force-delete');
+    Route::post('tasks/breakdown', [\App\Http\Controllers\TaskController::class, 'breakdown'])->name('tasks.breakdown');
+    Route::post('task-categories', [\App\Http\Controllers\TaskController::class, 'storeCategory'])->name('task-categories.store');
+    Route::delete('task-categories/{category}', [\App\Http\Controllers\TaskController::class, 'destroyCategory'])->name('task-categories.destroy');
+
     // Content & Intelligence Registry
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
     Route::post('/notifications/read-all', function () {
