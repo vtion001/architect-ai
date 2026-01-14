@@ -29,12 +29,12 @@
         default => 'bottom: 24px; right: 24px;',
     };
     
-    // Position for the chat popup (above/below the button)
+    // Position for the chat popup (shifted to the side of the button to avoid overlap)
     $chatPosition = match($widgetPosition) {
-        'bottom-left' => 'bottom: 90px; left: 24px;',
-        'top-right' => 'top: 90px; right: 24px;',
-        'top-left' => 'top: 90px; left: 24px;',
-        default => 'bottom: 90px; right: 24px;',
+        'bottom-left' => 'bottom: 24px; left: 94px;',
+        'top-right' => 'top: 24px; right: 94px;',
+        'top-left' => 'top: 24px; left: 94px;',
+        default => 'bottom: 24px; right: 94px;',
     };
 @endphp
 
@@ -47,12 +47,12 @@
     <div x-show="isOpen" 
          x-cloak
          x-transition:enter="transition ease-out duration-200"
-         x-transition:enter-start="opacity-0 scale-95 translate-y-2"
-         x-transition:enter-end="opacity-100 scale-100 translate-y-0"
+         x-transition:enter-start="opacity-0 scale-95 translate-x-4"
+         x-transition:enter-end="opacity-100 scale-100 translate-x-0"
          x-transition:leave="transition ease-in duration-150"
-         x-transition:leave-start="opacity-100 scale-100 translate-y-0"
-         x-transition:leave-end="opacity-0 scale-95 translate-y-2"
-         style="position: fixed; {{ $chatPosition }} z-index: 99998; width: 380px; max-width: calc(100vw - 48px); height: 520px; max-height: calc(100vh - 140px);"
+         x-transition:leave-start="opacity-100 scale-100 translate-x-0"
+         x-transition:leave-end="opacity-0 scale-95 translate-x-4"
+         style="position: fixed; {{ $chatPosition }} z-index: 99998; width: 380px; max-width: calc(100vw - 48px); height: 520px; max-height: calc(100vh - 48px);"
          class="bg-card border border-border rounded-2xl shadow-2xl overflow-hidden flex flex-col">
         
         {{-- Header --}}
@@ -274,14 +274,14 @@ if (typeof window.aiChatWidget === 'undefined') {
                     const data = await response.json();
                     
                     if (data.success) {
-                        this.messages.push({ role: 'assistant', content: data.message });
-                        this.sessionId = data.session_id;
-                        localStorage.setItem(`ai_chat_session_${this.agentId}`, this.sessionId);
+                        // Start polling for response
+                        this.startPolling();
                     } else {
                         this.messages.push({ 
                             role: 'assistant', 
                             content: 'Sorry, I encountered an error. Please try again.' 
                         });
+                        this.isTyping = false;
                     }
                 } catch (e) {
                     console.error('Chat error:', e);
@@ -289,13 +289,27 @@ if (typeof window.aiChatWidget === 'undefined') {
                         role: 'assistant', 
                         content: 'Connection error. Please check your network and try again.' 
                     });
-                } finally {
                     this.isTyping = false;
+                } finally {
                     this.scrollToBottom();
-                    this.$nextTick(() => {
-                        if (window.lucide) window.lucide.createIcons();
-                    });
                 }
+            },
+
+            startPolling() {
+                const pollInterval = setInterval(async () => {
+                    await this.loadConversation();
+                    
+                    // Check if last message is from assistant
+                    const lastMsg = this.messages[this.messages.length - 1];
+                    if (lastMsg && lastMsg.role === 'assistant') {
+                        clearInterval(pollInterval);
+                        this.isTyping = false;
+                        this.scrollToBottom();
+                        
+                        // Play sound if window is not focused or chat is closed?
+                        // Optional enhancement
+                    }
+                }, 3000); // Poll every 3 seconds
             },
 
             async clearChat() {

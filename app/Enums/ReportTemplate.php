@@ -168,8 +168,8 @@ enum ReportTemplate: string
                 ['id' => 'cv-international', 'name' => 'International Standard', 'description' => 'Healthcare/MLS format with facility details, equipment, samples, and certifications', 'previewImage' => 'cv', 'tags' => ['Healthcare', 'International']],
             ],
             self::COVER_LETTER => [
-                ['id' => 'cl-standard', 'name' => 'Standard Professional', 'description' => 'Traditional formal letter format', 'previewImage' => 'cover-letter', 'tags' => ['Formal', 'Traditional']],
-                ['id' => 'cl-creative', 'name' => 'Modern Creative', 'description' => 'Contemporary layout with personal branding', 'previewImage' => 'cover-letter', 'tags' => ['Creative', 'Visual']],
+                ['id' => 'cl-standard', 'name' => 'Standard Professional', 'description' => 'Traditional formal letter format', 'previewImage' => 'proposal', 'tags' => ['Formal', 'Traditional']],
+                ['id' => 'cl-creative', 'name' => 'Modern Creative', 'description' => 'Contemporary layout with personal branding', 'previewImage' => 'proposal', 'tags' => ['Creative', 'Visual']],
             ],
             self::CUSTOM => [
                 ['id' => 'custom-flexible', 'name' => 'Flexible Layout', 'description' => 'Customizable template that adapts to content', 'previewImage' => 'custom', 'tags' => ['Flexible', 'Custom']],

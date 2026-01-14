@@ -7,6 +7,8 @@
     selectedBrandId: '',
     template: 'executive-summary',
     templateVariant: 'exec-corporate',
+    senderName: '{{ auth()->user()->name }}',
+    senderTitle: '',
     recipientName: '',
     recipientTitle: '',
     companyAddress: '',
@@ -28,6 +30,16 @@
         place_of_birth: '',
         religion: '',
         languages: ''
+    },
+    financials: {
+        totalInvestment: '1000',
+        currency: 'USD',
+        timeline: '4-5 weeks',
+        paymentMilestones: [
+            { name: 'Project Kickoff', percentage: 50 },
+            { name: 'Development Complete', percentage: 30 },
+            { name: 'Launch & Final Handoff', percentage: 20 },
+        ]
     },
     isUploadingPhoto: false,
     analysisType: 'Comparative Analysis',
@@ -199,6 +211,8 @@
             body: JSON.stringify({
                 template: this.template,
                 variant: this.templateVariant,
+                senderName: this.senderName,
+                senderTitle: this.senderTitle,
                 recipientName: this.recipientName,
                 recipientTitle: this.recipientTitle,
                 companyAddress: this.companyAddress,
@@ -214,7 +228,8 @@
                 phone: this.phone,
                 location: this.location,
                 website: this.website,
-                personalInfo: this.personalInfo
+                personalInfo: this.personalInfo,
+                financials: this.financials
             })
         })
         .then(async response => {
@@ -231,28 +246,60 @@
             return data;
         })
         .then(data => {
-            let finalHtml = data.html;
-            
-            // Extract AI Tailoring Report via Delimiter (Service Layer Split)
-            const splitPattern = /<!-- TAILORING_REPORT_START -->([\s\S]*?)<!-- TAILORING_REPORT_END -->/;
-            const match = finalHtml.match(splitPattern);
-            
-            if (match) {
-                this.tailoringReport = match[1];
-                finalHtml = finalHtml.replace(match[0], ''); // Remove report + delimiters
-            } else {
-                this.tailoringReport = '';
+            if (data.status === 'processing' && data.document_id) {
+                this.pollDocumentStatus(data.document_id);
+            } else if (data.html) {
+                // Fallback for synchronous or immediate completion
+                this.processGeneratedHtml(data.html);
             }
-
-            this.htmlPreview = finalHtml;
-            this.isGenerating = false;
-            this.activeTab = 'preview';
         })
         .catch(error => {
             console.error('Generation Error:', error);
             alert('Error: ' + error.message);
             this.isGenerating = false;
         });
+    },
+    pollDocumentStatus(id) {
+        const poll = setInterval(() => {
+            fetch(`/documents/${id}`, {
+                headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' }
+            })
+            .then(res => res.json())
+            .then(doc => {
+                const status = doc.metadata?.status;
+                if (status === 'completed') {
+                    clearInterval(poll);
+                    this.processGeneratedHtml(doc.content);
+                } else if (status === 'failed') {
+                    clearInterval(poll);
+                    this.isGenerating = false;
+                    alert('Report generation failed. Please try again.');
+                }
+            })
+            .catch(err => {
+                console.error('Polling error:', err);
+                clearInterval(poll);
+                this.isGenerating = false;
+            });
+        }, 2000);
+    },
+    processGeneratedHtml(html) {
+        let finalHtml = html;
+        
+        // Extract AI Tailoring Report via Delimiter (Service Layer Split)
+        const splitPattern = /<!-- TAILORING_REPORT_START -->([\s\S]*?)<!-- TAILORING_REPORT_END -->/;
+        const match = finalHtml.match(splitPattern);
+        
+        if (match) {
+            this.tailoringReport = match[1];
+            finalHtml = finalHtml.replace(match[0], ''); // Remove report + delimiters
+        } else {
+            this.tailoringReport = '';
+        }
+
+        this.htmlPreview = finalHtml;
+        this.isGenerating = false;
+        this.activeTab = 'preview';
     },
     saveToKb() {
         if (!this.htmlPreview) return;
@@ -395,6 +442,45 @@
                         </select>
                     </div>
 
+                    <!-- Financials (Proposal only) -->
+                    <div class="space-y-4 pt-6 border-t border-border/50" x-show="template === 'proposal'" x-transition>
+                        <label class="text-[10px] font-black uppercase tracking-widest text-primary italic px-1 flex items-center gap-2">
+                            <i data-lucide="dollar-sign" class="w-3 h-3"></i>
+                            Project Financials
+                        </label>
+                        <div class="grid grid-cols-3 gap-2">
+                            <div class="col-span-2">
+                                <input x-model="financials.totalInvestment" type="number" placeholder="Total Investment"
+                                        class="w-full h-10 bg-muted/20 border border-border rounded-lg px-4 text-[11px] font-bold outline-none">
+                            </div>
+                            <div>
+                                <input x-model="financials.currency" type="text" placeholder="USD"
+                                        class="w-full h-10 bg-muted/20 border border-border rounded-lg px-4 text-[11px] font-bold outline-none">
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-1 gap-2">
+                            <input x-model="financials.timeline" type="text" placeholder="e.g. 4-5 weeks"
+                                   class="w-full h-10 bg-muted/20 border border-border rounded-lg px-4 text-[11px] font-bold outline-none">
+                        </div>
+                        <div class="space-y-2 pt-2">
+                            <label class="text-[10px] font-bold uppercase tracking-widest text-muted-foreground italic px-1">Payment Milestones</label>
+                            <template x-for="(milestone, index) in financials.paymentMilestones" :key="index">
+                                <div class="flex items-center gap-2">
+                                    <input x-model="milestone.name" type="text" placeholder="Milestone Name" class="flex-grow h-9 bg-muted/20 border border-border rounded-md px-3 text-[10px] font-medium">
+                                    <input x-model="milestone.percentage" type="number" placeholder="%" class="w-16 h-9 bg-muted/20 border border-border rounded-md px-3 text-[10px] font-medium">
+                                    <button @click="financials.paymentMilestones.splice(index, 1)" class="text-red-500/70 hover:text-red-500 p-1">
+                                        <i data-lucide="trash-2" class="w-3 h-3"></i>
+                                    </button>
+                                </div>
+                            </template>
+                            <button @click="financials.paymentMilestones.push({name: '', percentage: null})" class="text-xs font-black uppercase tracking-widest text-primary/80 hover:text-primary transition-colors flex items-center gap-1 pt-2">
+                                <i data-lucide="plus-circle" class="w-3 h-3"></i>
+                                Add Milestone
+                            </button>
+                        </div>
+                    </div>
+
+
                     <!-- Target Role (CV & Cover Letter) -->
                     <div class="space-y-3" x-show="template === 'cv-resume' || template === 'cover-letter'" x-transition>
                         <label class="text-[10px] font-black uppercase tracking-widest text-primary italic px-1 flex items-center gap-2">
@@ -411,6 +497,17 @@
                         <textarea x-model="jobDescription" placeholder="Paste the full job offer description here for AI tailoring..." rows="4"
                                class="w-full bg-muted/20 border border-border rounded-2xl p-4 text-xs font-medium focus:ring-2 focus:ring-primary/20 outline-none"></textarea>
                         <p class="text-[9px] text-muted-foreground italic px-1">AI will analyze keywords from this description to optimize your document.</p>
+                    </div>
+
+                    <!-- Sender Identity (Proposal/Report) -->
+                    <div class="pt-6 border-t border-border/50" x-show="template !== 'cv-resume' && template !== 'cover-letter'">
+                        <label class="text-[10px] font-black uppercase tracking-widest text-primary italic px-1 mb-4 block">Sender Identity</label>
+                        <div class="grid grid-cols-1 gap-4">
+                            <input x-model="senderName" type="text" placeholder="Sender Name"
+                                   class="w-full h-12 bg-muted/20 border border-border rounded-xl px-4 text-[11px] font-bold outline-none">
+                            <input x-model="senderTitle" type="text" placeholder="Professional Title (e.g. Founder & CEO)"
+                                   class="w-full h-12 bg-muted/20 border border-border rounded-xl px-4 text-[11px] font-bold outline-none">
+                        </div>
                     </div>
 
                                     <!-- Recipient / Candidate Identity -->

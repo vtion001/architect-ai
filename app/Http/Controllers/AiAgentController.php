@@ -14,6 +14,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
+use App\Jobs\ProcessAiChatMessage;
 
 class AiAgentController extends Controller
 {
@@ -127,104 +128,22 @@ class AiAgentController extends Controller
         // Add user message
         $conversation->addMessage('user', $validated['message']);
 
-        // Build messages for API
-        $systemPrompt = $agent->getFullSystemPrompt();
-        
-        // Inject Brand Context
-        if (!empty($validated['brand_id'])) {
-            $brand = \App\Models\Brand::find($validated['brand_id']);
-            if ($brand) {
-                $systemPrompt .= "\n\n[STRICT BRAND IDENTITY ACTIVE]\n";
-                $systemPrompt .= "You are representing the brand: {$brand->name}\n";
-                if ($brand->voice_profile) {
-                    $voice = $brand->voice_profile;
-                    $systemPrompt .= "Tone: " . ($voice['tone'] ?? 'Standard') . "\n";
-                    $systemPrompt .= "Style: " . ($voice['writing_style'] ?? 'Standard') . "\n";
-                    if (!empty($voice['keywords'])) $systemPrompt .= "Key Phrases: {$voice['keywords']}\n";
-                    if (!empty($voice['avoid_words'])) $systemPrompt .= "Avoid Words: {$voice['avoid_words']}\n";
-                }
-                if ($brand->description) $systemPrompt .= "Context: {$brand->description}\n";
-                $systemPrompt .= "[END BRAND IDENTITY]\n";
-            }
-        }
-        
-        // Add knowledge context if available (Explicitly Linked)
-        $pinnedContext = $agent->getKnowledgeContext();
-        if ($pinnedContext) {
-            $systemPrompt .= "\n\n--- PINNED KNOWLEDGE ---\n" . $pinnedContext;
-        }
+        // Dispatch Job
+        ProcessAiChatMessage::dispatch(
+            auth()->user(),
+            $agent,
+            $conversation,
+            $validated['message'],
+            $validated['brand_id'] ?? null
+        );
 
-        // Add Dynamic RAG Context (Vector/Hybrid Search)
-        try {
-            $ragContext = $this->researchService->getKnowledgeBaseContext($validated['message']);
-            if ($ragContext) {
-                $systemPrompt .= "\n\n--- RELEVANT KNOWLEDGE (SEARCH) ---\n" . $ragContext;
-            }
-        } catch (\Exception $e) {
-            Log::warning("Agent RAG failed: " . $e->getMessage());
-        }
-
-        $messages = [
-            ['role' => 'system', 'content' => $systemPrompt . "\n\nCRITICAL: DO NOT use markdown symbols like '*' or '#' for formatting. Use plain text and clear spacing. For lists, use simple bullet points like '-' or '•'."],
-            ...$conversation->getMessagesForApi(),
-        ];
-
-        try {
-            $apiKey = config('services.openai.key');
-            if (!$apiKey) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'AI service not configured'
-                ], 503);
-            }
-
-            $response = Http::withToken($apiKey)
-                ->timeout(60)
-                ->post('https://api.openai.com/v1/chat/completions', [
-                    'model' => $agent->model ?? config('services.openai.model', 'gpt-4o-mini'),
-                    'messages' => $messages,
-                    'temperature' => $agent->temperature ?? 0.7,
-                    'max_tokens' => $agent->max_tokens ?? 2000,
-                ]);
-
-            if ($response->successful()) {
-                $assistantMessage = $response->json('choices.0.message.content');
-                
-                // Sanitize response
-                $assistantMessage = $this->sanitizeAgentResponse($assistantMessage);
-                
-                // Add assistant response to conversation
-                $conversation->addMessage('assistant', $assistantMessage);
-
-                return response()->json([
-                    'success' => true,
-                    'message' => $assistantMessage,
-                    'session_id' => $sessionId,
-                    'conversation_id' => $conversation->id,
-                ]);
-            }
-
-            Log::error('AI Agent chat error', [
-                'agent_id' => $agent->id,
-                'error' => $response->body()
-            ]);
-
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to get response from AI'
-            ], 500);
-
-        } catch (\Exception $e) {
-            Log::error('AI Agent chat exception', [
-                'agent_id' => $agent->id,
-                'error' => $e->getMessage()
-            ]);
-
-            return response()->json([
-                'success' => false,
-                'message' => 'An error occurred while processing your request'
-            ], 500);
-        }
+        return response()->json([
+            'success' => true,
+            'message' => 'Message processing',
+            'status' => 'processing',
+            'session_id' => $sessionId,
+            'conversation_id' => $conversation->id,
+        ]);
     }
 
     private function sanitizeAgentResponse(string $text): string

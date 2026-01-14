@@ -398,9 +398,95 @@
 </div>
 
 <script>
+    // Global Audio Context Handler to ensure unlocking works across all interactions
+    window.taskAudioContext = null;
+    
+    window.initTaskAudio = function() {
+        if (!window.taskAudioContext) {
+            window.taskAudioContext = new (window.AudioContext || window.webkitAudioContext)();
+        }
+        if (window.taskAudioContext.state === 'suspended') {
+            window.taskAudioContext.resume();
+        }
+    };
+
+    window.playTaskSound = function(type) {
+        window.initTaskAudio();
+        const ctx = window.taskAudioContext;
+        
+        if (!ctx) return;
+
+        // Ensure we try to resume if suspended (e.g. if init failed or timed out)
+        if (ctx.state === 'suspended') {
+            ctx.resume().catch(e => console.error("Audio resume failed", e));
+        }
+
+        try {
+            const oscillator = ctx.createOscillator();
+            const gainNode = ctx.createGain();
+
+            oscillator.connect(gainNode);
+            gainNode.connect(ctx.destination);
+
+            const now = ctx.currentTime;
+
+            if (type === 'add') {
+                // "Pop" - Square wave
+                oscillator.type = 'square';
+                oscillator.frequency.setValueAtTime(600, now);
+                oscillator.frequency.exponentialRampToValueAtTime(100, now + 0.1);
+                
+                gainNode.gain.setValueAtTime(0.1, now);
+                gainNode.gain.exponentialRampToValueAtTime(0.001, now + 0.1);
+                
+                oscillator.start(now);
+                oscillator.stop(now + 0.1);
+            } else if (type === 'success') {
+                // "Ding" - Sine wave with harmonics
+                oscillator.type = 'sine';
+                oscillator.frequency.setValueAtTime(1200, now);
+                
+                gainNode.gain.setValueAtTime(0.2, now);
+                gainNode.gain.exponentialRampToValueAtTime(0.001, now + 0.5);
+                
+                oscillator.start(now);
+                oscillator.stop(now + 0.5);
+                
+                // Harmonic
+                const osc2 = ctx.createOscillator();
+                const gain2 = ctx.createGain();
+                osc2.connect(gain2);
+                gain2.connect(ctx.destination);
+                osc2.type = 'sine';
+                osc2.frequency.setValueAtTime(2400, now);
+                gain2.gain.setValueAtTime(0.1, now);
+                gain2.gain.exponentialRampToValueAtTime(0.001, now + 0.4);
+                osc2.start(now);
+                osc2.stop(now + 0.4);
+            } else if (type === 'alarm') {
+                // Alarm - Sawtooth
+                oscillator.type = 'sawtooth';
+                oscillator.frequency.setValueAtTime(800, now);
+                
+                gainNode.gain.setValueAtTime(0.2, now);
+                gainNode.gain.setValueAtTime(0.2, now + 0.1);
+                gainNode.gain.linearRampToValueAtTime(0, now + 0.4);
+                
+                oscillator.start(now);
+                oscillator.stop(now + 0.4);
+            }
+        } catch (e) {
+            console.error("Sound playback error:", e);
+        }
+    };
+
+    document.addEventListener('click', window.initTaskAudio);
+    document.addEventListener('keydown', window.initTaskAudio);
+
     document.addEventListener('alpine:init', () => {
         Alpine.data('noteTaskWidget', () => ({
             isOpen: false,
+            // ... (rest of the component) ...
             activeTab: 'tasks',
             tasks: [],
             notes: [],
@@ -430,71 +516,6 @@
             // Search
             showSearch: false,
             searchQuery: '',
-
-            // Audio - Using Web Audio API for reliable synthesis (no external files)
-            audioContext: null,
-
-            getAudioContext() {
-                if (!this.audioContext) {
-                    this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
-                }
-                return this.audioContext;
-            },
-
-            playSound(type) {
-                const ctx = this.getAudioContext();
-                if (ctx.state === 'suspended') {
-                    ctx.resume();
-                }
-
-                const oscillator = ctx.createOscillator();
-                const gainNode = ctx.createGain();
-
-                oscillator.connect(gainNode);
-                gainNode.connect(ctx.destination);
-
-                if (type === 'add') {
-                    // "Pop" sound: Short, high pitch, quick decay
-                    oscillator.type = 'sine';
-                    oscillator.frequency.setValueAtTime(800, ctx.currentTime);
-                    oscillator.frequency.exponentialRampToValueAtTime(100, ctx.currentTime + 0.1);
-                    gainNode.gain.setValueAtTime(0.5, ctx.currentTime);
-                    gainNode.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.1);
-                    oscillator.start();
-                    oscillator.stop(ctx.currentTime + 0.1);
-                } else if (type === 'success') {
-                    // "Ding" sound: Bell-like, higher pitch, longer decay
-                    oscillator.type = 'sine';
-                    oscillator.frequency.setValueAtTime(1200, ctx.currentTime); // High C
-                    gainNode.gain.setValueAtTime(0.5, ctx.currentTime);
-                    gainNode.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.5);
-                    oscillator.start();
-                    oscillator.stop(ctx.currentTime + 0.5);
-                    
-                    // Add a second harmonic for richness
-                    const osc2 = ctx.createOscillator();
-                    const gain2 = ctx.createGain();
-                    osc2.connect(gain2);
-                    gain2.connect(ctx.destination);
-                    osc2.frequency.setValueAtTime(2400, ctx.currentTime);
-                    gain2.gain.setValueAtTime(0.3, ctx.currentTime);
-                    gain2.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.4);
-                    osc2.start();
-                    osc2.stop(ctx.currentTime + 0.4);
-                } else if (type === 'alarm') {
-                    // Alarm sound: Repeating beep
-                    const now = ctx.currentTime;
-                    oscillator.type = 'square';
-                    oscillator.frequency.value = 880;
-                    gainNode.gain.setValueAtTime(0.5, now);
-                    gainNode.gain.setValueAtTime(0, now + 0.1);
-                    gainNode.gain.setValueAtTime(0.5, now + 0.2);
-                    gainNode.gain.setValueAtTime(0, now + 0.3);
-                    
-                    oscillator.start();
-                    oscillator.stop(now + 0.4);
-                }
-            },
 
             get pendingCount() {
                 return this.tasks.filter(t => t.status !== 'completed').length;
@@ -553,8 +574,8 @@
             },
 
             triggerAlarm(task) {
-                // Play sound using Web Audio API
-                this.playSound('alarm');
+                // Play sound using global handler
+                window.playTaskSound('alarm');
                 
                 // Alert user
                 if (Notification.permission === "granted") {
@@ -648,7 +669,7 @@
                     
                     const data = await res.json();
                     if (data.success) {
-                        this.playSound('add');
+                        window.playTaskSound('add');
                         if (!parentId) {
                             this.tasks.unshift(data.task);
                             this.newTaskTitle = '';
@@ -769,7 +790,7 @@
                 task.status = newStatus;
                 
                 if (newStatus === 'completed') {
-                    this.playSound('success');
+                    window.playTaskSound('success');
                 }
 
                 try {
@@ -833,7 +854,7 @@
                         const data = await res.json();
                         if (data.success) {
                             const parent = data.task;
-                            this.playSound('add');
+                            window.playTaskSound('add');
                             
                             for (const step of this.breakdownSteps) {
                                 await this.addTask(step, parent.id, true);
