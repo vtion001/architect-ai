@@ -7,6 +7,10 @@ use App\Models\KnowledgeBaseAsset;
 use App\Models\MediaAsset;
 use App\Services\ContentService;
 use App\Services\TokenService;
+use App\Services\SocialPublishingService;
+use App\Services\BrandResolverService;
+use App\Http\Requests\StoreContentRequest;
+use App\Http\Requests\PublishContentRequest;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Http;
@@ -18,7 +22,9 @@ class ContentCreatorController extends Controller
     public function __construct(
         private readonly ContentService $contentService,
         protected \App\Services\ResearchService $researchService,
-        protected TokenService $tokenService
+        protected TokenService $tokenService,
+        protected SocialPublishingService $socialPublishingService,
+        protected BrandResolverService $brandResolverService
     ) {}
 
     public function index()
@@ -41,42 +47,9 @@ class ContentCreatorController extends Controller
         return view('content-creator.content-creator', compact('stats', 'recentContents', 'brands'));
     }
 
-    public function store(Request $request)
+    public function store(StoreContentRequest $request)
     {
-        $request->validate([
-            'topic' => 'required|string|max:255',
-            'type' => 'required|string',
-            'count' => 'nullable|integer|min:1',
-            'tone' => 'nullable|string',
-            'length' => 'nullable|string',
-            'context' => 'nullable|string',
-            'cta' => 'nullable|string',
-            'addLineBreaks' => 'nullable|boolean',
-            'includeHashtags' => 'nullable|boolean',
-            'generator' => 'nullable|string',
-            'brand_id' => 'nullable|uuid',
-            
-            // Video Params
-            'video_platform' => 'nullable|string',
-            'video_hook' => 'nullable|string',
-            'video_duration' => 'nullable|string',
-            'video_style' => 'nullable|string',
-            'video_description' => 'nullable|string',
-            'source_image' => 'nullable|string',
-            'ai_model' => 'nullable|string',
-            'resolution' => 'nullable|string',
-            'aspect_ratio' => 'nullable|string',
-            'generation_duration' => 'nullable|string',
-
-            // Blog Params
-            'blog_keywords' => 'nullable|string',
-            'blog_structure' => 'nullable|string',
-            'is_batch_mode' => 'nullable|boolean',
-            'featured_image_type' => 'nullable|string',
-        ]);
-
-        $count = $request->input('count', 1);
-        $tokenCost = $count * 10; // 10 tokens per post
+        $tokenCost = $request->getTokenCost();
 
         // 1. Check & Consume Tokens
         if (!$this->tokenService->consume(auth()->user(), $tokenCost, 'content_generation', ['topic' => $request->topic])) {
@@ -86,33 +59,20 @@ class ContentCreatorController extends Controller
             ], 402);
         }
 
-        $options = $request->only([
-            'count', 'tone', 'length', 'cta', 'addLineBreaks', 'includeHashtags',
-            'generator', 'video_platform', 'video_hook', 'video_duration', 'video_style', 
-            'video_description', 'source_image', 'ai_model', 'resolution', 'aspect_ratio', 
-            'generation_duration', 'blog_keywords', 'blog_structure', 'is_batch_mode', 'featured_image_type',
-            'brand_id'
-        ]);
-
-        // Explicitly cast count to integer to ensure consistent behavior in AI prompts and logic
+        $options = $request->getOptions();
         $options['count'] = (int) ($options['count'] ?? 1);
 
-        // Inject Brand Context
+        // Build context with brand guidelines via centralized service
         $context = $request->input('context');
         if ($request->filled('brand_id')) {
-            $brand = \App\Models\Brand::find($request->brand_id);
-            if ($brand) {
-                $brandContext = "\n\n[SYSTEM: STRICT BRAND GUIDELINES ENFORCED]\n";
-                $brandContext .= "Identity: {$brand->name}\n";
-                if (!empty($brand->voice_profile['tone'])) $brandContext .= "Tone of Voice: {$brand->voice_profile['tone']}\n";
-                if (!empty($brand->voice_profile['keywords'])) $brandContext .= "Mandatory Keywords: {$brand->voice_profile['keywords']}\n";
-                if (!empty($brand->contact_info['website'])) $brandContext .= "Website Context: {$brand->contact_info['website']}\n";
+            $brandContext = $this->brandResolverService->buildBrandContext($request->brand_id);
+            if ($brandContext) {
                 $context .= $brandContext;
             }
         }
 
         $content = Content::create([
-            'title' => $request->input('topic'), // Default title to topic
+            'title' => $request->input('topic'),
             'topic' => $request->input('topic'),
             'type' => $request->input('type'),
             'context' => $context,
@@ -499,129 +459,34 @@ class ContentCreatorController extends Controller
         ]);
     }
 
-    private function postToFacebook(Content $content)
+    /**
+     * Post content to Facebook.
+     * 
+     * @deprecated Use SocialPublishingService::postToFacebook() directly.
+     */
+    private function postToFacebook(Content $content): array
     {
-        $options = $content->options;
-        $pageId = $options['page_id'] ?? null;
-        $token = $options['page_token'] ?? null;
-
-        if (!$pageId || !$token) {
-            return ['success' => false, 'error' => 'Missing Page ID or Access Token'];
-        }
-
-        $message = $this->cleanMarkdownForSocial($content->result);
-        $imageUrl = $options['image_url'] ?? null;
-
-        try {
-            if ($imageUrl) {
-                if ($this->isVideo($imageUrl)) {
-                    // Video Post
-                    $response = Http::post("https://graph-video.facebook.com/v18.0/$pageId/videos", [
-                        'file_url' => $imageUrl,
-                        'description' => $message,
-                        'access_token' => $token
-                    ]);
-                } else {
-                    // Photo Post
-                    $response = Http::post("https://graph.facebook.com/v18.0/$pageId/photos", [
-                        'url' => $imageUrl,
-                        'message' => $message,
-                        'access_token' => $token
-                    ]);
-                }
-            } else {
-                // Text Post
-                $response = Http::post("https://graph.facebook.com/v18.0/$pageId/feed", [
-                    'message' => $message,
-                    'access_token' => $token
-                ]);
-            }
-
-            $data = $response->json();
-
-            if (isset($data['id'])) {
-                return ['success' => true, 'id' => $data['id']];
-            } else {
-                Log::error("FB Post Error: " . json_encode($data));
-                return ['success' => false, 'error' => $data['error']['message'] ?? 'Unknown error'];
-            }
-        } catch (\Exception $e) {
-            Log::error("FB Exception: " . $e->getMessage());
-            return ['success' => false, 'error' => $e->getMessage()];
-        }
+        return $this->socialPublishingService->postToFacebook($content);
     }
 
-    private function postToInstagram(Content $content, string $igUserId)
+    /**
+     * Post content to Instagram.
+     * 
+     * @deprecated Use SocialPublishingService::postToInstagram() directly.
+     */
+    private function postToInstagram(Content $content, string $igUserId): array
     {
-        $options = $content->options;
-        $token = $options['page_token'] ?? null;
-        $imageUrl = $options['image_url'] ?? null;
-        $caption = $this->cleanMarkdownForSocial($content->result);
-
-        if (!$token || !$imageUrl) {
-            return ['success' => false, 'error' => 'Instagram requires an image/video and a valid token.'];
-        }
-
-        if (str_starts_with($imageUrl, '/')) {
-            $imageUrl = rtrim(config('app.url'), '/') . $imageUrl;
-        }
-
-        Log::info("Posting to IG ($igUserId) with Media: $imageUrl");
-
-        try {
-            $params = [
-                'caption' => $caption,
-                'access_token' => $token
-            ];
-
-            if ($this->isVideo($imageUrl)) {
-                $params['media_type'] = 'VIDEO';
-                $params['video_url'] = $imageUrl;
-            } else {
-                $params['image_url'] = $imageUrl;
-            }
-
-            $response = Http::post("https://graph.facebook.com/v18.0/$igUserId/media", $params);
-            
-            $containerData = $response->json();
-            Log::info("IG Container Response: " . json_encode($containerData));
-            
-            if (!isset($containerData['id'])) {
-                return ['success' => false, 'error' => 'Container Create Failed: ' . ($containerData['error']['message'] ?? json_encode($containerData))];
-            }
-            
-            $creationId = $containerData['id'];
-            
-            // Wait for processing if it's a video
-            if ($this->isVideo($imageUrl)) {
-                sleep(10); // Videos take longer to process
-            } else {
-                sleep(5);
-            }
-
-            $publishResponse = Http::post("https://graph.facebook.com/v18.0/$igUserId/media_publish", [
-                'creation_id' => $creationId,
-                'access_token' => $token
-            ]);
-            
-            $publishData = $publishResponse->json();
-            Log::info("IG Publish Response: " . json_encode($publishData));
-
-            if (isset($publishData['id'])) {
-                return ['success' => true, 'id' => $publishData['id']];
-            } else {
-                return ['success' => false, 'error' => 'Publish Failed: ' . ($publishData['error']['message'] ?? json_encode($publishData))];
-            }
-
-        } catch (\Exception $e) {
-            Log::error("IG Exception: " . $e->getMessage());
-            return ['success' => false, 'error' => $e->getMessage()];
-        }
+        return $this->socialPublishingService->postToInstagram($content, $igUserId);
     }
 
+    /**
+     * Check if URL is a video.
+     * 
+     * @deprecated Use SocialPublishingService::isVideo() directly.
+     */
     private function isVideo(string $url): bool
     {
-        return preg_match('/\.(mp4|mov|avi|wmv|webm)$/i', $url) === 1;
+        return $this->socialPublishingService->isVideo($url);
     }
 
     public function saveVisual(Request $request, Content $content)
@@ -678,48 +543,23 @@ class ContentCreatorController extends Controller
         });
     }
 
-    private function removeFromFacebook(Content $content)
+    /**
+     * Remove content from Facebook.
+     * 
+     * @deprecated Use SocialPublishingService::removeFromFacebook() directly.
+     */
+    private function removeFromFacebook(Content $content): void
     {
-        $options = $content->options;
-        $postId = $options['platform_post_id'] ?? null;
-        $token = $options['page_token'] ?? null;
-
-        if (!$postId || !$token) {
-            Log::warning("Skipping Facebook removal for post ID: {" . $content->id . "} due to missing data.");
-            return;
-        }
-
-        try {
-            // Facebook Delete API: DELETE /{post-id}?access_token={token}
-            $response = Http::delete("https://graph.facebook.com/v18.0/$postId", [
-                'access_token' => $token
-            ]);
-            
-            if ($response->successful()) {
-                Log::info("Successfully deleted Facebook Post: $postId");
-            } else {
-                Log::error("Facebook Delete API Error (ID $postId): " . $response->body());
-            }
-        } catch (\Exception $e) {
-            Log::error("Exception deleting Facebook post $postId: " . $e->getMessage());
-        }
+        $this->socialPublishingService->removeFromFacebook($content);
     }
 
+    /**
+     * Clean markdown for social media platforms.
+     * 
+     * @deprecated Use SocialPublishingService::cleanMarkdownForSocial() directly.
+     */
     private function cleanMarkdownForSocial(string $text): string
     {
-        // Remove bold/italic markers
-        $text = str_replace(['**', '*', '__', '_'], '', $text);
-        
-        // Remove markdown headers (e.g., # Header or ## Header)
-        $text = preg_replace('/^#+\s+/m', '', $text);
-        
-        // Remove code block markers
-        $text = str_replace('```', '', $text);
-        $text = preg_replace('/`(.+?)`/', '$1', $text);
-        
-        // Remove trailing or leading whitespace
-        $text = trim($text);
-        
-        return $text;
+        return $this->socialPublishingService->cleanMarkdownForSocial($text);
     }
 }

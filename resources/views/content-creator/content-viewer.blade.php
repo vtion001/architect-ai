@@ -2,25 +2,24 @@
 
 @php
     // Pre-process posts data for JavaScript
-    // Improved regex to handle various newline formats, optional spacing, and dash counts (3 or more)
-    // Supports separators at start/end or with varying whitespace
     $rawResult = trim($content->result ?? '');
     
     // Improved regex to handle various newline formats and common separators (---, ***, ___)
-    // This looks for a separator line that contains at least 3 repeat characters
-    $rawSegments = preg_split('/(?:\R|^)\s*[-*_]{3,}\s*(?:\R|$)/', $rawResult);
+    // Using 'm' flag to treat as multiple lines, making start/end line anchors reliable
+    $rawSegments = preg_split('/^\s*[-*_]{3,}\s*$/m', $rawResult);
     
-    // Fallback 1: If split didn't yield enough parts, try splitting by explicit double newline + number (e.g. "1. ")
+    // Fallback 1: Numbered list split (e.g. "1. ", "2. ")
     if (count($rawSegments) < ($content->options['count'] ?? 1)) {
-        // Look for lines starting with "1. ", "2. ", etc., but only if preceded by a newline
-        $numberedSplit = preg_split('/\R\s*\d+\.\s+/', $rawResult);
-        if (count($numberedSplit) > count($rawSegments)) {
+        // Only split by numbers that are at the start of a line
+        $numberedSplit = preg_split('/^\s*\d+\.\s+/m', $rawResult);
+        $numberedSplit = array_values(array_filter(array_map('trim', $numberedSplit)));
+        if (count($numberedSplit) >= ($content->options['count'] ?? 1)) {
             $rawSegments = $numberedSplit;
         }
     }
 
-    // Fallback 2: If we still have 1 card but expect more, try splitting by just double newlines if they are long
-    if (count($rawSegments) < ($content->options['count'] ?? 1) && strlen($rawResult) > 500) {
+    // Fallback 2: Double newline split
+    if (count($rawSegments) < ($content->options['count'] ?? 1)) {
         $newlineSplit = preg_split('/\R{2,}/', $rawResult);
         if (count($newlineSplit) >= ($content->options['count'] ?? 1)) {
             $rawSegments = $newlineSplit;
@@ -31,7 +30,6 @@
     $globalHashtags = '';
 
     if (!empty($rawSegments)) {
-        // Filter out empty segments and trim whitespace
         $rawSegments = array_values(array_filter(array_map('trim', $rawSegments)));
         
         // Handle global hashtags if they appear as a separate segment at the end
@@ -46,7 +44,7 @@
 
     foreach ($rawSegments as $idx => $post) {
         $finalPostContent = trim($post);
-        // Remove leading sequence numbers like "1. " if present
+        // Clean up remaining leading number if split didn't catch it
         $finalPostContent = preg_replace('/^\d+\.\s*/', '', $finalPostContent);
         
         if ($globalHashtags && !str_contains($finalPostContent, $globalHashtags)) {

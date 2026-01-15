@@ -13,7 +13,8 @@ class ContentService
     protected ?string $hikerApiKey;
 
     public function __construct(
-        protected ContentGeneratorFactory $factory
+        protected ContentGeneratorFactory $factory,
+        protected KnowledgeBaseService $knowledgeBaseService
     ) {
         $this->apiKey = config('services.openai.key');
         $this->model = config('services.openai.model', 'gpt-4o-mini');
@@ -25,7 +26,7 @@ class ContentService
         $generatorType = $options['generator'] ?? 'post';
         
         // 1. RAG: Fetch relevant knowledge base assets
-        $kbContext = $this->getKnowledgeBaseContext($topic);
+        $kbContext = $this->knowledgeBaseService->getContext($topic);
         if ($kbContext) {
             $context = ($context ? $context . "\n\n" : "") . "EXTERNAL KNOWLEDGE BASE DATA:\n" . $kbContext;
         }
@@ -87,52 +88,13 @@ class ContentService
     }
 
     /**
-     * RAG: Retrieve relevant context from the tenant's knowledge base.
+     * RAG: Retrieve relevant context from knowledge base.
+     * 
+     * @deprecated Use KnowledgeBaseService::getContext() directly. This is a backward-compatible delegate.
      */
     protected function getKnowledgeBaseContext(string $topic): ?string
     {
-        $tenant = app(\App\Models\Tenant::class);
-        if (!$tenant) return null;
-
-        // Check if topic is a specific Asset ID (UUID format) - typically from AI Agent selection
-        if (\Illuminate\Support\Str::isUuid($topic)) {
-            $asset = \App\Models\KnowledgeBaseAsset::where('tenant_id', $tenant->id)->find($topic);
-            if ($asset) {
-                if ($asset->type === 'folder') {
-                    return $this->getFolderContentRecursive($asset);
-                }
-                return "--- SOURCE: {$asset->title} ---\n{$asset->content}";
-            }
-        }
-
-        // Basic keyword search for MVP RAG
-        // In production, this would use vector embeddings (Pinecone/Milvus)
-        $assets = \App\Models\KnowledgeBaseAsset::where('tenant_id', $tenant->id)
-            ->where(function($q) use ($topic) {
-                $q->where('title', 'like', "%$topic%")
-                  ->orWhere('content', 'like', "%$topic%");
-            })
-            ->limit(3)
-            ->get();
-
-        if ($assets->isEmpty()) return null;
-
-        return $assets->map(fn($a) => "--- SOURCE: {$a->title} ---\n{$a->content}")->implode("\n\n");
-    }
-
-    protected function getFolderContentRecursive($folder): string
-    {
-        $content = "";
-        $children = \App\Models\KnowledgeBaseAsset::where('parent_id', $folder->id)->get();
-
-        foreach ($children as $child) {
-            if ($child->type === 'folder') {
-                $content .= $this->getFolderContentRecursive($child);
-            } else {
-                $content .= "--- SOURCE: {$child->title} (in {$folder->title}) ---\n{$child->content}\n\n";
-            }
-        }
-        return $content;
+        return $this->knowledgeBaseService->getContext($topic);
     }
 
     public function generateImage(string $prompt, string $format = 'realistic', array $options = []): ?string

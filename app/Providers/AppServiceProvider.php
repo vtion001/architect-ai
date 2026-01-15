@@ -9,8 +9,10 @@ use App\Observers\AiAgentObserver;
 use App\Observers\ContentObserver;
 use App\Policies\AiAgentPolicy;
 use App\Policies\BrandPolicy;
+use App\View\Composers\ContentViewerComposer;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\View;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -61,5 +63,8 @@ class AppServiceProvider extends ServiceProvider
             // Check by explicit attribute OR by Role
             return $user->is_developer || $user->roles()->where('name', 'Developer')->exists();
         });
+
+        // Register View Composers
+        View::composer('content-creator.content-viewer', ContentViewerComposer::class);
     }
 }
