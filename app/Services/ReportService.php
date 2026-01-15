@@ -362,6 +362,9 @@ class ReportService
                 }
             }
 
+            // Build template-specific user prompt
+            $userPrompt = $this->buildUserPrompt($data, $documentType, $kbContext, $researchData);
+
             $response = \Illuminate\Support\Facades\Http::withToken($apiKey)
                 ->timeout(120)
                 ->post('https://api.openai.com/v1/chat/completions', [
@@ -395,31 +398,7 @@ class ReportService
                         ],
                         [
                             'role' => 'user',
-                            'content' => "Generate a highly detailed business {$data->template->label()} $documentType. 
-                                         
-                                         MANDATORY RESEARCH TOPIC: {$data->researchTopic}
-                                         
-                                         Analysis Case / Objective: {$data->analysisType}.
-                                         Focus / Strategic Mandate: {$data->prompt}.
-                                         Style Variant: {$data->variant}. 
-                                         Recipient: {$data->recipientName} ({$data->recipientTitle}). 
-                                         
-                                         INTERNAL KNOWLEDGE BASE (CONTEXT):
-                                         ---
-                                         {$kbContext}
-                                         ---
-
-                                         RESEARCH DATA (PRIMARY SOURCE):
-                                         ---
-                                         {$researchData}
-                                         ---
-                                         
-                                         RAW SOURCE CONTENT (SUPPLEMENTARY):
-                                         ---
-                                         {$data->contentData}
-                                         ---
-                                         
-                                         Instruction: Create a comprehensive $documentType specifically about '{$data->researchTopic}'. Use the RESEARCH DATA and INTERNAL KNOWLEDGE BASE provided as your factual base. Build a detailed narrative using the business layout tools (tables, callouts, grids) provided in your system instructions. Do not omit data. Expand the raw research into professional technical analysis. **STRICTLY USE HTML TAGS ONLY. NO MARKDOWN SYMBOLS.**"
+                            'content' => $userPrompt
                         ],
                     ],
                     'temperature' => 0.5,
@@ -476,6 +455,136 @@ class ReportService
         
         // Final trim
         return trim($content);
+    }
+
+    /**
+     * Build template-specific user prompts for AI generation.
+     * This ensures each template type gets properly formatted output.
+     */
+    private function buildUserPrompt(ReportRequestData $data, string $documentType, string $kbContext, string $researchData): string
+    {
+        $baseContext = "
+            INTERNAL KNOWLEDGE BASE (CONTEXT):
+            ---
+            {$kbContext}
+            ---
+
+            RESEARCH DATA (PRIMARY SOURCE):
+            ---
+            {$researchData}
+            ---
+            
+            RAW SOURCE CONTENT (SUPPLEMENTARY):
+            ---
+            {$data->contentData}
+            ---
+        ";
+
+        // Contract-specific prompt
+        if ($data->template === ReportTemplate::CONTRACT) {
+            return "Generate a FORMAL LEGAL CONTRACT document. DO NOT generate an analysis, summary, or report.
+                
+                CONTRACT TYPE: {$data->variant} ({$data->template->label()})
+                
+                PARTIES INVOLVED:
+                - Service Provider/First Party: (Extract from source content or use placeholder)
+                - Client/Second Party: {$data->recipientName} ({$data->recipientTitle})
+                
+                FOCUS/SUBJECT MATTER: {$data->researchTopic}
+                ADDITIONAL CONTEXT: {$data->prompt}
+                
+                {$baseContext}
+                
+                CRITICAL INSTRUCTIONS:
+                1. This MUST be a legal contract, NOT a business analysis or report.
+                2. Use proper legal contract structure with ARTICLE I, ARTICLE II, etc.
+                3. Include WHEREAS recitals at the beginning.
+                4. Include proper legal sections: Scope of Work, Compensation, Payment Terms, Intellectual Property, Warranties, Termination, etc.
+                5. Extract all relevant details from the RAW SOURCE CONTENT and organize into proper legal clauses.
+                6. Use formal legal language throughout.
+                7. Include payment tables using <table class='payment-table'> if financial terms are mentioned.
+                8. Use <div class='callout-critical'> for critical legal provisions.
+                9. DO NOT include 'Overview', 'Key Findings', 'Strategic Recommendations' or other report-style sections.
+                10. The output must look like a real, enforceable legal contract.
+                
+                **STRICTLY USE HTML TAGS ONLY. NO MARKDOWN SYMBOLS.**";
+        }
+
+        // Resume/CV-specific prompt
+        if ($data->template === ReportTemplate::CV_RESUME) {
+            return "Generate a professional resume/CV.
+                
+                CANDIDATE DETAILS: (Extract from source content)
+                TARGET ROLE: {$data->targetRole}
+                STYLE VARIANT: {$data->variant}
+                
+                {$baseContext}
+                
+                STRUCTURE:
+                1. Professional Summary (tailored to target role if provided)
+                2. Work Experience (reverse chronological)
+                3. Education
+                4. Skills
+                
+                **STRICTLY USE HTML TAGS ONLY. NO MARKDOWN SYMBOLS.**";
+        }
+
+        // Cover Letter-specific prompt
+        if ($data->template === ReportTemplate::COVER_LETTER) {
+            return "Generate a professional cover letter.
+                
+                FROM: {$data->recipientName}
+                TO: Hiring Manager
+                FOR POSITION: {$data->targetRole}
+                
+                {$baseContext}
+                
+                STRUCTURE:
+                1. Opening hook explaining interest in the role
+                2. 2-3 paragraphs showcasing relevant experience
+                3. Closing with call to action
+                
+                **STRICTLY USE HTML TAGS ONLY. NO MARKDOWN SYMBOLS.**";
+        }
+
+        // Proposal-specific prompt
+        if ($data->template === ReportTemplate::PROPOSAL) {
+            return "Generate a professional business proposal.
+                
+                PROJECT/SERVICE: {$data->researchTopic}
+                CLIENT: {$data->recipientName} ({$data->recipientTitle})
+                OBJECTIVE: {$data->analysisType}
+                FOCUS: {$data->prompt}
+                STYLE VARIANT: {$data->variant}
+                
+                {$baseContext}
+                
+                STRUCTURE:
+                1. Executive Summary
+                2. Problem Statement / Client Needs
+                3. Proposed Solution
+                4. Scope of Work & Deliverables
+                5. Timeline & Milestones
+                6. Pricing / Investment
+                7. Terms & Conditions
+                8. Call to Action
+                
+                **STRICTLY USE HTML TAGS ONLY. NO MARKDOWN SYMBOLS.**";
+        }
+
+        // Default prompt for reports and other templates
+        return "Generate a highly detailed business {$data->template->label()} $documentType. 
+                
+                MANDATORY RESEARCH TOPIC: {$data->researchTopic}
+                
+                Analysis Case / Objective: {$data->analysisType}.
+                Focus / Strategic Mandate: {$data->prompt}.
+                Style Variant: {$data->variant}. 
+                Recipient: {$data->recipientName} ({$data->recipientTitle}). 
+                
+                {$baseContext}
+                
+                Instruction: Create a comprehensive $documentType specifically about '{$data->researchTopic}'. Use the RESEARCH DATA and INTERNAL KNOWLEDGE BASE provided as your factual base. Build a detailed narrative using the business layout tools (tables, callouts, grids) provided in your system instructions. Do not omit data. Expand the raw research into professional technical analysis. **STRICTLY USE HTML TAGS ONLY. NO MARKDOWN SYMBOLS.**";
     }
 
     private function getDummyContent(): string
