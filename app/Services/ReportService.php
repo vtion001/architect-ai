@@ -220,8 +220,8 @@ class ReportService
                 $brandInstructions .= "   <table class='payment-table'>\n";
                 $brandInstructions .= "     <thead><tr><th>Payment</th><th>Description</th><th>Due Date</th><th>Amount</th></tr></thead>\n";
                 $brandInstructions .= "     <tbody>\n";
-                $brandInstructions .= "       <tr><td>Payment 1</td><td>Deposit</td><td>Upon signing</td><td>$X,XXX.XX</td></tr>\n";
-                $brandInstructions .= "       <tr class='total-row'><td colspan='3'>Total Contract Value</td><td>$X,XXX.XX</td></tr>\n";
+                $brandInstructions .= "       <tr><td>Payment 1</td><td>Deposit</td><td>Upon signing</td><td>\$X,XXX.XX</td></tr>\n";
+                $brandInstructions .= "       <tr class='total-row'><td colspan='3'>Total Contract Value</td><td>\$X,XXX.XX</td></tr>\n";
                 $brandInstructions .= "     </tbody>\n";
                 $brandInstructions .= "   </table>\n\n";
                 
