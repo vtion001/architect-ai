@@ -2,8 +2,6 @@
 <div x-data="noteTaskWidget()" 
      x-cloak
      @open-notes.window="isOpen = true"
-     @mousedown="getAudioContext().resume()"
-     @keydown="getAudioContext().resume()"
      class="fixed z-[99999]" 
      style="bottom: 96px; right: 24px;"> <!-- Positioned above chat widget -->
 
@@ -27,6 +25,16 @@
                  <button @click="activeTab = 'notes'" 
                          :class="activeTab === 'notes' ? 'bg-background text-foreground shadow-sm font-bold' : 'text-muted-foreground hover:text-foreground'"
                          class="px-4 py-1.5 rounded-md text-xs uppercase tracking-wider transition-all">Notes</button>
+                 <button @click="activeTab = 'voice'" 
+                         :class="activeTab === 'voice' ? 'bg-background text-foreground shadow-sm font-bold' : 'text-muted-foreground hover:text-foreground'"
+                         class="px-3 py-1.5 rounded-md text-xs uppercase tracking-wider transition-all" title="Meeting Scribe">
+                     <i data-lucide="mic" class="w-3.5 h-3.5"></i>
+                 </button>
+                 <button @click="activeTab = 'studio'" 
+                         :class="activeTab === 'studio' ? 'bg-background text-foreground shadow-sm font-bold' : 'text-muted-foreground hover:text-foreground'"
+                         class="px-3 py-1.5 rounded-md text-xs uppercase tracking-wider transition-all" title="Ghost Studio (Demo Recorder)">
+                     <i data-lucide="clapperboard" class="w-3.5 h-3.5"></i>
+                 </button>
                  <button @click="activeTab = 'history'" 
                          :class="activeTab === 'history' ? 'bg-background text-foreground shadow-sm font-bold' : 'text-muted-foreground hover:text-foreground'"
                          class="px-3 py-1.5 rounded-md text-xs uppercase tracking-wider transition-all" title="Trash / History">
@@ -51,336 +59,14 @@
 
          <!-- Content -->
          <div class="flex-1 overflow-y-auto p-4 custom-scrollbar bg-background/50">
-             
-             <!-- Tasks Tab -->
-             <div x-show="activeTab === 'tasks'" class="space-y-4">
-                 <!-- Add Task Input Area -->
-                 <div class="bg-card p-3 rounded-xl border border-border shadow-sm">
-                     <div class="relative mb-3">
-                         <input type="text" x-model="newTaskTitle" @keydown.enter="addTask()" placeholder="What needs to be done?" 
-                                class="w-full pl-3 pr-10 py-2.5 text-sm bg-muted/30 border border-border rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all placeholder:text-muted-foreground/50">
-                         <button @click="openBreakdownModal = true" class="absolute right-2 top-1/2 -translate-y-1/2 text-primary/70 hover:text-primary transition-colors p-1 rounded-md hover:bg-primary/10" title="AI Breakdown">
-                             <i data-lucide="sparkles" class="w-4 h-4"></i>
-                         </button>
-                     </div>
-                     <div class="flex items-center gap-2 justify-between flex-wrap">
-                        <div class="flex gap-2 items-center flex-wrap">
-                            <!-- Category Select -->
-                            <div class="relative" x-data="{ openCat: false }">
-                                <button @click="openCat = !openCat" class="flex items-center gap-1.5 px-2.5 py-1.5 rounded-md bg-muted/30 border border-border text-xs text-muted-foreground hover:text-foreground hover:border-primary/30 transition-all">
-                                    <template x-if="selectedCategory">
-                                        <div class="flex items-center gap-1.5">
-                                            <span class="w-2 h-2 rounded-full ring-1 ring-offset-1 ring-offset-card" :style="{ backgroundColor: selectedCategory.color, '--tw-ring-color': selectedCategory.color }"></span>
-                                            <span x-text="selectedCategory.name" class="font-medium"></span>
-                                        </div>
-                                    </template>
-                                    <template x-if="!selectedCategory">
-                                        <span class="font-medium">Category</span>
-                                    </template>
-                                    <i data-lucide="chevron-down" class="w-3 h-3 opacity-70"></i>
-                                </button>
-                                
-                                <!-- Dropdown -->
-                                <div x-show="openCat" @click.away="openCat = false" 
-                                     class="absolute top-full left-0 mt-2 w-52 bg-card border border-border rounded-xl shadow-xl z-50 p-1.5 animate-in fade-in zoom-in-95 duration-100 origin-top-left">
-                                    <template x-for="cat in categories" :key="cat.id">
-                                        <div class="group flex items-center justify-between px-2 py-1.5 rounded-lg hover:bg-muted cursor-pointer transition-colors" @click="selectedCategory = cat; openCat = false">
-                                            <div class="flex items-center gap-2">
-                                                <span class="w-2.5 h-2.5 rounded-full" :style="{ backgroundColor: cat.color }"></span>
-                                                <span x-text="cat.name" class="text-xs font-medium text-foreground"></span>
-                                            </div>
-                                            <button @click.stop="deleteCategory(cat.id)" class="opacity-0 group-hover:opacity-100 p-1 text-muted-foreground hover:text-red-500 rounded-md hover:bg-red-50 transition-all">
-                                                <i data-lucide="trash-2" class="w-3 h-3"></i>
-                                            </button>
-                                        </div>
-                                    </template>
-                                    
-                                    <div class="border-t border-border mt-1 pt-1.5 px-1">
-                                        <p class="text-[9px] font-bold text-muted-foreground uppercase tracking-wider mb-1.5 ml-1">New Category</p>
-                                        <div class="flex gap-1.5">
-                                            <input type="text" x-model="newCategoryName" placeholder="Name..." class="flex-1 text-xs bg-muted/50 border border-transparent focus:border-primary/50 focus:bg-background rounded px-2 py-1 outline-none transition-all">
-                                            <div class="relative w-6 h-6 shrink-0 overflow-hidden rounded-md ring-1 ring-border">
-                                                <input type="color" x-model="newCategoryColor" class="absolute -top-2 -left-2 w-10 h-10 p-0 border-none cursor-pointer">
-                                            </div>
-                                            <button @click="addCategory()" class="w-6 h-6 flex items-center justify-center bg-primary text-primary-foreground rounded-md hover:opacity-90 transition-opacity">
-                                                <i data-lucide="plus" class="w-3 h-3"></i>
-                                            </button>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <!-- Due Date & Time -->
-                             <div class="relative">
-                                 <input type="datetime-local" x-model="newTaskDate" class="w-[130px] px-2 py-1.5 rounded-md bg-muted/30 border border-border text-[10px] text-muted-foreground hover:text-foreground hover:border-primary/30 outline-none transition-all cursor-pointer">
-                             </div>
-
-                             <!-- Alarm Toggle -->
-                             <button @click="alarmEnabled = !alarmEnabled" 
-                                     class="p-1.5 rounded-md transition-colors"
-                                     :class="alarmEnabled ? 'text-primary bg-primary/10' : 'text-muted-foreground hover:bg-muted/50'">
-                                <i data-lucide="bell" class="w-4 h-4"></i>
-                             </button>
-                        </div>
-                        <button @click="addTask()" class="text-xs font-black bg-primary text-primary-foreground px-3 py-1.5 rounded-lg hover:opacity-90 transition-opacity">ADD</button>
-                     </div>
-                 </div>
-
-                 <!-- Task List -->
-                 <div class="space-y-3">
-                     <template x-for="task in filteredTasks" :key="task.id">
-                         <div class="group relative bg-card rounded-xl border border-border hover:border-primary/30 transition-all shadow-sm hover:shadow-md"
-                              :class="{ 'opacity-60 bg-muted/30': task.status === 'completed' }">
-                             
-                             <div class="flex items-start gap-3 p-3">
-                                 <!-- Checkbox -->
-                                 <div class="mt-1 relative shrink-0">
-                                     <input type="checkbox" :checked="task.status === 'completed'" @change="toggleTask(task)"
-                                            class="peer w-5 h-5 rounded-md border-border text-primary focus:ring-primary/20 cursor-pointer appearance-none border-2 checked:bg-primary checked:border-primary transition-all">
-                                     <i data-lucide="check" class="absolute top-0.5 left-0.5 w-3.5 h-3.5 text-primary-foreground opacity-0 peer-checked:opacity-100 pointer-events-none transition-opacity stroke-[3]"></i>
-                                 </div>
-                                 
-                                 <div class="flex-1 min-w-0">
-                                     <!-- Title & Details Trigger -->
-                                     <div class="flex items-start justify-between gap-2">
-                                         <div class="flex-1 cursor-pointer" @click="openTaskDetails(task)">
-                                             <p x-text="task.title" 
-                                                :class="{ 'line-through text-muted-foreground': task.status === 'completed', 'hover:text-primary': task.status !== 'completed' }" 
-                                                class="text-sm font-medium leading-tight break-words transition-colors"></p>
-                                         </div>
-                                         
-                                         <!-- Badges -->
-                                         <div class="flex items-center gap-1.5 shrink-0">
-                                            <template x-if="task.alarm_enabled">
-                                                <i data-lucide="bell-ring" class="w-3 h-3 text-orange-500"></i>
-                                            </template>
-                                            <template x-if="task.category">
-                                                <span class="text-[9px] px-2 py-0.5 rounded-full font-black uppercase tracking-wider text-white shadow-sm" 
-                                                      :style="{ backgroundColor: task.category.color }"
-                                                      x-text="task.category.name"></span>
-                                            </template>
-                                            <template x-if="task.due_date">
-                                                <div class="flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-muted/50 border border-border/50" 
-                                                     :class="{ 'border-red-500/50 bg-red-500/10 text-red-600': isOverdue(task.due_date) && task.status !== 'completed' }">
-                                                    <span x-text="formatDateTimeShort(task.due_date)" class="text-[9px] font-bold whitespace-nowrap"></span>
-                                                </div>
-                                            </template>
-                                            <!-- Detail View Button -->
-                                            <button @click.stop="openTaskDetails(task)" class="text-muted-foreground hover:text-foreground">
-                                                <i data-lucide="maximize-2" class="w-3 h-3"></i>
-                                            </button>
-                                         </div>
-                                     </div>
-
-                                     <!-- Preview of Subtasks (First 2) -->
-                                     <template x-if="task.subtasks && task.subtasks.length > 0">
-                                         <div class="mt-2 space-y-1 relative">
-                                             <template x-for="sub in task.subtasks.slice(0, 2)" :key="sub.id">
-                                                 <div class="flex items-center gap-2 pl-1 opacity-70">
-                                                     <div class="w-1 h-1 rounded-full bg-muted-foreground"></div>
-                                                     <span x-text="sub.title" class="text-[10px] truncate text-muted-foreground"></span>
-                                                 </div>
-                                             </template>
-                                             <div x-show="task.subtasks.length > 2" class="pl-1 text-[9px] text-muted-foreground italic">
-                                                 + <span x-text="task.subtasks.length - 2"></span> more steps
-                                             </div>
-                                         </div>
-                                     </template>
-                                 </div>
-                             </div>
-                         </div>
-                     </template>
-                     
-                     <div x-show="filteredTasks.length === 0" class="flex flex-col items-center justify-center py-12 text-muted-foreground opacity-50">
-                         <i data-lucide="check-circle-2" class="w-12 h-12 mb-3 stroke-1"></i>
-                         <p class="text-xs font-medium italic">No matching tasks found.</p>
-                     </div>
-                 </div>
-             </div>
-
-             <!-- Notes Tab -->
-             <div x-show="activeTab === 'notes'" class="space-y-4">
-                 <div class="flex justify-end">
-                     <button @click="addNote()" class="text-xs font-bold text-primary hover:text-primary/80 flex items-center gap-1.5 px-3 py-1.5 bg-primary/10 rounded-lg transition-colors">
-                         <i data-lucide="plus" class="w-3.5 h-3.5"></i> New Note
-                     </button>
-                 </div>
-                 <div class="grid gap-3">
-                     <template x-for="note in filteredNotes" :key="note.id">
-                         <div class="group relative bg-card p-4 border border-border rounded-xl shadow-sm hover:border-primary/40 hover:shadow-md transition-all">
-                             <input type="text" x-model="note.title" @change="updateNote(note)" 
-                                    class="w-[90%] bg-transparent border-none p-0 text-sm font-bold text-foreground focus:ring-0 mb-2 placeholder:text-muted-foreground/50 transition-colors" placeholder="Untitled Note">
-                             <textarea x-model="note.description" @change="updateNote(note)" 
-                                       class="w-full bg-transparent border-none p-0 text-xs text-muted-foreground focus:ring-0 resize-none h-24 custom-scrollbar placeholder:text-muted-foreground/50 leading-relaxed" placeholder="Type your note here..."></textarea>
-                             
-                             <button @click="deleteTask(note.id)" class="absolute top-3 right-3 opacity-0 group-hover:opacity-100 p-1.5 text-muted-foreground hover:text-red-600 hover:bg-red-50 rounded-lg transition-all">
-                                 <i data-lucide="trash-2" class="w-4 h-4"></i>
-                             </button>
-                             
-                             <div class="absolute bottom-3 right-3">
-                                 <p class="text-[9px] font-mono text-muted-foreground/40 uppercase tracking-widest" x-text="formatDate(note.created_at)"></p>
-                             </div>
-                         </div>
-                     </template>
-                     
-                     <div x-show="filteredNotes.length === 0" class="flex flex-col items-center justify-center py-12 text-muted-foreground opacity-50">
-                         <i data-lucide="sticky-note" class="w-12 h-12 mb-3 stroke-1"></i>
-                         <p class="text-xs font-medium italic">No matching notes found.</p>
-                     </div>
-                 </div>
-             </div>
-
-             <!-- History Tab -->
-             <div x-show="activeTab === 'history'" class="space-y-4">
-                 <div class="flex items-center justify-between">
-                     <h3 class="text-xs font-bold text-muted-foreground uppercase tracking-wider">Recently Deleted</h3>
-                     <button @click="fetchHistory()" class="text-[10px] font-bold text-primary hover:underline">Refresh</button>
-                 </div>
-                 
-                 <div class="space-y-2">
-                     <template x-for="item in history" :key="item.id">
-                         <div class="flex items-center justify-between p-3 bg-muted/20 border border-border rounded-xl opacity-75 hover:opacity-100 transition-opacity">
-                             <div class="min-w-0 flex-1 mr-3">
-                                 <p x-text="item.title" class="text-xs font-medium truncate text-foreground"></p>
-                                 <p class="text-[9px] text-muted-foreground uppercase tracking-wide" x-text="item.type + ' • ' + formatDate(item.deleted_at)"></p>
-                             </div>
-                             <div class="flex items-center gap-2">
-                                 <button @click="restoreItem(item.id)" class="p-1.5 bg-primary/10 text-primary rounded-lg hover:bg-primary hover:text-white transition-colors" title="Restore">
-                                     <i data-lucide="rotate-ccw" class="w-3.5 h-3.5"></i>
-                                 </button>
-                                 <button @click="forceDeleteItem(item.id)" class="p-1.5 bg-red-50 text-red-500 rounded-lg hover:bg-red-500 hover:text-white transition-colors" title="Delete Forever">
-                                     <i data-lucide="trash" class="w-3.5 h-3.5"></i>
-                                 </button>
-                             </div>
-                         </div>
-                     </template>
-                     
-                     <div x-show="history.length === 0" class="flex flex-col items-center justify-center py-12 text-muted-foreground opacity-50">
-                         <i data-lucide="trash-2" class="w-8 h-8 mb-2 stroke-1"></i>
-                         <p class="text-xs font-medium italic">Trash is empty.</p>
-                     </div>
-                 </div>
-             </div>
+             @include('components.widget.tasks-tab')
+             @include('components.widget.notes-tab')
+             @include('components.widget.voice-tab')
+             @include('components.widget.studio-tab')
+             @include('components.widget.history-tab')
          </div>
          
-         <!-- Task Details Modal -->
-         <div x-show="viewingTask" x-cloak class="absolute inset-0 bg-background z-30 flex flex-col animate-in slide-in-from-right duration-200">
-             <div class="flex items-center justify-between px-4 py-3 border-b border-border">
-                 <button @click="closeTaskDetails()" class="flex items-center gap-1 text-xs font-bold text-muted-foreground hover:text-foreground">
-                     <i data-lucide="arrow-left" class="w-4 h-4"></i> Back
-                 </button>
-                 <div class="flex items-center gap-2">
-                     <button @click="deleteTask(viewingTask.id); closeTaskDetails()" class="text-red-500 hover:bg-red-50 p-1.5 rounded-md transition-colors">
-                         <i data-lucide="trash-2" class="w-4 h-4"></i>
-                     </button>
-                 </div>
-             </div>
-             
-             <template x-if="viewingTask">
-                 <div class="flex-1 overflow-y-auto p-5 custom-scrollbar">
-                     <!-- Title Edit -->
-                     <textarea x-model="viewingTask.title" 
-                               @change="updateTaskTitle(viewingTask, viewingTask.title)"
-                               class="w-full bg-transparent border-none p-0 text-lg font-bold text-foreground focus:ring-0 resize-none mb-4" 
-                               rows="2"></textarea>
-                     
-                     <!-- Metadata Grid -->
-                     <div class="grid grid-cols-2 gap-4 mb-6">
-                         <div class="bg-muted/30 p-3 rounded-lg border border-border/50">
-                             <label class="text-[10px] uppercase font-bold text-muted-foreground block mb-1">Due Date</label>
-                             <input type="datetime-local" x-model="viewingTask.due_date" 
-                                    @change="updateTaskField(viewingTask, 'due_date', viewingTask.due_date)"
-                                    class="w-full bg-transparent border-none p-0 text-xs font-medium focus:ring-0">
-                         </div>
-                         <div class="bg-muted/30 p-3 rounded-lg border border-border/50 flex items-center justify-between">
-                             <div>
-                                 <label class="text-[10px] uppercase font-bold text-muted-foreground block mb-1">Alarm</label>
-                                 <span x-text="viewingTask.alarm_enabled ? 'On' : 'Off'" class="text-xs font-medium"></span>
-                             </div>
-                             <button @click="viewingTask.alarm_enabled = !viewingTask.alarm_enabled; updateTaskField(viewingTask, 'alarm_enabled', viewingTask.alarm_enabled)" 
-                                     class="p-1.5 rounded-full transition-colors"
-                                     :class="viewingTask.alarm_enabled ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'">
-                                 <i data-lucide="bell" class="w-4 h-4"></i>
-                             </button>
-                         </div>
-                     </div>
-
-                     <!-- Full Description -->
-                     <div class="mb-6">
-                         <label class="text-[10px] uppercase font-bold text-muted-foreground block mb-2">Description / Context</label>
-                         <textarea x-model="viewingTask.description" 
-                                   @change="updateTaskField(viewingTask, 'description', viewingTask.description)"
-                                   class="w-full bg-muted/20 border border-border rounded-lg p-3 text-xs leading-relaxed min-h-[100px] focus:ring-1 focus:ring-primary focus:border-primary"
-                                   placeholder="Add more details..."></textarea>
-                     </div>
-
-                     <!-- Subtasks List -->
-                     <div>
-                         <label class="text-[10px] uppercase font-bold text-muted-foreground block mb-2">Action Steps</label>
-                         <div class="space-y-2">
-                             <template x-for="sub in viewingTask.subtasks" :key="sub.id">
-                                 <div class="flex items-start gap-2 group/sub p-2 rounded-lg hover:bg-muted/30">
-                                     <input type="checkbox" :checked="sub.status === 'completed'" @change="toggleTask(sub)"
-                                            class="mt-0.5 w-4 h-4 rounded border-border text-primary focus:ring-primary/20 cursor-pointer">
-                                     <input type="text" x-model="sub.title" 
-                                            @change="updateTaskTitle(sub, sub.title)"
-                                            class="flex-1 bg-transparent border-none p-0 text-xs focus:ring-0"
-                                            :class="sub.status === 'completed' ? 'line-through text-muted-foreground' : ''">
-                                 </div>
-                             </template>
-                             <div class="flex items-center gap-2 p-2 opacity-50 hover:opacity-100 transition-opacity cursor-pointer text-primary" @click="addTask('New Step', viewingTask.id)">
-                                 <i data-lucide="plus" class="w-4 h-4"></i>
-                                 <span class="text-xs font-bold">Add Step</span>
-                             </div>
-                         </div>
-                     </div>
-                 </div>
-             </template>
-         </div>
-         
-         <!-- AI Breakdown Modal Overlay -->
-         <div x-show="openBreakdownModal" class="absolute inset-0 bg-background/95 backdrop-blur-md z-20 flex flex-col p-6 animate-in fade-in duration-200" style="backdrop-filter: blur(8px);">
-             <div class="flex items-center justify-between mb-6">
-                 <div>
-                    <h3 class="text-base font-black text-foreground flex items-center gap-2">
-                        <i data-lucide="sparkles" class="w-4 h-4 text-primary fill-primary/20"></i>
-                        AI Task Breakdown
-                    </h3>
-                    <p class="text-[10px] text-muted-foreground mt-1">Turn a complex goal into actionable steps.</p>
-                 </div>
-                 <button @click="openBreakdownModal = false" class="text-muted-foreground hover:text-foreground p-1 hover:bg-muted rounded-md transition-colors">
-                     <i data-lucide="x" class="w-5 h-5"></i>
-                 </button>
-             </div>
-             
-             <div class="relative mb-4">
-                 <textarea x-model="breakdownPrompt" placeholder="e.g. Plan a product launch campaign for next month..." 
-                           class="w-full h-32 bg-card border border-border rounded-xl p-4 text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none resize-none shadow-inner placeholder:text-muted-foreground/50 leading-relaxed"></textarea>
-             </div>
-             
-             <div class="flex-1 overflow-y-auto mb-4 space-y-2 custom-scrollbar pr-1" x-show="breakdownSteps.length > 0">
-                 <p class="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-3">Suggested Plan</p>
-                 <template x-for="(step, idx) in breakdownSteps" :key="idx">
-                     <div class="flex items-start gap-3 p-3 bg-card border border-border/50 rounded-xl text-xs shadow-sm">
-                         <span class="flex items-center justify-center w-5 h-5 rounded-full bg-primary/10 text-primary font-bold text-[10px] shrink-0" x-text="idx + 1"></span>
-                         <span x-text="step" class="leading-relaxed text-foreground/80"></span>
-                     </div>
-                 </template>
-             </div>
-
-             <button @click="generateBreakdown()" :disabled="isGenerating || !breakdownPrompt"
-                     class="w-full py-3 bg-primary text-primary-foreground rounded-xl text-sm font-bold flex items-center justify-center gap-2 disabled:opacity-50 hover:opacity-90 transition-all shadow-lg shadow-primary/20">
-                 <template x-if="isGenerating">
-                     <span class="flex items-center gap-2">
-                        <i data-lucide="loader-2" class="w-4 h-4 animate-spin"></i>
-                        <span class="tracking-wide">Analyzing...</span>
-                     </span>
-                 </template>
-                 <template x-if="!isGenerating">
-                     <span class="tracking-wide" x-text="breakdownSteps.length > 0 ? 'Accept Plan & Create Tasks' : 'Generate Breakdown'"></span>
-                 </template>
-             </button>
-         </div>
+         @include('components.widget.widget-modals')
     </div>
 
     <!-- Trigger Button -->
@@ -517,6 +203,27 @@
             showSearch: false,
             searchQuery: '',
 
+            // Voice / Meeting Scribe
+            isRecording: false,
+            recordingTime: 0,
+            audioBlob: null,
+            isProcessing: false,
+            mediaRecorder: null,
+            audioChunks: [],
+            timerInterval: null,
+            recordingTitle: '',
+            recordingDescription: '',
+            isPlayingAudio: false,
+            audioPlayer: null,
+            availableMicrophones: [],
+            selectedMicrophoneId: 'default',
+
+            // Ghost Studio
+            isGhostRecording: false,
+            ghostEvents: [],
+            ghostDemos: [],
+            stopFn: null,
+
             get pendingCount() {
                 return this.tasks.filter(t => t.status !== 'completed').length;
             },
@@ -541,6 +248,8 @@
 
             init() {
                 this.fetchData();
+                this.getMicrophones(); // Try to fetch mics if permission already granted
+                
                 this.$watch('isOpen', value => {
                     if (value && window.lucide) {
                         setTimeout(() => lucide.createIcons(), 100);
@@ -549,6 +258,9 @@
                 this.$watch('activeTab', value => {
                     if (value === 'history') {
                         this.fetchHistory();
+                    }
+                    if (value === 'voice') {
+                        this.getMicrophones();
                     }
                 });
                 
@@ -889,6 +601,272 @@
                     }
                 } catch (e) { console.error(e); alert('Connection error.'); }
                 finally { this.isGenerating = false; }
+            },
+
+            // --- Voice Methods ---
+
+            async getMicrophones() {
+                if (!navigator.mediaDevices || !navigator.mediaDevices.enumerateDevices) return;
+                
+                try {
+                    // We need to request permission first to get labels
+                    // But we don't want to start recording yet.
+                    // Just enumerating usually returns empty labels if permission not granted.
+                    // If user has already granted permission (persisted), labels will show.
+                    
+                    const devices = await navigator.mediaDevices.enumerateDevices();
+                    this.availableMicrophones = devices.filter(device => device.kind === 'audioinput');
+                    
+                    if (this.availableMicrophones.length > 0 && this.selectedMicrophoneId === 'default') {
+                        // Keep default or select first? Default is fine.
+                    }
+                } catch (err) {
+                    console.error("Error fetching microphones:", err);
+                }
+            },
+
+            async startRecording() {
+                console.log('startRecording initiated');
+                
+                if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+                    alert('Audio recording is not supported in this browser or context (requires HTTPS or localhost).');
+                    return;
+                }
+
+                // Check Permissions API if available
+                if (navigator.permissions && navigator.permissions.query) {
+                    try {
+                        const permissionStatus = await navigator.permissions.query({ name: 'microphone' });
+                        if (permissionStatus.state === 'denied') {
+                            alert("Microphone access is blocked. Please click the lock icon in your address bar and allow microphone access.");
+                            return;
+                        }
+                    } catch (e) {
+                        console.log("Permission query skipped:", e);
+                    }
+                }
+
+                try {
+                    console.log('Requesting microphone access...');
+                    
+                    const constraints = { 
+                        audio: this.selectedMicrophoneId !== 'default' 
+                            ? { deviceId: { exact: this.selectedMicrophoneId } } 
+                            : true 
+                    };
+
+                    const stream = await navigator.mediaDevices.getUserMedia(constraints);
+                    console.log('Microphone access granted');
+                    
+                    // Refresh mic list now that we have permission (labels might appear)
+                    this.getMicrophones();
+                    
+                    let mimeType = 'audio/webm';
+                    if (MediaRecorder.isTypeSupported('audio/webm;codecs=opus')) {
+                        mimeType = 'audio/webm;codecs=opus';
+                    } else if (MediaRecorder.isTypeSupported('audio/mp4')) {
+                        mimeType = 'audio/mp4';
+                    }
+                    console.log('Using MIME type:', mimeType);
+
+                    this.mediaRecorder = new MediaRecorder(stream, { mimeType });
+                    this.audioChunks = [];
+
+                    this.mediaRecorder.ondataavailable = (event) => {
+                        if (event.data.size > 0) {
+                            this.audioChunks.push(event.data);
+                        }
+                    };
+
+                    this.mediaRecorder.onstop = () => {
+                        this.audioBlob = new Blob(this.audioChunks, { type: mimeType });
+                        this.audioChunks = [];
+                        
+                        // Stop all tracks to release mic
+                        stream.getTracks().forEach(track => track.stop());
+                    };
+
+                    this.mediaRecorder.start();
+                    this.isRecording = true;
+                    this.recordingTime = 0;
+                    this.recordingTitle = 'Meeting - ' + new Date().toLocaleDateString();
+                    this.recordingDescription = '';
+                    
+                    this.timerInterval = setInterval(() => {
+                        this.recordingTime++;
+                    }, 1000);
+
+                } catch (err) {
+                    console.error("Microphone access denied or error:", err);
+                    alert("Microphone access is required for this feature. Please check your browser permissions.");
+                }
+            },
+
+            stopRecording() {
+                if (this.mediaRecorder && this.mediaRecorder.state !== 'inactive') {
+                    this.mediaRecorder.stop();
+                    this.isRecording = false;
+                    clearInterval(this.timerInterval);
+                }
+            },
+
+            discardRecording() {
+                this.audioBlob = null;
+                this.recordingTime = 0;
+                this.isRecording = false;
+                if (this.timerInterval) clearInterval(this.timerInterval);
+                if (this.audioPlayer) {
+                    this.audioPlayer.pause();
+                    this.audioPlayer = null;
+                    this.isPlayingAudio = false;
+                }
+            },
+
+            toggleAudioPlayback() {
+                if (this.isPlayingAudio && this.audioPlayer) {
+                    this.audioPlayer.pause();
+                    this.isPlayingAudio = false;
+                    return;
+                }
+
+                if (!this.audioPlayer && this.audioBlob) {
+                    const audioUrl = URL.createObjectURL(this.audioBlob);
+                    this.audioPlayer = new Audio(audioUrl);
+                    this.audioPlayer.onended = () => {
+                        this.isPlayingAudio = false;
+                    };
+                }
+
+                if (this.audioPlayer) {
+                    this.audioPlayer.play();
+                    this.isPlayingAudio = true;
+                }
+            },
+
+            formatTime(seconds) {
+                const mins = Math.floor(seconds / 60);
+                const secs = seconds % 60;
+                return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+            },
+
+            async processAudio(type) {
+                if (!this.audioBlob) return;
+                this.isProcessing = true;
+
+                const formData = new FormData();
+                formData.append('audio', this.audioBlob, 'recording.webm');
+                formData.append('type', type); // 'note' or 'tasks'
+                formData.append('title', this.recordingTitle);
+                formData.append('description', this.recordingDescription);
+
+                try {
+                    const res = await fetch('/tasks/voice-to-intelligence', {
+                        method: 'POST',
+                        headers: { 
+                            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content 
+                        },
+                        body: formData
+                    });
+
+                    const data = await res.json();
+
+                    if (data.success) {
+                        window.playTaskSound('success');
+                        
+                        if (type === 'note') {
+                            this.notes.unshift(data.note);
+                            this.activeTab = 'notes';
+                        } else if (type === 'tasks') {
+                            // If it created a parent task with subtasks
+                            if (data.task) {
+                                this.tasks.unshift(data.task);
+                            }
+                            // If it returned a list of individual tasks
+                            if (data.tasks) {
+                                // this.tasks = [...data.tasks, ...this.tasks]; // Prepend multiple?
+                                // Let's assume the backend returns a single parent task for cleaner UI usually
+                            }
+                            this.activeTab = 'tasks';
+                        }
+                        
+                        this.discardRecording(); // Reset UI
+                        this.fetchData(); // Ensure sync
+                    } else {
+                        alert('Processing failed: ' + (data.message || 'Unknown error'));
+                    }
+                } catch (e) {
+                    console.error(e);
+                    alert('Upload failed. Please check connection.');
+                } finally {
+                    this.isProcessing = false;
+                }
+            },
+
+            // --- Ghost Studio Methods ---
+
+            startGhostRecording() {
+                if (typeof rrweb === 'undefined') {
+                    alert('Ghost Recorder resources not loaded. Please refresh the page.');
+                    return;
+                }
+
+                this.ghostEvents = [];
+                this.isGhostRecording = true;
+                this.isOpen = false; // Hide widget to record the app interaction
+
+                this.stopFn = rrweb.record({
+                    emit: (event) => {
+                        this.ghostEvents.push(event);
+                    },
+                    recordCanvas: true,
+                    collectFonts: true
+                });
+            },
+
+            stopGhostRecording() {
+                if (this.stopFn) {
+                    this.stopFn();
+                    this.stopFn = null;
+                }
+                this.isGhostRecording = false;
+                this.isOpen = true; // Show widget again
+                this.saveGhostRecording();
+            },
+
+            async saveGhostRecording() {
+                if (this.ghostEvents.length < 2) return;
+
+                const title = 'Demo ' + new Date().toLocaleTimeString();
+                
+                try {
+                    const res = await fetch('/tasks/ghost-demo', {
+                        method: 'POST',
+                        headers: { 
+                            'Content-Type': 'application/json',
+                            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content 
+                        },
+                        body: JSON.stringify({ 
+                            title: title,
+                            events: this.ghostEvents 
+                        })
+                    });
+                    
+                    const data = await res.json();
+                    if(data.success) {
+                        this.ghostDemos.unshift(data.demo);
+                        this.ghostEvents = [];
+                        window.playTaskSound('success');
+                    } else {
+                        alert('Failed to save demo: ' + data.message);
+                    }
+                } catch(e) {
+                    console.error(e);
+                    alert('Failed to save demo. Recording might be too large.');
+                }
+            },
+
+            playDemo(id) {
+                window.open('/tasks/ghost-demo/' + id, '_blank');
             },
             
             playSound(type) {

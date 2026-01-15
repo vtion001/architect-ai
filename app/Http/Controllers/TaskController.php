@@ -209,4 +209,153 @@ class TaskController extends Controller
             return response()->json(['success' => false, 'message' => 'Server error'], 500);
         }
     }
+
+    public function voiceToIntelligence(Request $request): JsonResponse
+    {
+        $request->validate([
+            'audio' => 'required|file|mimes:webm,mp3,mp4,wav,m4a|max:25600', // 25MB max
+            'type' => 'required|in:note,tasks',
+        ]);
+
+        $file = $request->file('audio');
+        $apiKey = config('services.openai.key');
+
+        if (!$apiKey) {
+            return response()->json(['success' => false, 'message' => 'AI not configured'], 503);
+        }
+
+        try {
+            // 1. Transcribe Audio (Whisper)
+            $transcriptionResponse = Http::withToken($apiKey)
+                ->attach('file', file_get_contents($file->getPathname()), $file->getClientOriginalName())
+                ->post('https://api.openai.com/v1/audio/transcriptions', [
+                    'model' => 'whisper-1',
+                    'language' => 'en',
+                ]);
+
+            if ($transcriptionResponse->failed()) {
+                Log::error('Whisper API Error: ' . $transcriptionResponse->body());
+                return response()->json(['success' => false, 'message' => 'Transcription failed'], 500);
+            }
+
+            $transcript = $transcriptionResponse->json('text');
+
+            if (empty($transcript)) {
+                return response()->json(['success' => false, 'message' => 'No speech detected'], 422);
+            }
+
+            // 2. Process based on Type
+            if ($request->type === 'note') {
+                $note = Task::create([
+                    'tenant_id' => auth()->user()->tenant_id,
+                    'user_id' => auth()->id(),
+                    'title' => 'Voice Memo - ' . now()->format('M d, H:i'),
+                    'description' => $transcript,
+                    'type' => 'note',
+                    'status' => 'pending'
+                ]);
+
+                return response()->json(['success' => true, 'note' => $note]);
+            } 
+            
+            if ($request->type === 'tasks') {
+                // 3. Extract Tasks via GPT-4o
+                $aiResponse = Http::withToken($apiKey)->post('https://api.openai.com/v1/chat/completions', [
+                    'model' => 'gpt-4o',
+                    'messages' => [
+                        [
+                            'role' => 'system',
+                            'content' => "You are an executive assistant. Analyze the meeting transcript. 
+                            1. Identify the main topic/goal for the Project Title.
+                            2. Extract clear, actionable steps as Tasks.
+                            Return JSON ONLY: { \"title\": \"Project Title\", \"tasks\": [\"Action Item 1\", \"Action Item 2\"] }"
+                        ],
+                        ['role' => 'user', 'content' => $transcript]
+                    ],
+                    'response_format' => ['type' => 'json_object']
+                ]);
+
+                if ($aiResponse->successful()) {
+                    $content = $aiResponse->json('choices.0.message.content');
+                    $data = json_decode($content, true);
+
+                    $parentTask = Task::create([
+                        'tenant_id' => auth()->user()->tenant_id,
+                        'user_id' => auth()->id(),
+                        'title' => $data['title'] ?? 'Voice Meeting Results',
+                        'description' => "Transcript Summary:\n" . substr($transcript, 0, 500) . (strlen($transcript)>500 ? '...' : ''),
+                        'type' => 'task',
+                        'status' => 'pending'
+                    ]);
+
+                    if (!empty($data['tasks']) && is_array($data['tasks'])) {
+                        foreach ($data['tasks'] as $step) {
+                            Task::create([
+                                'tenant_id' => auth()->user()->tenant_id,
+                                'user_id' => auth()->id(),
+                                'parent_id' => $parentTask->id,
+                                'title' => $step,
+                                'type' => 'task',
+                                'status' => 'pending'
+                            ]);
+                        }
+                    }
+
+                    return response()->json(['success' => true, 'task' => $parentTask->load('subtasks')]);
+                }
+            }
+
+            return response()->json(['success' => false, 'message' => 'Processing failed'], 500);
+
+        } catch (\Exception $e) {
+            Log::error('Voice processing error: ' . $e->getMessage());
+            return response()->json(['success' => false, 'message' => 'Server error: ' . $e->getMessage()], 500);
+        }
+    }
+
+    public function storeGhostDemo(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'title' => 'required|string|max:255',
+            'events' => 'required|array',
+        ]);
+
+        try {
+            $filename = 'demos/ghost-' . \Illuminate\Support\Str::uuid() . '.json';
+            \Illuminate\Support\Facades\Storage::disk('public')->put($filename, json_encode($validated['events']));
+
+            $document = \App\Models\Document::create([
+                'tenant_id' => auth()->user()->tenant_id,
+                'user_id' => auth()->id(),
+                'name' => $validated['title'],
+                'type' => 'GHOST_DEMO',
+                'category' => 'Demos',
+                'path' => $filename,
+                'size' => strlen(json_encode($validated['events'])),
+                'status' => 'completed',
+                'content' => '', // Content is in file
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'demo' => [
+                    'id' => $document->id,
+                    'title' => $document->name,
+                    'created_at' => $document->created_at->toIso8601String(),
+                ]
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Ghost save error: ' . $e->getMessage());
+            return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
+        }
+    }
+
+    public function showGhostDemo(\App\Models\Document $document)
+    {
+        if ($document->type !== 'GHOST_DEMO') abort(404);
+        
+        $events = json_decode(\Illuminate\Support\Facades\Storage::disk('public')->get($document->path), true);
+        
+        return view('tasks.ghost-player', compact('document', 'events'));
+    }
 }

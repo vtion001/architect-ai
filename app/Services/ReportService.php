@@ -433,7 +433,8 @@ class ReportService
             \Illuminate\Support\Facades\Log::error('OpenAI Error: ' . $e->getMessage());
         }
 
-        return $this->getDummyContent();
+        // Fallback: Use template-specific sample content instead of generic dummy
+        return $this->getSampleContentForTemplate($data->template);
     }
 
     /**

@@ -59,6 +59,11 @@ Route::middleware(['auth', 'tenant', 'mfa', 'session_security'])->group(function
     Route::post('tasks/{task}/restore', [\App\Http\Controllers\TaskController::class, 'restore'])->name('tasks.restore');
     Route::delete('tasks/{task}/force', [\App\Http\Controllers\TaskController::class, 'forceDelete'])->name('tasks.force-delete');
     Route::post('tasks/breakdown', [\App\Http\Controllers\TaskController::class, 'breakdown'])->name('tasks.breakdown');
+    Route::post('tasks/voice-to-intelligence', [\App\Http\Controllers\TaskController::class, 'voiceToIntelligence'])->name('tasks.voice');
+    
+    // Ghost Demo Routes
+    Route::post('tasks/ghost-demo', [\App\Http\Controllers\TaskController::class, 'storeGhostDemo'])->name('tasks.ghost-demo.store');
+    Route::get('tasks/ghost-demo/{document}', [\App\Http\Controllers\TaskController::class, 'showGhostDemo'])->name('tasks.ghost-demo.show');
     Route::post('task-categories', [\App\Http\Controllers\TaskController::class, 'storeCategory'])->name('task-categories.store');
     Route::delete('task-categories/{category}', [\App\Http\Controllers\TaskController::class, 'destroyCategory'])->name('task-categories.destroy');
 
