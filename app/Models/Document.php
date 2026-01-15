@@ -17,6 +17,7 @@ class Document extends Model
         'name',
         'type',
         'category',
+        'status',
         'size',
         'path',
         'content',

@@ -51,6 +51,7 @@
     isLoadingPreview: false,
     generateStage: '', // 'initializing', 'analyzing', 'generating', 'rendering'
     generateProgress: 0, // 0-100
+    pendingDocumentId: null, // Track document being generated in background
     activeTab: 'preview',
     htmlPreview: '',
     tailoringReport: '',
@@ -288,28 +289,58 @@
         });
     },
     pollDocumentStatus(id) {
+        // Store for potential recovery
+        this.pendingDocumentId = id;
+        
         const poll = setInterval(() => {
             fetch(`/documents/${id}`, {
                 headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' }
             })
             .then(res => res.json())
             .then(doc => {
-                const status = doc.metadata?.status;
+                // Status is now at root level, not in metadata
+                const status = doc.status;
+                
+                // Update progress based on status
+                if (status === 'processing') {
+                    this.generateStage = 'generating';
+                    if (this.generateProgress < 85) {
+                        this.generateProgress += 2;
+                    }
+                }
+                
                 if (status === 'completed') {
                     clearInterval(poll);
+                    this.generateProgress = 100;
+                    this.generateStage = 'complete';
                     this.processGeneratedHtml(doc.content);
+                    this.pendingDocumentId = null;
                 } else if (status === 'failed') {
                     clearInterval(poll);
                     this.isGenerating = false;
-                    alert('Report generation failed. Please try again.');
+                    this.generateStage = '';
+                    this.generateProgress = 0;
+                    this.pendingDocumentId = null;
+                    const errorMsg = doc.metadata?.error || 'Unknown error occurred';
+                    alert('Report generation failed: ' + errorMsg);
                 }
             })
             .catch(err => {
                 console.error('Polling error:', err);
-                clearInterval(poll);
-                this.isGenerating = false;
+                // Don't stop polling on network hiccup, retry
             });
-        }, 2000);
+        }, 3000); // Poll every 3 seconds
+        
+        // Optional: Set a max timeout (5 minutes)
+        setTimeout(() => {
+            clearInterval(poll);
+            if (this.isGenerating && this.pendingDocumentId === id) {
+                this.isGenerating = false;
+                this.generateStage = '';
+                this.generateProgress = 0;
+                alert('Generation is taking longer than expected. Check your Documents page for the result.');
+            }
+        }, 5 * 60 * 1000);
     },
     processGeneratedHtml(html) {
         let finalHtml = html;
@@ -775,6 +806,15 @@
                                 
                                 <!-- Percentage -->
                                 <p class="mono text-[10px] font-black text-primary/80" x-text="Math.round(Math.min(generateProgress, 100)) + '% Complete'"></p>
+                                
+                                <!-- Safe to Navigate Notice -->
+                                <div class="pt-4 border-t border-white/10">
+                                    <p class="text-[10px] text-white/50 flex items-center justify-center gap-2">
+                                        <i data-lucide="check-circle" class="w-3 h-3 text-green-400"></i>
+                                        Safe to navigate away — document will be saved to 
+                                        <a href="/documents" class="text-primary underline hover:text-primary/80">Documents</a>
+                                    </p>
+                                </div>
                             </div>
                         </template>
                         

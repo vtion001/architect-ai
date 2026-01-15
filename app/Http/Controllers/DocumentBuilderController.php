@@ -167,8 +167,6 @@ class DocumentBuilderController extends Controller
 
             $data = ReportRequestData::fromArray($validated);
             
-            $html = $this->reportService->generateReportHtml($data);
-
             // Determine Document Name
             $templateLabel = ReportTemplate::tryFrom($request->template)?->label() ?? 'Report';
             $baseName = $request->researchTopic ?? $request->analysisType ?? 'Generated Document';
@@ -182,15 +180,15 @@ class DocumentBuilderController extends Controller
                 $baseName = $request->researchTopic . ' - ' . $templateLabel;
             }
 
-            // Save to Documents table
+            // Create Document with pending status (will be updated by job)
             $document = Document::create([
                 'tenant_id' => auth()->user()->tenant_id,
                 'user_id' => auth()->id(),
                 'name' => Str::limit($baseName, 150) . ' (' . now()->format('M d, Y') . ')',
                 'type' => 'HTML',
                 'category' => 'Reports',
-                'size' => strlen($html),
-                'content' => $html,
+                'status' => 'pending',
+                'content' => '', // Will be populated by job
                 'metadata' => [
                     'template' => $request->template,
                     'variant' => $request->variant,
@@ -199,21 +197,21 @@ class DocumentBuilderController extends Controller
                 ]
             ]);
             
+            // Dispatch background job for generation
+            \App\Jobs\GenerateDocument::dispatch($document, auth()->user(), $data, $tokenCost);
+            
             return response()->json([
-                'html' => $html,
+                'success' => true,
+                'status' => 'processing',
                 'document_id' => $document->id,
-                'success' => true
+                'message' => 'Document generation started. You can navigate away - we\'ll save it to your Documents when ready.'
             ]);
 
         } catch (\Exception $e) {
-            // Attempt refund if token was consumed (simplified logic for safety)
-            // Ideally we track if consume() succeeded before refunding, but avoiding complexity here.
-            
-            \Illuminate\Support\Facades\Log::error('Report generation failed', [
+            \Illuminate\Support\Facades\Log::error('Report generation dispatch failed', [
                 'error' => $e->getMessage(),
                 'file' => $e->getFile(),
                 'line' => $e->getLine(),
-                'trace' => $e->getTraceAsString()
             ]);
             
             return response()->json([

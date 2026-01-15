@@ -25,8 +25,20 @@ class DocumentsController extends Controller
         return view('documents.index', compact('documents', 'stats'));
     }
 
-    public function show(Document $document)
+    public function show(Request $request, Document $document)
     {
+        // Return JSON for AJAX status polling
+        if ($request->expectsJson() || $request->ajax()) {
+            return response()->json([
+                'id' => $document->id,
+                'name' => $document->name,
+                'status' => $document->status ?? 'completed',
+                'content' => $document->content,
+                'metadata' => $document->metadata,
+                'created_at' => $document->created_at,
+            ]);
+        }
+        
         return view('documents.viewer', compact('document'));
     }
 
