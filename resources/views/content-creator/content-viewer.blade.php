@@ -2,28 +2,57 @@
 
 @php
     // Pre-process posts data for JavaScript
-    // Improved regex to handle various newline formats and optional spacing around separators
-    $rawSegments = preg_split('/[\r\n]+\s*-{3,}\s*[\r\n]+/', $content->result ?? '');
+    // Improved regex to handle various newline formats, optional spacing, and dash counts (3 or more)
+    // Supports separators at start/end or with varying whitespace
+    $rawResult = trim($content->result ?? '');
+    
+    // Improved regex to handle various newline formats and common separators (---, ***, ___)
+    // This looks for a separator line that contains at least 3 repeat characters
+    $rawSegments = preg_split('/(?:\R|^)\s*[-*_]{3,}\s*(?:\R|$)/', $rawResult);
+    
+    // Fallback 1: If split didn't yield enough parts, try splitting by explicit double newline + number (e.g. "1. ")
+    if (count($rawSegments) < ($content->options['count'] ?? 1)) {
+        // Look for lines starting with "1. ", "2. ", etc., but only if preceded by a newline
+        $numberedSplit = preg_split('/\R\s*\d+\.\s+/', $rawResult);
+        if (count($numberedSplit) > count($rawSegments)) {
+            $rawSegments = $numberedSplit;
+        }
+    }
+
+    // Fallback 2: If we still have 1 card but expect more, try splitting by just double newlines if they are long
+    if (count($rawSegments) < ($content->options['count'] ?? 1) && strlen($rawResult) > 500) {
+        $newlineSplit = preg_split('/\R{2,}/', $rawResult);
+        if (count($newlineSplit) >= ($content->options['count'] ?? 1)) {
+            $rawSegments = $newlineSplit;
+        }
+    }
+
     $postsData = [];
     $globalHashtags = '';
 
     if (!empty($rawSegments)) {
-        $lastSegment = trim(end($rawSegments));
-        if (count($rawSegments) > 1 && str_starts_with($lastSegment, '#') && strlen($lastSegment) < 300) {
+        // Filter out empty segments and trim whitespace
+        $rawSegments = array_values(array_filter(array_map('trim', $rawSegments)));
+        
+        // Handle global hashtags if they appear as a separate segment at the end
+        $lastSegment = end($rawSegments);
+        if (count($rawSegments) > 1 && str_starts_with($lastSegment, '#') && strlen($lastSegment) < 300 && !str_contains($lastSegment, "\n")) {
             array_pop($rawSegments);
             $globalHashtags = $lastSegment;
         }
-        $rawSegments = array_values(array_filter($rawSegments));
     } else {
         $rawSegments = [$content->result ?? 'No content generated.'];
     }
 
     foreach ($rawSegments as $idx => $post) {
         $finalPostContent = trim($post);
+        // Remove leading sequence numbers like "1. " if present
         $finalPostContent = preg_replace('/^\d+\.\s*/', '', $finalPostContent);
-        if ($globalHashtags) {
+        
+        if ($globalHashtags && !str_contains($finalPostContent, $globalHashtags)) {
             $finalPostContent .= "\n\n" . $globalHashtags;
         }
+        
         $cleanText = preg_replace('/^#+\s+/m', '', $finalPostContent);
         $cleanText = str_replace(['*', '`'], '', $cleanText);
         $cleanHtml = nl2br(e($cleanText));

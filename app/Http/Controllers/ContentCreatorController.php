@@ -94,6 +94,9 @@ class ContentCreatorController extends Controller
             'brand_id'
         ]);
 
+        // Explicitly cast count to integer to ensure consistent behavior in AI prompts and logic
+        $options['count'] = (int) ($options['count'] ?? 1);
+
         // Inject Brand Context
         $context = $request->input('context');
         if ($request->filled('brand_id')) {
@@ -361,11 +364,14 @@ class ContentCreatorController extends Controller
         $content = Content::findOrFail($request->content_id);
         
         try {
+            $options = $content->options ?? [];
+            $options['count'] = 1; // Force single post generation for redo requests
+
             $newText = $this->contentService->generateText(
                 $content->topic, 
                 $content->type, 
                 "REWRITE THIS POST. Original context: " . $content->context . ". \n\nCONTENT TO IMPROVE: " . $request->current_text,
-                $content->options ?? []
+                $options
             );
 
             return response()->json([

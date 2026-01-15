@@ -108,9 +108,11 @@ class AiAgentController extends Controller
     {
         $validated = $request->validate([
             'agent_id' => 'required|exists:ai_agents,id',
-            'message' => 'required|string|max:5000',
+            'message' => 'nullable|string|max:5000',
             'session_id' => 'nullable|string',
             'brand_id' => 'nullable|exists:brands,id',
+            'mode' => 'nullable|in:quick,thinking',
+            'image' => 'nullable|image|max:5120', // 5MB max
         ]);
 
         $agent = AiAgent::findOrFail($validated['agent_id']);
@@ -118,23 +120,38 @@ class AiAgentController extends Controller
         // Policy-based authorization
         $this->authorize('chat', $agent);
 
-        // Get or create conversation with tenant_id for isolation
+        // Handle Image Upload
+        $imageUrl = null;
+        if ($request->hasFile('image')) {
+            $file = $request->file('image');
+            $filename = 'chat-' . time() . '-' . Str::random(10) . '.' . $file->getClientOriginalExtension();
+            $file->move(public_path('uploads/chat-images'), $filename);
+            $imageUrl = asset('uploads/chat-images/' . $filename);
+        }
+
+        if (empty($validated['message']) && !$imageUrl) {
+            return response()->json(['success' => false, 'message' => 'Message or image required'], 422);
+        }
+
+        // Get or create conversation
         $sessionId = $validated['session_id'] ?? Str::uuid()->toString();
         $conversation = AgentConversation::firstOrCreate(
             ['agent_id' => $agent->id, 'session_id' => $sessionId],
             ['tenant_id' => $agent->tenant_id, 'user_id' => auth()->id(), 'messages' => []]
         );
 
-        // Add user message
-        $conversation->addMessage('user', $validated['message']);
+        // Add user message with metadata
+        $conversation->addMessage('user', $validated['message'] ?? '', ['image_url' => $imageUrl]);
 
         // Dispatch Job
         ProcessAiChatMessage::dispatch(
             auth()->user(),
             $agent,
             $conversation,
-            $validated['message'],
-            $validated['brand_id'] ?? null
+            $validated['message'] ?? '',
+            $validated['brand_id'] ?? null,
+            $validated['mode'] ?? 'quick',
+            $imageUrl
         );
 
         return response()->json([

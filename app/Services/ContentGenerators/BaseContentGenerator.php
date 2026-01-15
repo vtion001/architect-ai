@@ -34,7 +34,7 @@ abstract class BaseContentGenerator implements ContentGeneratorInterface
     protected function callOpenAI(string $systemPrompt, string $userPrompt, array $options = []): string
     {
         $apiKey = config('services.openai.key');
-        $model = config('services.openai.model', 'gpt-4o-mini');
+        $model = $options['model'] ?? config('services.openai.model', 'gpt-4o-mini');
 
         $response = \Illuminate\Support\Facades\Http::withToken($apiKey)
             ->timeout($options['timeout'] ?? 120)

@@ -26,7 +26,9 @@ class ProcessAiChatMessage implements ShouldQueue
         protected AiAgent $agent,
         protected AgentConversation $conversation,
         protected string $userMessage,
-        protected ?string $brandId = null
+        protected ?string $brandId = null,
+        protected string $mode = 'quick',
+        protected ?string $imageUrl = null
     ) {}
 
     public function handle(ResearchService $researchService): void
@@ -74,10 +76,27 @@ class ProcessAiChatMessage implements ShouldQueue
                 Log::warning("Agent RAG failed: " . $e->getMessage());
             }
 
+            // Format User Message (with Vision support if needed)
+            $userContent = [];
+            if ($this->imageUrl) {
+                $userContent[] = ['type' => 'text', 'text' => $this->userMessage ?: 'Analyze this image.'];
+                $userContent[] = ['type' => 'image_url', 'image_url' => ['url' => $this->imageUrl]];
+            } else {
+                $userContent = $this->userMessage;
+            }
+
             $messages = [
                 ['role' => 'system', 'content' => $systemPrompt . "\n\nCRITICAL: DO NOT use markdown symbols like '*' or '#' for formatting. Use plain text and clear spacing. For lists, use simple bullet points like '-' or '•'"],
                 ...$this->conversation->getMessagesForApi(),
             ];
+
+            // If we just added the last message locally, replace its content with the Vision-formatted one
+            if ($this->imageUrl) {
+                $lastIdx = count($messages) - 1;
+                if ($messages[$lastIdx]['role'] === 'user') {
+                    $messages[$lastIdx]['content'] = $userContent;
+                }
+            }
 
             $apiKey = config('services.openai.key');
             if (!$apiKey) {
@@ -85,10 +104,16 @@ class ProcessAiChatMessage implements ShouldQueue
                 return;
             }
 
+            // Determine Model: Thinking mode or Images require higher tier
+            $model = $this->agent->model ?? config('services.openai.model', 'gpt-4o-mini');
+            if ($this->mode === 'thinking' || $this->imageUrl) {
+                $model = 'gpt-4o'; // Upgrade for deep thinking or vision
+            }
+
             $response = Http::withToken($apiKey)
-                ->timeout(60)
+                ->timeout(90) // Increased for thinking/vision
                 ->post('https://api.openai.com/v1/chat/completions', [
-                    'model' => $this->agent->model ?? config('services.openai.model', 'gpt-4o-mini'),
+                    'model' => $model,
                     'messages' => $messages,
                     'temperature' => $this->agent->temperature ?? 0.7,
                     'max_tokens' => $this->agent->max_tokens ?? 2000,
@@ -107,7 +132,6 @@ class ProcessAiChatMessage implements ShouldQueue
                     'agent_id' => $this->agent->id,
                     'error' => $response->body()
                 ]);
-                // Optionally add an error message to the conversation so the user knows it failed
                 $this->conversation->addMessage('assistant', 'Sorry, I encountered an error processing your request.');
             }
 

@@ -43,7 +43,7 @@
      x-data="aiChatWidget('{{ $agent->id }}', '{{ $agent->name }}', '{{ $primaryColor }}', '{{ $agent->welcome_message ?? 'Hello! How can I help you?' }}', {{ json_encode($brands) }})"
      @open-ai-chat.window="if($event.detail && $event.detail.id === '{{ $agent->id }}') isOpen = true">
     
-    {{-- Chat Popup Window - Fixed size, NOT fullscreen --}}
+    {{-- Chat Popup Window --}}
     <div x-show="isOpen" 
          x-cloak
          x-transition:enter="transition ease-out duration-200"
@@ -52,7 +52,7 @@
          x-transition:leave="transition ease-in duration-150"
          x-transition:leave-start="opacity-100 scale-100 translate-x-0"
          x-transition:leave-end="opacity-0 scale-95 translate-x-4"
-         style="position: fixed; {{ $chatPosition }} z-index: 99998; width: 380px; max-width: calc(100vw - 48px); height: 520px; max-height: calc(100vh - 48px);"
+         style="position: fixed; {{ $chatPosition }} z-index: 99998; width: 380px; max-width: calc(100vw - 48px); height: 580px; max-height: calc(100vh - 48px);"
          class="bg-card border border-border rounded-2xl shadow-2xl overflow-hidden flex flex-col">
         
         {{-- Header --}}
@@ -86,16 +86,28 @@
                 </div>
             </div>
 
-            {{-- Brand Selection --}}
-            <div x-show="brands.length > 0" class="relative">
-                <select x-model="selectedBrandId" 
-                        class="w-full h-8 bg-background/50 border border-border rounded-lg pl-2 pr-8 text-[10px] font-bold uppercase tracking-widest outline-none focus:ring-1 focus:ring-primary/20 appearance-none cursor-pointer">
-                    <option value="">No Brand Context</option>
-                    <template x-for="brand in brands" :key="brand.id">
-                        <option :value="brand.id" x-text="brand.name"></option>
-                    </template>
-                </select>
-                <i data-lucide="chevron-down" class="absolute right-2 top-1/2 -translate-y-1/2 w-3 h-3 text-muted-foreground pointer-events-none"></i>
+            <div class="flex items-center gap-2">
+                {{-- Brand Selection --}}
+                <div x-show="brands.length > 0" class="relative flex-1">
+                    <select x-model="selectedBrandId" 
+                            class="w-full h-8 bg-background/50 border border-border rounded-lg pl-2 pr-8 text-[10px] font-bold uppercase tracking-widest outline-none focus:ring-1 focus:ring-primary/20 appearance-none cursor-pointer">
+                        <option value="">No Brand Context</option>
+                        <template x-for="brand in brands" :key="brand.id">
+                            <option :value="brand.id" x-text="brand.name"></option>
+                        </template>
+                    </select>
+                    <i data-lucide="chevron-down" class="absolute right-2 top-1/2 -translate-y-1/2 w-3 h-3 text-muted-foreground pointer-events-none"></i>
+                </div>
+
+                {{-- Mode Selection --}}
+                <div class="flex bg-background/50 border border-border rounded-lg p-0.5">
+                    <button @click="responseMode = 'quick'" 
+                            :class="responseMode === 'quick' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground'"
+                            class="px-2 py-1 rounded-md text-[9px] font-black uppercase tracking-widest transition-all">Quick</button>
+                    <button @click="responseMode = 'thinking'" 
+                            :class="responseMode === 'thinking' ? 'bg-indigo-600 text-white' : 'text-muted-foreground'"
+                            class="px-2 py-1 rounded-md text-[9px] font-black uppercase tracking-widest transition-all">Thinking</button>
+                </div>
             </div>
         </div>
 
@@ -127,6 +139,11 @@
                     <div :class="msg.role === 'user' 
                             ? 'bg-primary text-primary-foreground rounded-2xl rounded-tr-sm px-4 py-3 max-w-[85%]' 
                             : 'bg-muted/50 rounded-2xl rounded-tl-sm px-4 py-3 max-w-[85%]'">
+                        <template x-if="msg.image_url">
+                            <div class="mb-2 rounded-lg overflow-hidden border border-white/10">
+                                <img :src="msg.image_url" class="max-w-full h-auto object-contain">
+                            </div>
+                        </template>
                         <p class="text-sm whitespace-pre-wrap" x-text="msg.content"></p>
                     </div>
                 </div>
@@ -139,27 +156,48 @@
                     <i data-lucide="bot" class="w-4 h-4"></i>
                 </div>
                 <div class="bg-muted/50 rounded-2xl rounded-tl-sm px-4 py-3">
-                    <div class="flex gap-1">
-                        <span class="w-2 h-2 bg-slate-400 rounded-full animate-bounce" style="animation-delay: 0ms"></span>
-                        <span class="w-2 h-2 bg-slate-400 rounded-full animate-bounce" style="animation-delay: 150ms"></span>
-                        <span class="w-2 h-2 bg-slate-400 rounded-full animate-bounce" style="animation-delay: 300ms"></span>
+                    <div class="flex flex-col gap-2">
+                        <div class="flex gap-1">
+                            <span class="w-2 h-2 bg-slate-400 rounded-full animate-bounce" style="animation-delay: 0ms"></span>
+                            <span class="w-2 h-2 bg-slate-400 rounded-full animate-bounce" style="animation-delay: 150ms"></span>
+                            <span class="w-2 h-2 bg-slate-400 rounded-full animate-bounce" style="animation-delay: 300ms"></span>
+                        </div>
+                        <template x-if="responseMode === 'thinking'">
+                            <p class="text-[9px] font-black uppercase tracking-widest text-indigo-500 animate-pulse">Deep Thought Protocol Active...</p>
+                        </template>
                     </div>
                 </div>
             </div>
         </div>
 
         {{-- Input Area --}}
-        <div class="p-4 border-t border-border bg-muted/20 shrink-0">
+        <div class="p-4 border-t border-border bg-muted/20 shrink-0 space-y-3">
+            {{-- Attachment Preview --}}
+            <template x-if="attachmentPreview">
+                <div class="relative w-20 h-20 rounded-xl overflow-hidden border border-primary animate-in zoom-in-95">
+                    <img :src="attachmentPreview" class="w-full h-full object-cover">
+                    <button @click="clearAttachment()" class="absolute top-1 right-1 w-5 h-5 bg-black/60 rounded-full flex items-center justify-center text-white">
+                        <i data-lucide="x" class="w-3 h-3"></i>
+                    </button>
+                </div>
+            </template>
+
             <form @submit.prevent="sendMessage" class="flex gap-2">
+                <input type="file" x-ref="attachmentInput" @change="handleAttachment" class="hidden" accept="image/*">
+                <button type="button" @click="$refs.attachmentInput.click()" class="w-10 h-10 rounded-xl border border-border bg-card flex items-center justify-center text-muted-foreground hover:text-primary hover:border-primary/30 transition-all">
+                    <i data-lucide="paperclip" class="w-4 h-4"></i>
+                </button>
+                
                 <input type="text" 
                        x-model="inputMessage" 
                        :disabled="isTyping"
-                       placeholder="Type your message..." 
+                       placeholder="Ask or upload an image..." 
                        class="flex-1 h-10 px-4 rounded-xl border border-border bg-card text-sm focus:ring-2 focus:ring-primary/20 outline-none disabled:opacity-50">
+                
                 <button type="submit" 
-                        :disabled="!inputMessage.trim() || isTyping"
+                        :disabled="(!inputMessage.trim() && !attachment) || isTyping"
                         class="w-10 h-10 rounded-xl flex items-center justify-center text-white transition-all disabled:opacity-50 disabled:cursor-not-allowed hover:scale-105 active:scale-95"
-                        :style="{ backgroundColor: primaryColor }">
+                        :style="{ backgroundColor: responseMode === 'thinking' ? '#4f46e5' : primaryColor }">
                     <i data-lucide="send" class="w-4 h-4"></i>
                 </button>
             </form>
@@ -190,6 +228,9 @@ if (typeof window.aiChatWidget === 'undefined') {
             welcomeMessage: welcomeMessage,
             brands: brands,
             selectedBrandId: '',
+            responseMode: 'quick', // 'quick' or 'thinking'
+            attachment: null,
+            attachmentPreview: null,
             isOpen: false,
             isTyping: false,
             inputMessage: '',
@@ -213,6 +254,24 @@ if (typeof window.aiChatWidget === 'undefined') {
                 });
             },
 
+            handleAttachment(event) {
+                const file = event.target.files[0];
+                if (!file) return;
+                this.attachment = file;
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    this.attachmentPreview = e.target.result;
+                    this.$nextTick(() => lucide.createIcons());
+                };
+                reader.readAsDataURL(file);
+            },
+
+            clearAttachment() {
+                this.attachment = null;
+                this.attachmentPreview = null;
+                this.$refs.attachmentInput.value = '';
+            },
+
             toggleChat() {
                 this.isOpen = !this.isOpen;
                 if (this.isOpen) {
@@ -224,6 +283,12 @@ if (typeof window.aiChatWidget === 'undefined') {
             },
 
             async loadConversation() {
+                const token = document.querySelector('meta[name="csrf-token"]')?.content;
+                if (!token) {
+                    console.warn('CSRF token missing for AI Chat load');
+                    return;
+                }
+
                 try {
                     const response = await fetch('/ai-agents/conversation?' + new URLSearchParams({
                         agent_id: this.agentId,
@@ -231,7 +296,8 @@ if (typeof window.aiChatWidget === 'undefined') {
                     }), {
                         headers: {
                             'Accept': 'application/json',
-                            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content || ''
+                            'X-Requested-With': 'XMLHttpRequest',
+                            'X-CSRF-TOKEN': token
                         }
                     });
                     
@@ -247,39 +313,54 @@ if (typeof window.aiChatWidget === 'undefined') {
             },
 
             async sendMessage() {
-                if (!this.inputMessage.trim() || this.isTyping) return;
+                if ((!this.inputMessage.trim() && !this.attachment) || this.isTyping) return;
 
                 const userMessage = this.inputMessage.trim();
+                const currentAttachment = this.attachment;
+                const currentPreview = this.attachmentPreview;
+                
                 this.inputMessage = '';
-                this.messages.push({ role: 'user', content: userMessage });
+                this.clearAttachment();
+
+                // Add to local message list immediately
+                this.messages.push({ 
+                    role: 'user', 
+                    content: userMessage,
+                    image_url: currentPreview 
+                });
+                
                 this.scrollToBottom();
                 this.isTyping = true;
+
+                const formData = new FormData();
+                formData.append('agent_id', this.agentId);
+                formData.append('message', userMessage);
+                formData.append('session_id', this.sessionId);
+                formData.append('brand_id', this.selectedBrandId);
+                formData.append('mode', this.responseMode);
+                if (currentAttachment) {
+                    formData.append('image', currentAttachment);
+                }
 
                 try {
                     const response = await fetch('/ai-agents/chat', {
                         method: 'POST',
                         headers: {
-                            'Content-Type': 'application/json',
                             'Accept': 'application/json',
+                            'X-Requested-With': 'XMLHttpRequest',
                             'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content || ''
                         },
-                        body: JSON.stringify({
-                            agent_id: this.agentId,
-                            message: userMessage,
-                            session_id: this.sessionId,
-                            brand_id: this.selectedBrandId
-                        })
+                        body: formData
                     });
 
                     const data = await response.json();
                     
                     if (data.success) {
-                        // Start polling for response
                         this.startPolling();
                     } else {
                         this.messages.push({ 
                             role: 'assistant', 
-                            content: 'Sorry, I encountered an error. Please try again.' 
+                            content: 'Agent error: ' + (data.message || 'Unknown failure') 
                         });
                         this.isTyping = false;
                     }
@@ -287,7 +368,7 @@ if (typeof window.aiChatWidget === 'undefined') {
                     console.error('Chat error:', e);
                     this.messages.push({ 
                         role: 'assistant', 
-                        content: 'Connection error. Please check your network and try again.' 
+                        content: 'Connection lost. Please try again in a moment.' 
                     });
                     this.isTyping = false;
                 } finally {
@@ -299,17 +380,16 @@ if (typeof window.aiChatWidget === 'undefined') {
                 const pollInterval = setInterval(async () => {
                     await this.loadConversation();
                     
-                    // Check if last message is from assistant
                     const lastMsg = this.messages[this.messages.length - 1];
                     if (lastMsg && lastMsg.role === 'assistant') {
                         clearInterval(pollInterval);
                         this.isTyping = false;
                         this.scrollToBottom();
-                        
-                        // Play sound if window is not focused or chat is closed?
-                        // Optional enhancement
                     }
-                }, 3000); // Poll every 3 seconds
+                }, 2000); // Polling every 2s for responsiveness
+                
+                // Stop after 60s max
+                setTimeout(() => clearInterval(pollInterval), 60000);
             },
 
             async clearChat() {

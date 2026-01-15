@@ -27,6 +27,14 @@ class GenerateContent implements ShouldQueue
 
     public function handle(ContentService $contentService, TokenService $tokenService): void
     {
+        // Re-fetch model to ensure we have the absolute latest 'options' and state
+        $this->content = $this->content->fresh();
+
+        if (!$this->content) {
+            Log::error("Content Generation Job: Model not found.");
+            return;
+        }
+
         // Set Tenant Context for Isolation
         if ($this->user->tenant) {
             app()->instance(\App\Models\Tenant::class, $this->user->tenant);
@@ -45,8 +53,13 @@ class GenerateContent implements ShouldQueue
             );
 
             // Process Results (Title extraction, Word count)
-            $lines = explode("\n", trim($generatedText));
-            $title = !empty($lines[0]) ? str_replace(['#', '*', '='], '', $lines[0]) : $this->content->topic;
+            $lines = collect(explode("\n", trim($generatedText)))
+                ->map(fn($l) => trim($l))
+                ->filter(fn($l) => !empty($l) && !preg_match('/^-{3,}$/', $l)) // Ignore separator lines
+                ->values();
+            
+            $firstLine = $lines->first() ?? $this->content->topic;
+            $title = str_replace(['#', '*', '='], '', $firstLine);
             if (strlen($title) > 100) $title = substr($title, 0, 97) . '...';
 
             $wordCount = str_word_count(strip_tags($generatedText));

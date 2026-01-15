@@ -20,6 +20,8 @@ class SocialPostGenerator extends BaseContentGenerator
     {
         $tone = $options['tone'] ?? 'Professional';
         $cta = $options['cta'] ?? '';
+        $count = (int)($options['count'] ?? 1);
+        
         $lineBreaks = ($options['addLineBreaks'] ?? true) 
             ? "Use natural spacing and paragraph breaks for a human-like flow." 
             : "Use standard spacing.";
@@ -28,6 +30,11 @@ class SocialPostGenerator extends BaseContentGenerator
             : "";
         
         $humanize = $this->getHumanizeInstruction($tone);
+
+        $quantityRule = "";
+        if ($count > 1) {
+            $quantityRule = "\n- BATCH GENERATION: You are generating EXACTLY $count distinct, unique, and separate pieces of content. Each must be high-quality and different from the others.";
+        }
 
         // Check if we have viral examples
         $examples = $options['viral_examples'] ?? '';
@@ -43,7 +50,7 @@ class SocialPostGenerator extends BaseContentGenerator
                 - Distill the essence of these examples into SHORT, punchy captions.
                 - $humanize
                 - $lineBreaks
-                - $hashtags
+                - $hashtags$quantityRule
                 - Mandatory CTA: $cta";
         }
 
@@ -56,31 +63,57 @@ class SocialPostGenerator extends BaseContentGenerator
             - $humanize
             - Keep the content SHORT and impactful (under 280 chars preferred).
             - $lineBreaks
-            - $hashtags
+            - $hashtags$quantityRule
             - Make the first sentence a compelling personal hook or pattern interrupt.
             - Mandatory CTA: $cta";
     }
 
     public function getUserPrompt(string $topic, ?string $context = null, array $options = []): string
     {
-        $count = $options['count'] ?? 1;
-        $type = $options['type'] ?? 'social-media post';
+        $count = (int)($options['count'] ?? 1);
+        $type = $options['type'] ?? 'social media post';
         $tone = $options['tone'] ?? 'Professional';
         $length = $options['length'] ?? 'Short, concise, and engaging';
 
         // Normalize type
+        if ($type === 'social-media') {
+            $type = 'social media post';
+        }
         if ($type === 'blog-post') {
             $type = 'social-media post';
         }
 
-        $prompt = "TASK: Generate exactly $count distinct $type(s) about the topic: \"$topic\".";
+        $prompt = "TASK: Generate EXACTLY $count distinct and unique $type(s) about the topic: \"$topic\".\n";
         
         if ($count > 1) {
-            $prompt .= "\n\nIMPORTANT: Separate each distinct post STRICTLY with a '---' (triple dash) on its own line.";
+            $prompt .= "\nCRITICAL FORMATTING RULE:\n";
+            $prompt .= "Separate each distinct $type with exactly three dashes '---' on their own line.\n";
+            $prompt .= "Example format for multiple items:\n";
+            $prompt .= "Content for item 1\n---\nContent for item 2\n---\n... and so on until item $count\n\n";
+            $prompt .= "STRICT ADHERENCE: Do not add any introductory text, titles, or concluding remarks. Start immediately with the first item. Total number of items must be exactly $count.";
         }
         
-        $prompt .= "\n\nADDITIONAL CONTEXT: $context \nTONE: $tone \nLENGTH: $length.";
+        $prompt .= "\n\nADDITIONAL CONTEXT: $context \nTONE: $tone \nLENGTH: $length.\n";
+
+        if ($count > 1) {
+            $prompt .= "\nFINAL QUANTITY COMMAND: You MUST generate EXACTLY $count distinct items. Do not stop until you have produced $count separate posts separated by '---'.";
+        }
 
         return $prompt;
+    }
+
+    /**
+     * Generate content using this strategy.
+     */
+    public function generate(string $topic, ?string $context = null, array $options = []): string
+    {
+        $count = (int)($options['count'] ?? 1);
+        
+        // Upgrade to high-tier model for batch generation to ensure instruction following
+        if ($count > 1) {
+            $options['model'] = 'gpt-4o';
+        }
+
+        return parent::generate($topic, $context, $options);
     }
 }
