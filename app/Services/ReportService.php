@@ -487,12 +487,12 @@ class ReportService
 
         // Contract-specific prompt
         if ($data->template === ReportTemplate::CONTRACT) {
-            return "Generate a FORMAL LEGAL CONTRACT document. DO NOT generate an analysis, summary, or report.
+            return "Generate a COMPREHENSIVE, LEGALLY SOUND, PROFESSIONALLY FORMATTED business contract.
                 
                 CONTRACT TYPE: {$data->variant} ({$data->template->label()})
                 
                 PARTIES INVOLVED:
-                - Service Provider/First Party: (Extract from source content or use placeholder)
+                - Service Provider/First Party: (Extract from source content or use fill-in fields: __________)
                 - Client/Second Party: {$data->recipientName} ({$data->recipientTitle})
                 
                 FOCUS/SUBJECT MATTER: {$data->researchTopic}
@@ -500,19 +500,75 @@ class ReportService
                 
                 {$baseContext}
                 
-                CRITICAL INSTRUCTIONS:
-                1. This MUST be a legal contract, NOT a business analysis or report.
-                2. Use proper legal contract structure with ARTICLE I, ARTICLE II, etc.
-                3. Include WHEREAS recitals at the beginning.
-                4. Include proper legal sections: Scope of Work, Compensation, Payment Terms, Intellectual Property, Warranties, Termination, etc.
-                5. Extract all relevant details from the RAW SOURCE CONTENT and organize into proper legal clauses.
-                6. Use formal legal language throughout.
-                7. Include payment tables using <table class='payment-table'> if financial terms are mentioned.
-                8. Use <div class='callout-critical'> for critical legal provisions.
-                9. DO NOT include 'Overview', 'Key Findings', 'Strategic Recommendations' or other report-style sections.
-                10. The output must look like a real, enforceable legal contract.
-                
-                **STRICTLY USE HTML TAGS ONLY. NO MARKDOWN SYMBOLS.**";
+                MANDATORY CONTRACT STRUCTURE (Include ALL of the following articles):
+
+                1. **PARTIES SECTION** at the top with fields for BOTH parties:
+                   - Use <div class='parties-section'> with two <div class='party-block'>
+                   - Include fill-in fields: Name, Business Name, Address, City/State/Postal, Country, Email, Phone, Tax ID
+                   - Use <span class='fill-field'>_________</span> for blanks to fill in
+
+                2. **RECITALS** with WHEREAS clauses:
+                   - Use <div class='recitals'> 
+                   - 3-4 WHEREAS statements explaining purpose
+                   - NOW, THEREFORE clause with <p class='therefore-clause'>
+
+                3. **ARTICLE I: SCOPE OF WORK AND DELIVERABLES**
+                   - Section 1.1 Project Description with bullet list
+                   - Section 1.2 Excluded from Scope
+
+                4. **ARTICLE II: PROJECT TIMELINE AND MILESTONES**
+                   - Section 2.1 Project Duration with fill-in: <span class='fill-field'>____ weeks/months</span>
+                   - Section 2.2 Project Commencement Date (with conditions)
+                   - Section 2.3 Milestone Schedule using <table class='milestone-table'>
+
+                5. **ARTICLE III: COMPENSATION AND PAYMENT TERMS**
+                   - Section 3.1 Total Contract Value with fill-in amount
+                   - Section 3.2 Payment Structure using <table class='payment-table'> with 3 payment milestones
+                   - Section 3.3 Critical Payment Provisions in <div class='callout-critical'>
+                   - Section 3.4 Late Payment Penalties
+
+                6. **ARTICLE IV: CLIENT RESPONSIBILITIES AND OBLIGATIONS**
+                   - Section 4.1 Timely Cooperation requirements
+                   - Section 4.2 Consequences of Non-Compliance
+
+                7. **ARTICLE V: INTELLECTUAL PROPERTY RIGHTS**
+                   - Section 5.1 Ownership Upon Final Payment
+                   - Section 5.2 Provider-Retained Rights  
+                   - Section 5.3 Confidentiality
+
+                8. **ARTICLE VI: WARRANTIES AND DISCLAIMERS**
+                   - Section 6.1 Provider Warranties
+                   - Section 6.2 Disclaimers (NO WARRANTY OF RESULTS)
+                   - Section 6.3 Limitation of Liability
+
+                9. **ARTICLE VII: DISPUTE RESOLUTION AND GOVERNING LAW**
+                   - Section 7.1 Governing Law with fill-in jurisdiction
+                   - Section 7.2 Dispute Resolution Procedure (Negotiation -> Mediation -> Arbitration)
+
+                10. **ARTICLE VIII: TERMINATION**
+                    - Section 8.1 Termination for Convenience
+                    - Section 8.2 Termination for Cause
+
+                11. **ARTICLE IX: MISCELLANEOUS PROVISIONS**
+                    - Entire Agreement, Amendments, Independent Contractor clauses
+
+                12. **SIGNATURES** section at the end
+
+                CRITICAL FORMATTING RULES:
+                - Use <h2> for ARTICLE titles
+                - Use <h3> for section numbers (1.1, 1.2, etc.)
+                - Use <ul> and <li> for bullet points
+                - Use <ol> for numbered lists
+                - Use <table class='payment-table'> for payment schedules
+                - Use <table class='milestone-table'> for milestone schedules
+                - Use <div class='callout-critical'> for critical provisions (ALL CAPS warnings)
+                - Use <div class='callout'> for important notes
+                - Use <span class='fill-field'>_________</span> for blank fields to fill in
+                - Use formal, legal language throughout
+                - DO NOT use 'Overview', 'Key Findings', or other report-style sections
+                - This must look like a REAL, ENFORCEABLE legal contract
+
+                **STRICTLY USE HTML TAGS ONLY. NO MARKDOWN SYMBOLS (#, *, **, etc.).**";
         }
 
         // Resume/CV-specific prompt
@@ -741,74 +797,208 @@ class ReportService
                 </table>
             ",
             ReportTemplate::CONTRACT => "
+                <!-- PARTIES SECTION -->
                 <div class='parties-section'>
                     <div class='party-block'>
-                        <h3>Service Provider (\"Provider\")</h3>
-                        <div class='party-field'><span class='party-label'>Name:</span><span class='party-value'>John Smith</span></div>
-                        <div class='party-field'><span class='party-label'>Business:</span><span class='party-value'>TechFlow Solutions LLC</span></div>
-                        <div class='party-field'><span class='party-label'>Address:</span><span class='party-value'>123 Innovation Drive, San Francisco, CA 94102</span></div>
-                        <div class='party-field'><span class='party-label'>Email:</span><span class='party-value'>john@techflow.io</span></div>
+                        <h3>SERVICE PROVIDER (\"Provider\")</h3>
+                        <div class='party-field'><span class='party-label'>Name:</span><span class='party-value fill-field'>_________________________________________</span></div>
+                        <div class='party-field'><span class='party-label'>Business Name:</span><span class='party-value fill-field'>_________________________________________</span></div>
+                        <div class='party-field'><span class='party-label'>Address:</span><span class='party-value fill-field'>_________________________________________</span></div>
+                        <div class='party-field'><span class='party-label'>City, State/Province, Postal Code:</span><span class='party-value fill-field'>_________________________________________</span></div>
+                        <div class='party-field'><span class='party-label'>Country:</span><span class='party-value fill-field'>_________________________________________</span></div>
+                        <div class='party-field'><span class='party-label'>Email:</span><span class='party-value fill-field'>_________________________________________</span></div>
+                        <div class='party-field'><span class='party-label'>Phone:</span><span class='party-value fill-field'>_________________________________________</span></div>
+                        <div class='party-field'><span class='party-label'>Tax ID/Business Registration:</span><span class='party-value fill-field'>_________________________________________</span></div>
                     </div>
                     <div class='party-block'>
-                        <h3>Client (\"Client\")</h3>
+                        <h3>CLIENT (\"Client\")</h3>
                         <div class='party-field'><span class='party-label'>Name:</span><span class='party-value'>Acme Corporation</span></div>
-                        <div class='party-field'><span class='party-label'>Business:</span><span class='party-value'>Acme Corporation Inc.</span></div>
-                        <div class='party-field'><span class='party-label'>Address:</span><span class='party-value'>456 Enterprise Blvd, New York, NY 10001</span></div>
-                        <div class='party-field'><span class='party-label'>Email:</span><span class='party-value'>contracts@acme.com</span></div>
+                        <div class='party-field'><span class='party-label'>Business Name:</span><span class='party-value'>Acme Corporation Inc.</span></div>
+                        <div class='party-field'><span class='party-label'>Address:</span><span class='party-value fill-field'>_________________________________________</span></div>
+                        <div class='party-field'><span class='party-label'>City, State, ZIP Code:</span><span class='party-value fill-field'>_________________________________________</span></div>
+                        <div class='party-field'><span class='party-label'>Country:</span><span class='party-value'>United States of America</span></div>
+                        <div class='party-field'><span class='party-label'>Email:</span><span class='party-value fill-field'>_________________________________________</span></div>
+                        <div class='party-field'><span class='party-label'>Phone:</span><span class='party-value fill-field'>_________________________________________</span></div>
+                        <div class='party-field'><span class='party-label'>Tax ID/EIN:</span><span class='party-value fill-field'>_________________________________________</span></div>
                     </div>
                 </div>
 
+                <!-- RECITALS -->
                 <div class='recitals'>
-                    <p>WHEREAS, the Client desires to engage the Provider to deliver professional software development services;</p>
+                    <p>WHEREAS, the Client desires to engage the Provider to deliver professional services as described herein;</p>
                     <p>WHEREAS, the Provider possesses the necessary skills, expertise, and resources to provide such services;</p>
                     <p>WHEREAS, both parties wish to establish clear terms and conditions governing this business relationship;</p>
                     <p class='therefore-clause'>NOW, THEREFORE, in consideration of the mutual covenants and agreements contained herein, and for other good and valuable consideration, the receipt and sufficiency of which are hereby acknowledged, the parties agree as follows:</p>
                 </div>
 
+                <!-- ARTICLE I: SCOPE OF WORK -->
                 <h2>ARTICLE I: SCOPE OF WORK AND DELIVERABLES</h2>
+                
                 <h3>1.1 Project Description</h3>
-                <p>The Provider agrees to design, develop, and deploy a custom web application for the Client, specifically:</p>
+                <p>The Provider agrees to deliver the following services and deliverables:</p>
                 <ul>
-                    <li>Complete website development using modern web technologies</li>
-                    <li>Responsive design compatible with desktop, tablet, and mobile devices</li>
-                    <li>Custom admin panel and content management functionality</li>
-                    <li>API integration with third-party services</li>
-                    <li>Security implementation and performance optimization</li>
+                    <li>Complete project development as specified in attached specifications</li>
+                    <li>Professional quality work meeting industry standards</li>
+                    <li>Documentation and training materials as applicable</li>
+                    <li>Post-delivery support period as outlined in this Agreement</li>
                 </ul>
 
                 <h3>1.2 Excluded from Scope</h3>
-                <p>The following items are explicitly excluded unless separately contracted: ongoing hosting fees, domain registration, third-party service subscriptions, content writing beyond basic optimization, and ongoing maintenance beyond the support period.</p>
+                <p>The following items are explicitly excluded unless separately contracted:</p>
+                <ul>
+                    <li>Ongoing maintenance beyond the specified support period</li>
+                    <li>Third-party service fees and subscriptions</li>
+                    <li>Additional features not specified in Section 1.1</li>
+                    <li>Content creation beyond basic optimization</li>
+                </ul>
 
-                <h2>ARTICLE II: COMPENSATION AND PAYMENT TERMS</h2>
-                <h3>2.1 Total Contract Value</h3>
-                <p>The total compensation for all services described in this Agreement is <strong>TWENTY THOUSAND DOLLARS ($20,000.00 USD)</strong>.</p>
+                <!-- ARTICLE II: PROJECT TIMELINE -->
+                <h2>ARTICLE II: PROJECT TIMELINE AND MILESTONES</h2>
+                
+                <h3>2.1 Project Duration</h3>
+                <p>The estimated project duration is <strong><span class='fill-field'>______ weeks/months</span></strong> from the Project Commencement Date, subject to timely Client cooperation and milestone payment compliance.</p>
 
-                <table class='payment-table'>
-                    <thead><tr><th>Payment</th><th>Description</th><th>Due Date</th><th>Amount</th></tr></thead>
+                <h3>2.2 Project Commencement Date</h3>
+                <div class='callout-critical'>
+                    <strong>CRITICAL PROVISION:</strong> The Project Commencement Date shall be defined as the date when ALL of the following conditions have been met:
+                    <ol>
+                        <li>This Contract has been executed by both parties</li>
+                        <li>Initial deposit payment has been received and cleared</li>
+                        <li>Client has provided all required materials and access credentials</li>
+                    </ol>
+                </div>
+
+                <h3>2.3 Milestone Schedule</h3>
+                <table class='milestone-table'>
+                    <thead><tr><th>Milestone</th><th>Description</th><th>Duration</th><th>Payment Due</th></tr></thead>
                     <tbody>
-                        <tr><td>Payment 1</td><td>Initial Deposit (50%)</td><td>Upon contract execution</td><td>$10,000.00</td></tr>
-                        <tr><td>Payment 2</td><td>Final Payment (50%)</td><td>Upon project completion</td><td>$10,000.00</td></tr>
-                        <tr class='total-row'><td colspan='3'>Total Contract Value</td><td>$20,000.00</td></tr>
+                        <tr><td>Phase 1</td><td>Discovery & Planning</td><td>Week 1</td><td>Payment 1 (Before Start)</td></tr>
+                        <tr><td>Phase 2</td><td>Development</td><td>Weeks 2-3</td><td>Payment 2 (Upon Completion)</td></tr>
+                        <tr><td>Phase 3</td><td>Testing & QA</td><td>Week 4</td><td>N/A</td></tr>
+                        <tr><td>Phase 4</td><td>Launch & Handover</td><td>Week 5</td><td>Final Payment (Upon Launch)</td></tr>
                     </tbody>
                 </table>
 
+                <!-- ARTICLE III: COMPENSATION -->
+                <h2>ARTICLE III: COMPENSATION AND PAYMENT TERMS</h2>
+                
+                <h3>3.1 Total Contract Value</h3>
+                <p>The total compensation for all services described in this Agreement is:</p>
+                <p class='contract-amount'><strong><span class='fill-field'>_________________ DOLLARS (\$_______.00 USD)</span></strong></p>
+
+                <h3>3.2 Payment Structure</h3>
+                <table class='payment-table'>
+                    <thead><tr><th>Payment</th><th>Description</th><th>Due Date</th><th>Amount</th></tr></thead>
+                    <tbody>
+                        <tr><td>Payment 1</td><td>Initial Deposit (50%)</td><td>Upon contract execution</td><td class='fill-field'>\$________</td></tr>
+                        <tr><td>Payment 2</td><td>Progress Payment (30%)</td><td>Upon Phase 2 completion</td><td class='fill-field'>\$________</td></tr>
+                        <tr><td>Payment 3</td><td>Final Payment (20%)</td><td>Upon project completion</td><td class='fill-field'>\$________</td></tr>
+                        <tr class='total-row'><td colspan='3'>Total Contract Value</td><td class='fill-field'>\$________</td></tr>
+                    </tbody>
+                </table>
+
+                <h3>3.3 Critical Payment Provisions</h3>
                 <div class='callout-critical'>
-                    <strong>CRITICAL PAYMENT PROVISION:</strong>
-                    The Provider shall not be obligated to commence any work or proceed to the next milestone until the applicable milestone payment has been received and cleared. This is a material term of this Agreement.
+                    <strong>NO WORK WITHOUT PAYMENT:</strong>
+                    <p>THE PROVIDER SHALL NOT BE OBLIGATED TO COMMENCE ANY WORK OR PROCEED TO THE NEXT MILESTONE UNTIL THE APPLICABLE MILESTONE PAYMENT HAS BEEN RECEIVED AND CLEARED IN THE PROVIDER'S ACCOUNT. THIS IS A MATERIAL TERM OF THIS AGREEMENT.</p>
                 </div>
 
-                <h2>ARTICLE III: INTELLECTUAL PROPERTY RIGHTS</h2>
-                <p>Upon receipt of final payment and full satisfaction of all financial obligations, Provider hereby assigns, transfers, and conveys to Client all custom code, design elements, and documentation created specifically for this project.</p>
+                <h3>3.4 Late Payment Penalties</h3>
+                <ul>
+                    <li>Days 1-7 overdue: Grace period with friendly reminder</li>
+                    <li>Days 8-14 overdue: 5% late fee assessed on outstanding amount</li>
+                    <li>Days 15-30 overdue: Additional 10% late fee (15% total)</li>
+                    <li>Over 30 days overdue: Additional 10% late fee (25% total) + right to suspend work</li>
+                </ul>
 
-                <h2>ARTICLE IV: WARRANTIES AND DISCLAIMERS</h2>
-                <p>Provider warrants that services will be performed in a professional and workmanlike manner. Work will conform to industry standards for web development and be reasonably free from defects at time of delivery.</p>
+                <!-- ARTICLE IV: CLIENT RESPONSIBILITIES -->
+                <h2>ARTICLE IV: CLIENT RESPONSIBILITIES AND OBLIGATIONS</h2>
+                
+                <h3>4.1 Timely Cooperation</h3>
+                <p>Client agrees to provide timely cooperation including:</p>
+                <ul>
+                    <li><strong>Information and Materials:</strong> within 5 business days of request</li>
+                    <li><strong>Access Credentials:</strong> within 3 business days of request</li>
+                    <li><strong>Approvals and Feedback:</strong> within 48-72 hours as specified</li>
+                    <li><strong>Availability:</strong> for scheduled meetings and training sessions</li>
+                </ul>
 
+                <h3>4.2 Consequences of Non-Compliance</h3>
+                <p>If Client fails to meet obligations:</p>
+                <ul>
+                    <li>Project timeline automatically extends by the duration of delay plus 50%</li>
+                    <li>Provider is not responsible for missing deadlines due to Client delays</li>
+                    <li>Extended project management fees may apply for delays exceeding 30 days</li>
+                </ul>
+
+                <!-- ARTICLE V: INTELLECTUAL PROPERTY -->
+                <h2>ARTICLE V: INTELLECTUAL PROPERTY RIGHTS</h2>
+                
+                <h3>5.1 Ownership Upon Final Payment</h3>
+                <p>Upon receipt of final payment and full satisfaction of all financial obligations, Provider hereby assigns, transfers, and conveys to Client all custom work created specifically for this project.</p>
+                
+                <div class='callout-critical'>
+                    <strong>CONDITION PRECEDENT:</strong> THE TRANSFER OF INTELLECTUAL PROPERTY RIGHTS IS EXPRESSLY CONDITIONED UPON FULL PAYMENT OF ALL AMOUNTS DUE UNDER THIS AGREEMENT. UNTIL FINAL PAYMENT IS RECEIVED, PROVIDER RETAINS ALL RIGHTS, TITLE, AND INTEREST IN THE WORK PRODUCT.
+                </div>
+
+                <h3>5.2 Provider-Retained Rights</h3>
+                <p>Provider retains ownership of pre-existing materials, reusable components, general knowledge, and portfolio rights.</p>
+
+                <h3>5.3 Confidentiality</h3>
+                <p>Both parties agree to maintain the confidentiality of all proprietary information disclosed during the term of this agreement and for three (3) years thereafter.</p>
+
+                <!-- ARTICLE VI: WARRANTIES -->
+                <h2>ARTICLE VI: WARRANTIES AND DISCLAIMERS</h2>
+                
+                <h3>6.1 Provider Warranties</h3>
+                <ul>
+                    <li>Services will be performed in a professional and workmanlike manner</li>
+                    <li>Work will conform to industry standards</li>
+                    <li>Work will be reasonably free from defects at time of delivery</li>
+                    <li>30-day warranty period for bug fixes after launch</li>
+                </ul>
+
+                <h3>6.2 Disclaimers</h3>
                 <div class='callout'>
-                    <strong>Confidentiality:</strong> Both parties agree to maintain the confidentiality of all proprietary information disclosed during the term of this agreement and for three (3) years thereafter.
+                    <strong>NO WARRANTY OF RESULTS:</strong> Provider makes no warranty regarding business results, including website traffic, search rankings, conversion rates, or revenue increases. Success depends on factors outside Provider's control.
                 </div>
 
-                <h2>ARTICLE V: TERMINATION</h2>
-                <p>Either party may terminate this Agreement with thirty (30) days written notice. In the event of termination, the Client shall pay for all services rendered up to the termination date. All milestone payments already made are non-refundable once work has commenced.</p>
+                <h3>6.3 Limitation of Liability</h3>
+                <p><strong>IN NO EVENT SHALL PROVIDER'S TOTAL LIABILITY EXCEED THE TOTAL AMOUNT PAID BY CLIENT UNDER THIS AGREEMENT.</strong></p>
+
+                <!-- ARTICLE VII: DISPUTE RESOLUTION -->
+                <h2>ARTICLE VII: DISPUTE RESOLUTION AND GOVERNING LAW</h2>
+                
+                <h3>7.1 Governing Law</h3>
+                <p>This Agreement shall be governed by the laws of <span class='fill-field'>_________________________</span> without regard to conflict of law provisions.</p>
+
+                <h3>7.2 Dispute Resolution Procedure</h3>
+                <ol>
+                    <li><strong>Informal Negotiation:</strong> 30 calendar days to resolve through direct discussions</li>
+                    <li><strong>Mediation:</strong> If negotiation fails, submit to non-binding mediation</li>
+                    <li><strong>Binding Arbitration:</strong> Final resolution through binding arbitration</li>
+                </ol>
+
+                <!-- ARTICLE VIII: TERMINATION -->
+                <h2>ARTICLE VIII: TERMINATION</h2>
+                
+                <h3>8.1 Termination for Convenience</h3>
+                <p>Client may terminate with 30 days written notice. All work completed shall be paid for and milestone payments made are non-refundable.</p>
+
+                <h3>8.2 Termination for Cause</h3>
+                <p>Either party may terminate immediately if the other party materially breaches and fails to cure within 15 calendar days of written notice.</p>
+
+                <!-- ARTICLE IX: MISCELLANEOUS -->
+                <h2>ARTICLE IX: MISCELLANEOUS PROVISIONS</h2>
+                
+                <h3>9.1 Entire Agreement</h3>
+                <p>This Agreement constitutes the entire understanding between the parties and supersedes all prior agreements.</p>
+
+                <h3>9.2 Amendments</h3>
+                <p>No modification shall be effective unless in writing and signed by both parties.</p>
+
+                <h3>9.3 Independent Contractor</h3>
+                <p>Provider is an independent contractor. Nothing in this Agreement creates an employment, partnership, or agency relationship.</p>
             ",
             ReportTemplate::CV_RESUME => "
                 <h2>Professional Summary</h2>
