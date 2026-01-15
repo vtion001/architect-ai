@@ -313,6 +313,42 @@ class TaskController extends Controller
         }
     }
 
+    public function saveAudioOnly(Request $request): JsonResponse
+    {
+        $request->validate([
+            'audio' => 'required|file|mimes:webm,mp3,mp4,wav,m4a|max:25600',
+            'title' => 'required|string|max:255',
+            'description' => 'nullable|string',
+        ]);
+
+        try {
+            $file = $request->file('audio');
+            $filename = 'media/voice-' . \Illuminate\Support\Str::uuid() . '.' . $file->getClientOriginalExtension();
+            \Illuminate\Support\Facades\Storage::disk('public')->put($filename, file_get_contents($file->getPathname()));
+            $url = \Illuminate\Support\Facades\Storage::disk('public')->url($filename);
+
+            $asset = \App\Models\MediaAsset::create([
+                'tenant_id' => auth()->user()->tenant_id,
+                'user_id' => auth()->id(),
+                'name' => $request->title,
+                'url' => $url,
+                'type' => 'audio',
+                'source' => 'Voice Recorder',
+                'prompt' => $request->description,
+                'metadata' => [
+                    'filename' => $filename,
+                    'size' => $file->getSize(),
+                    'mime_type' => $file->getMimeType(),
+                ]
+            ]);
+
+            return response()->json(['success' => true, 'asset' => $asset]);
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::error('Audio save error: ' . $e->getMessage());
+            return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
+        }
+    }
+
     public function storeGhostDemo(Request $request): JsonResponse
     {
         $validated = $request->validate([

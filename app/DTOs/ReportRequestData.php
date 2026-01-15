@@ -27,6 +27,7 @@ readonly class ReportRequestData
         public ?string $location = null,
         public ?string $website = null,
         public array $personalInfo = [],
+        public array $contractDetails = [],
     ) {}
 
     public static function fromArray(array $data): self
@@ -50,6 +51,7 @@ readonly class ReportRequestData
             location: $data['location'] ?? null,
             website: $data['website'] ?? null,
             personalInfo: $data['personalInfo'] ?? [],
+            contractDetails: $data['contractDetails'] ?? [],
         );
     }
 }

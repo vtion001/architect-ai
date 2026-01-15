@@ -46,6 +46,7 @@ class GenerateReportRequest extends FormRequest
             'personalInfo.place_of_birth' => ['nullable', 'string', 'max:255'],
             'personalInfo.religion' => ['nullable', 'string', 'max:100'],
             'personalInfo.languages' => ['nullable', 'string', 'max:255'],
+            'contractDetails' => ['nullable', 'array'],
         ];
     }
 }

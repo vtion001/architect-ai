@@ -60,6 +60,7 @@ Route::middleware(['auth', 'tenant', 'mfa', 'session_security'])->group(function
     Route::delete('tasks/{task}/force', [\App\Http\Controllers\TaskController::class, 'forceDelete'])->name('tasks.force-delete');
     Route::post('tasks/breakdown', [\App\Http\Controllers\TaskController::class, 'breakdown'])->name('tasks.breakdown');
     Route::post('tasks/voice-to-intelligence', [\App\Http\Controllers\TaskController::class, 'voiceToIntelligence'])->name('tasks.voice');
+    Route::post('tasks/voice-save', [\App\Http\Controllers\TaskController::class, 'saveAudioOnly'])->name('tasks.voice-save');
     
     // Ghost Demo Routes
     Route::post('tasks/ghost-demo', [\App\Http\Controllers\TaskController::class, 'storeGhostDemo'])->name('tasks.ghost-demo.store');
@@ -115,7 +116,7 @@ Route::middleware(['auth', 'tenant', 'mfa', 'session_security'])->group(function
     Route::post('/document-builder/draft-cover-letter', [DocumentBuilderController::class, 'draftCoverLetter'])->name('document-builder.draft-cover-letter');
     Route::post('/document-builder/parse-resume', [DocumentBuilderController::class, 'parseResume'])->name('document-builder.parse-resume');
     Route::post('/document-builder/upload-photo', [DocumentBuilderController::class, 'uploadPhoto'])->name('document-builder.upload-photo');
-    Route::get('/document-builder/preview', [DocumentBuilderController::class, 'preview'])->name('document-builder.preview');
+    Route::post('/document-builder/preview', [DocumentBuilderController::class, 'preview'])->name('document-builder.preview');
 
     Route::get('/content-creator', [ContentCreatorController::class, 'index'])->name('content-creator.index');
     Route::post('/content-creator/generate', [ContentCreatorController::class, 'store'])->middleware('throttle:10,1')->name('content-creator.generate');

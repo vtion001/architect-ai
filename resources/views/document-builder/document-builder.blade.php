@@ -41,6 +41,18 @@
             { name: 'Launch & Final Handoff', percentage: 20 },
         ]
     },
+    contractDetails: {
+        clientAddress: '',
+        clientCity: '',
+        clientCountry: 'United States',
+        clientEmail: '',
+        clientTaxId: '',
+        startDate: new Date().toISOString().split('T')[0],
+        duration: '12 months',
+        providerBusiness: '', 
+        providerAddress: '',
+        providerTaxId: ''
+    },
     isUploadingPhoto: false,
     analysisType: 'Comparative Analysis',
     prompt: @js($selectedResearch?->title ?? ''),
@@ -186,12 +198,24 @@
     },
     fetchPreview() {
         this.isLoadingPreview = true;
-        const params = new URLSearchParams({
+        
+        const payload = {
             template: this.template,
             variant: this.templateVariant,
-            brand_id: this.selectedBrandId
-        });
-        fetch('{{ route('document-builder.preview') }}?' + params.toString())
+            brand_id: this.selectedBrandId,
+            contractDetails: this.contractDetails,
+            recipientName: this.recipientName,
+            recipientTitle: this.recipientTitle
+        };
+
+        fetch('{{ route('document-builder.preview') }}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+            },
+            body: JSON.stringify(payload)
+        })
             .then(response => response.json())
             .then(data => {
                 this.htmlPreview = data.html;
@@ -510,8 +534,8 @@
                         </select>
                     </div>
 
-                    <!-- Financials (Proposal only) -->
-                    <div class="space-y-4 pt-6 border-t border-border/50" x-show="template === 'proposal'" x-transition>
+                    <!-- Financials (Proposal & Contract) -->
+                    <div class="space-y-4 pt-6 border-t border-border/50" x-show="template === 'proposal' || template === 'contract'" x-transition>
                         <label class="text-[10px] font-black uppercase tracking-widest text-primary italic px-1 flex items-center gap-2">
                             <i data-lucide="dollar-sign" class="w-3 h-3"></i>
                             Project Financials
@@ -571,10 +595,21 @@
                     <div class="pt-6 border-t border-border/50" x-show="template !== 'cv-resume' && template !== 'cover-letter'">
                         <label class="text-[10px] font-black uppercase tracking-widest text-primary italic px-1 mb-4 block">Sender Identity</label>
                         <div class="grid grid-cols-1 gap-4">
-                            <input x-model="senderName" type="text" placeholder="Sender Name"
+                            <input x-model="senderName" @input.debounce.800ms="fetchPreview" type="text" placeholder="Sender Name"
                                    class="w-full h-12 bg-muted/20 border border-border rounded-xl px-4 text-[11px] font-bold outline-none">
-                            <input x-model="senderTitle" type="text" placeholder="Professional Title (e.g. Founder & CEO)"
+                            <input x-model="senderTitle" @input.debounce.800ms="fetchPreview" type="text" placeholder="Professional Title (e.g. Founder & CEO)"
                                    class="w-full h-12 bg-muted/20 border border-border rounded-xl px-4 text-[11px] font-bold outline-none">
+                            
+                            <!-- Contract Provider Details -->
+                            <div x-show="template === 'contract'" class="space-y-4 pt-2" x-transition>
+                                <label class="text-[10px] font-black uppercase tracking-widest text-muted-foreground italic px-1">Provider Legal Details</label>
+                                <input x-model="contractDetails.providerBusiness" @input.debounce.800ms="fetchPreview" type="text" placeholder="Registered Business Name (if different)"
+                                       class="w-full h-10 bg-muted/20 border border-border rounded-lg px-4 text-[10px] font-medium outline-none">
+                                <input x-model="contractDetails.providerAddress" @input.debounce.800ms="fetchPreview" type="text" placeholder="Provider Address"
+                                       class="w-full h-10 bg-muted/20 border border-border rounded-lg px-4 text-[10px] font-medium outline-none">
+                                <input x-model="contractDetails.providerTaxId" @input.debounce.800ms="fetchPreview" type="text" placeholder="Provider Tax ID / EIN"
+                                       class="w-full h-10 bg-muted/20 border border-border rounded-lg px-4 text-[10px] font-medium outline-none">
+                            </div>
                         </div>
                     </div>
 
@@ -604,12 +639,33 @@
                                             </div>
                                         </div>
                                         <div class="grid grid-cols-1 gap-4">
-                                            <input x-model="recipientName" type="text" 
+                                            <input x-model="recipientName" @input.debounce.800ms="fetchPreview" type="text" 
                                                    :placeholder="template === 'cv-resume' ? 'Full Name' : (template === 'cover-letter' ? 'Hiring Manager Name' : 'Recipient Name')"
                                                    class="w-full h-12 bg-muted/20 border border-border rounded-xl px-4 text-[11px] font-bold outline-none">
-                                            <input x-model="recipientTitle" type="text" 
+                                            <input x-model="recipientTitle" @input.debounce.800ms="fetchPreview" type="text" 
                                                    :placeholder="template === 'cv-resume' ? 'Professional Title (e.g. Senior Architect)' : (template === 'cover-letter' ? 'Company Name' : 'Identity Role (e.g. CEO)')"
                                                    class="w-full h-12 bg-muted/20 border border-border rounded-xl px-4 text-[11px] font-bold outline-none">
+
+                                            <!-- Contract Specific Client Details -->
+                                            <div x-show="template === 'contract'" class="space-y-4 pt-2" x-transition>
+                                                <label class="text-[10px] font-black uppercase tracking-widest text-muted-foreground italic px-1">Client Legal Details</label>
+                                                <input x-model="contractDetails.clientAddress" @input.debounce.800ms="fetchPreview" type="text" placeholder="Client Street Address"
+                                                       class="w-full h-10 bg-muted/20 border border-border rounded-lg px-4 text-[10px] font-medium outline-none">
+                                                
+                                                <div class="grid grid-cols-2 gap-4">
+                                                    <input x-model="contractDetails.clientCity" @input.debounce.800ms="fetchPreview" type="text" placeholder="City, State, Zip"
+                                                           class="w-full h-10 bg-muted/20 border border-border rounded-lg px-4 text-[10px] font-medium outline-none">
+                                                    <input x-model="contractDetails.clientCountry" @input.debounce.800ms="fetchPreview" type="text" placeholder="Country"
+                                                           class="w-full h-10 bg-muted/20 border border-border rounded-lg px-4 text-[10px] font-medium outline-none">
+                                                </div>
+                                                
+                                                <div class="grid grid-cols-2 gap-4">
+                                                    <input x-model="contractDetails.clientEmail" @input.debounce.800ms="fetchPreview" type="email" placeholder="Client Email"
+                                                           class="w-full h-10 bg-muted/20 border border-border rounded-lg px-4 text-[10px] font-medium outline-none">
+                                                    <input x-model="contractDetails.clientTaxId" @input.debounce.800ms="fetchPreview" type="text" placeholder="Client Tax ID / EIN"
+                                                           class="w-full h-10 bg-muted/20 border border-border rounded-lg px-4 text-[10px] font-medium outline-none">
+                                                </div>
+                                            </div>
                                             
                                             <div x-show="template === 'cover-letter'" x-transition>
                                                 <input x-model="companyAddress" type="text" placeholder="Company Address"

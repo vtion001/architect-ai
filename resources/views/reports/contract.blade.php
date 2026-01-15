@@ -90,6 +90,8 @@
     
     .party-block .party-field {
         display: flex;
+        flex-wrap: nowrap; /* Prevent wrapping */
+        align-items: baseline;
         margin-bottom: 8px;
         font-size: 0.9rem;
     }
@@ -98,7 +100,9 @@
         font-family: 'Inter', sans-serif;
         font-weight: 600;
         color: #475569;
-        min-width: 100px;
+        min-width: 140px; /* Increased width */
+        white-space: nowrap; /* Keep label on one line */
+        flex-shrink: 0;
     }
     
     .party-block .party-value {
@@ -106,6 +110,7 @@
         border-bottom: 1px dotted #cbd5e1;
         flex: 1;
         min-height: 1.2em;
+        white-space: pre-wrap; /* Allow content to wrap if very long, but respect spaces */
     }
     
     /* Recitals / Whereas */

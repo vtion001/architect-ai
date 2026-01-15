@@ -609,16 +609,20 @@
                 if (!navigator.mediaDevices || !navigator.mediaDevices.enumerateDevices) return;
                 
                 try {
-                    // We need to request permission first to get labels
-                    // But we don't want to start recording yet.
-                    // Just enumerating usually returns empty labels if permission not granted.
-                    // If user has already granted permission (persisted), labels will show.
-                    
                     const devices = await navigator.mediaDevices.enumerateDevices();
-                    this.availableMicrophones = devices.filter(device => device.kind === 'audioinput');
+                    const audioInputs = devices.filter(device => device.kind === 'audioinput');
+                    
+                    console.log('Devices Enumerated:', devices);
+                    console.log('Audio Inputs:', audioInputs);
+
+                    if (audioInputs.length > 0 && audioInputs[0].label === '') {
+                        console.warn('Microphones found but labels are empty. Permission might be required.');
+                    }
+
+                    this.availableMicrophones = audioInputs;
                     
                     if (this.availableMicrophones.length > 0 && this.selectedMicrophoneId === 'default') {
-                        // Keep default or select first? Default is fine.
+                        // Keep default
                     }
                 } catch (err) {
                     console.error("Error fetching microphones:", err);
@@ -650,26 +654,31 @@
                     console.log('Requesting microphone access...');
                     
                     const constraints = { 
-                        audio: this.selectedMicrophoneId !== 'default' 
-                            ? { deviceId: { exact: this.selectedMicrophoneId } } 
-                            : true 
+                        audio: {
+                            deviceId: this.selectedMicrophoneId !== 'default' ? { exact: this.selectedMicrophoneId } : undefined,
+                            sampleRate: 48000,
+                            echoCancellation: true,
+                            noiseSuppression: true,
+                            autoGainControl: true
+                        }
                     };
 
                     const stream = await navigator.mediaDevices.getUserMedia(constraints);
                     console.log('Microphone access granted');
                     
-                    // Refresh mic list now that we have permission (labels might appear)
+                    // Refresh mic list now that we have permission
                     this.getMicrophones();
                     
-                    let mimeType = 'audio/webm';
+                    let options = { audioBitsPerSecond: 128000 }; // 128 kbps for better quality
+                    
                     if (MediaRecorder.isTypeSupported('audio/webm;codecs=opus')) {
-                        mimeType = 'audio/webm;codecs=opus';
+                        options.mimeType = 'audio/webm;codecs=opus';
                     } else if (MediaRecorder.isTypeSupported('audio/mp4')) {
-                        mimeType = 'audio/mp4';
+                        options.mimeType = 'audio/mp4';
                     }
-                    console.log('Using MIME type:', mimeType);
+                    console.log('Using options:', options);
 
-                    this.mediaRecorder = new MediaRecorder(stream, { mimeType });
+                    this.mediaRecorder = new MediaRecorder(stream, options);
                     this.audioChunks = [];
 
                     this.mediaRecorder.ondataavailable = (event) => {
@@ -679,8 +688,10 @@
                     };
 
                     this.mediaRecorder.onstop = () => {
-                        this.audioBlob = new Blob(this.audioChunks, { type: mimeType });
+                        this.audioBlob = new Blob(this.audioChunks, { type: options.mimeType || 'audio/webm' });
                         this.audioChunks = [];
+                        this.isRecording = false;
+                        if (this.timerInterval) clearInterval(this.timerInterval);
                         
                         // Stop all tracks to release mic
                         stream.getTracks().forEach(track => track.stop());
@@ -703,8 +714,11 @@
             },
 
             stopRecording() {
+                console.log('Stop recording requested');
                 if (this.mediaRecorder && this.mediaRecorder.state !== 'inactive') {
                     this.mediaRecorder.stop();
+                } else {
+                    console.warn('Recorder unavailable or already inactive. Forcing cleanup.');
                     this.isRecording = false;
                     clearInterval(this.timerInterval);
                 }
@@ -753,11 +767,14 @@
                 if (!this.audioBlob) return;
                 this.isProcessing = true;
 
+                const extension = this.audioBlob.type.includes('mp4') ? 'mp4' : 'webm';
                 const formData = new FormData();
-                formData.append('audio', this.audioBlob, 'recording.webm');
+                formData.append('audio', this.audioBlob, `recording.${extension}`);
                 formData.append('type', type); // 'note' or 'tasks'
                 formData.append('title', this.recordingTitle);
                 formData.append('description', this.recordingDescription);
+
+                console.log('Processing audio...', { type, extension, title: this.recordingTitle });
 
                 try {
                     const res = await fetch('/tasks/voice-to-intelligence', {
@@ -777,14 +794,8 @@
                             this.notes.unshift(data.note);
                             this.activeTab = 'notes';
                         } else if (type === 'tasks') {
-                            // If it created a parent task with subtasks
                             if (data.task) {
                                 this.tasks.unshift(data.task);
-                            }
-                            // If it returned a list of individual tasks
-                            if (data.tasks) {
-                                // this.tasks = [...data.tasks, ...this.tasks]; // Prepend multiple?
-                                // Let's assume the backend returns a single parent task for cleaner UI usually
                             }
                             this.activeTab = 'tasks';
                         }
@@ -792,10 +803,50 @@
                         this.discardRecording(); // Reset UI
                         this.fetchData(); // Ensure sync
                     } else {
+                        console.error('AI Processing Error:', data);
                         alert('Processing failed: ' + (data.message || 'Unknown error'));
                     }
                 } catch (e) {
-                    console.error(e);
+                    console.error('Fetch Error:', e);
+                    alert('Upload failed. Please check connection.');
+                } finally {
+                    this.isProcessing = false;
+                }
+            },
+
+            async saveAudio() {
+                if (!this.audioBlob) return;
+                this.isProcessing = true;
+
+                const extension = this.audioBlob.type.includes('mp4') ? 'mp4' : 'webm';
+                const formData = new FormData();
+                formData.append('audio', this.audioBlob, `recording.${extension}`);
+                formData.append('title', this.recordingTitle);
+                formData.append('description', this.recordingDescription);
+
+                console.log('Saving raw audio...', { extension, title: this.recordingTitle });
+
+                try {
+                    const res = await fetch('/tasks/voice-save', {
+                        method: 'POST',
+                        headers: { 
+                            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content 
+                        },
+                        body: formData
+                    });
+
+                    const data = await res.json();
+
+                    if (data.success) {
+                        window.playTaskSound('success');
+                        alert('Recording saved to Media Hub!');
+                        this.discardRecording(); // Reset UI
+                    } else {
+                        console.error('Save Audio Error:', data);
+                        alert('Save failed: ' + (data.message || 'Unknown error'));
+                    }
+                } catch (e) {
+                    console.error('Fetch Error:', e);
                     alert('Upload failed. Please check connection.');
                 } finally {
                     this.isProcessing = false;

@@ -35,8 +35,8 @@
         </button>
         
         <!-- Microphone Selector -->
-        <div x-show="availableMicrophones.length > 0" class="max-w-[200px] mx-auto">
-            <div class="relative">
+        <div class="max-w-[220px] mx-auto flex items-center gap-2">
+            <div x-show="availableMicrophones.length > 0" class="relative flex-1">
                 <select x-model="selectedMicrophoneId" 
                         class="w-full bg-muted/30 border border-border/50 text-[10px] rounded-lg py-1.5 pl-2 pr-6 appearance-none focus:ring-1 focus:ring-primary/30 outline-none text-muted-foreground hover:text-foreground transition-colors cursor-pointer truncate">
                     <template x-for="mic in availableMicrophones" :key="mic.deviceId">
@@ -45,6 +45,10 @@
                 </select>
                 <i data-lucide="chevron-down" class="absolute right-2 top-1/2 -translate-y-1/2 w-3 h-3 text-muted-foreground pointer-events-none"></i>
             </div>
+            
+            <button @click="getMicrophones()" class="p-1.5 rounded-lg hover:bg-muted text-muted-foreground hover:text-foreground transition-colors" title="Refresh Devices">
+                <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i>
+            </button>
         </div>
         
         <div class="bg-muted/30 p-3 rounded-lg border border-border/50 text-left max-w-[260px] mx-auto">
@@ -91,6 +95,15 @@
         </div>
 
         <div class="grid grid-cols-1 gap-2">
+            <button @click="saveAudio()" :disabled="isProcessing" class="w-full py-3 bg-indigo-600 text-white rounded-xl text-xs font-black uppercase tracking-widest hover:bg-indigo-500 disabled:opacity-50 flex items-center justify-center gap-2 transition-all">
+                <template x-if="isProcessing">
+                    <i data-lucide="loader-2" class="w-4 h-4 animate-spin"></i>
+                </template>
+                <template x-if="!isProcessing">
+                    <i data-lucide="save" class="w-4 h-4"></i>
+                </template>
+                <span>Save to Media Hub</span>
+            </button>
             <button @click="processAudio('tasks')" :disabled="isProcessing" class="w-full py-3 bg-primary text-primary-foreground rounded-xl text-xs font-black uppercase tracking-widest hover:opacity-90 disabled:opacity-50 flex items-center justify-center gap-2 transition-all">
                 <template x-if="isProcessing">
                     <i data-lucide="loader-2" class="w-4 h-4 animate-spin"></i>

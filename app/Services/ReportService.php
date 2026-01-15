@@ -57,10 +57,10 @@ class ReportService
         ])->render();
     }
 
-    public function generatePreviewHtml(ReportTemplate $template, ?string $variant = null, ?string $brandId = null): string
+    public function generatePreviewHtml(ReportTemplate $template, ?string $variant = null, ?string $brandId = null, array $overrides = []): string
     {
         $tenant = app(\App\Models\Tenant::class);
-        $sampleContent = $this->getSampleContentForTemplate($template);
+        $sampleContent = $this->getSampleContentForTemplate($template, $overrides);
 
         // Resolve Brand Logic
         $brandColor = $tenant->metadata['primary_color'] ?? '#00F2FF';
@@ -434,7 +434,10 @@ class ReportService
         }
 
         // Fallback: Use template-specific sample content instead of generic dummy
-        return $this->getSampleContentForTemplate($data->template);
+        $overrides = $data->contractDetails ?? [];
+        $overrides['recipientName'] = $data->recipientName;
+        $overrides['recipientTitle'] = $data->recipientTitle;
+        return $this->getSampleContentForTemplate($data->template, $overrides);
     }
 
     /**
@@ -487,13 +490,39 @@ class ReportService
 
         // Contract-specific prompt
         if ($data->template === ReportTemplate::CONTRACT) {
+            $cDetails = $data->contractDetails;
+            
+            $providerDetails = "
+                - Name: " . ($cDetails['providerName'] ?? 'Service Provider') . "
+                - Business: " . ($cDetails['providerBusiness'] ?? '') . "
+                - Address: " . ($cDetails['providerAddress'] ?? '') . "
+                - Email: " . ($cDetails['providerEmail'] ?? '') . "
+                - Tax ID: " . ($cDetails['providerTaxId'] ?? '');
+
+            $clientDetails = "
+                - Name: {$data->recipientName}
+                - Title: {$data->recipientTitle}
+                - Business: {$data->companyAddress} 
+                - Address: " . ($cDetails['clientAddress'] ?? '') . "
+                - City/State: " . ($cDetails['clientCity'] ?? '') . "
+                - Country: " . ($cDetails['clientCountry'] ?? '') . "
+                - Email: " . ($cDetails['clientEmail'] ?? '') . "
+                - Tax ID: " . ($cDetails['clientTaxId'] ?? '');
+
+            $financialDetails = "
+                - Contract Value: " . ($cDetails['contractValue'] ?? 'To be agreed') . "
+                - Start Date: " . ($cDetails['startDate'] ?? 'Upon signing') . "
+                - Duration: " . ($cDetails['duration'] ?? 'Until completion');
+
             return "Generate a COMPREHENSIVE, LEGALLY SOUND, PROFESSIONALLY FORMATTED business contract.
                 
                 CONTRACT TYPE: {$data->variant} ({$data->template->label()})
                 
                 PARTIES INVOLVED:
-                - Service Provider/First Party: (Extract from source content or use fill-in fields: __________)
-                - Client/Second Party: {$data->recipientName} ({$data->recipientTitle})
+                - Service Provider/First Party: $providerDetails
+                - Client/Second Party: $clientDetails
+                
+                CONTRACT SPECIFICS: $financialDetails
                 
                 FOCUS/SUBJECT MATTER: {$data->researchTopic}
                 ADDITIONAL CONTEXT: {$data->prompt}
@@ -691,8 +720,51 @@ class ReportService
                 <ul>
                     <li><strong>Growth:</strong> Scaling technical infrastructure to support 1M+ concurrent nodes.</li>
                     <li><strong>Integration:</strong> Seamlessly mapping internal knowledge bases to external research data.</li>
-                    <li><strong>Security:</strong> Enforcing multi-layered identity access gateways across all sub-accounts.</li>
+                <h2>Executive Summary</h2>
+                <p><strong>Date:</strong> " . now()->format('F d, Y') . "</p>
+                <p>This report provides a high-level overview of the strategic analysis conducted on the requested topic. Our findings indicate a significant opportunity for growth by leveraging AI-driven architectural patterns.</p>
+                <div class='callout'>
+                    <strong>Key Insight:</strong> Implementation of modular agentic workflows reduces development cycles by 40%.
+                </div>
+                <h3>Strategic Recommendations</h3>
+                <ul>
+                    <li>Adopt a micro-services architecture for increased scalability.</li>
+                    <li>Integrate real-time RAG pipelines for dynamic content generation.</li>
+                    <li>Prioritize user-centric design principles in frontend implementation.</li>
                 </ul>
+            ",
+            ReportTemplate::TECHNICAL_AUDIT => "
+                <h2>Technical Infrastructure Audit</h2>
+                <p>A comprehensive review of the current system architecture reveals robust core stability but highlights areas for optimization in the data ingestion layer.</p>
+                <h3>System Health Scorecard</h3>
+                <table>
+                    <thead>
+                        <tr><th>Component</th><th>Status</th><th>Latency</th><th>Uptime</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr><td>API Gateway</td><td><span style='color:green'>Healthy</span></td><td>45ms</td><td>99.99%</td></tr>
+                        <tr><td>Vector DB</td><td><span style='color:orange'>Optimizing</span></td><td>120ms</td><td>99.95%</td></tr>
+                        <tr><td>Worker Nodes</td><td><span style='color:green'>Healthy</span></td><td>N/A</td><td>99.90%</td></tr>
+                    </tbody>
+                </table>
+            ",
+            ReportTemplate::FINANCIAL_ANALYSIS => "
+                <h2>Q4 Financial Performance Analysis</h2>
+                <p>Analyzing the fiscal data for the fourth quarter demonstrates a positive trend in revenue acquisition, driven primarily by the new subscription tier launch.</p>
+                <h3>Revenue Breakdown</h3>
+                <table>
+                    <thead>
+                        <tr><th>Metric</th><th>Q3 Result</th><th>Q4 Result</th><th>Growth</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr><td>MRR</td><td>$125k</td><td>$145k</td><td><span style='color:green'>+16%</span></td></tr>
+                        <tr><td>Burn Rate</td><td>$140k</td><td>$160k</td><td><span style='color:green'>-12.5%</span></td></tr>
+                        <tr><td>CAC Payback</td><td>4.2 Months</td><td>6.0 Months</td><td><span style='color:green'>-1.8m</span></td></tr>
+                    </tbody>
+                </table>
+                <div class='callout'>
+                    <strong>Audit Result:</strong> All nodes reconciled. Treasury balance verified at 99.98% accuracy.
+                </div>
             ",
             ReportTemplate::MARKET_ANALYSIS => "
                 <h2>Market Landscape Analysis</h2>
@@ -801,25 +873,22 @@ class ReportService
                 <div class='parties-section'>
                     <div class='party-block'>
                         <h3>SERVICE PROVIDER (\"Provider\")</h3>
-                        <div class='party-field'><span class='party-label'>Name:</span><span class='party-value fill-field'>_________________________________________</span></div>
-                        <div class='party-field'><span class='party-label'>Business Name:</span><span class='party-value fill-field'>_________________________________________</span></div>
-                        <div class='party-field'><span class='party-label'>Address:</span><span class='party-value fill-field'>_________________________________________</span></div>
-                        <div class='party-field'><span class='party-label'>City, State/Province, Postal Code:</span><span class='party-value fill-field'>_________________________________________</span></div>
-                        <div class='party-field'><span class='party-label'>Country:</span><span class='party-value fill-field'>_________________________________________</span></div>
-                        <div class='party-field'><span class='party-label'>Email:</span><span class='party-value fill-field'>_________________________________________</span></div>
-                        <div class='party-field'><span class='party-label'>Phone:</span><span class='party-value fill-field'>_________________________________________</span></div>
-                        <div class='party-field'><span class='party-label'>Tax ID/Business Registration:</span><span class='party-value fill-field'>_________________________________________</span></div>
+                        <div class='party-field'><span class='party-label'>Name:</span><span class='party-value fill-field'>" . ($overrides['providerName'] ?? '_________________________________________') . "</span></div>
+                        <div class='party-field'><span class='party-label'>Business Name:</span><span class='party-value fill-field'>" . ($overrides['providerBusiness'] ?? '_________________________________________') . "</span></div>
+                        <div class='party-field'><span class='party-label'>Address:</span><span class='party-value fill-field'>" . ($overrides['providerAddress'] ?? '_________________________________________') . "</span></div>
+                        <div class='party-field'><span class='party-label'>City, State, Zip:</span><span class='party-value fill-field'>_________________________________________</span></div>
+                        <div class='party-field'><span class='party-label'>Email:</span><span class='party-value fill-field'>" . ($overrides['providerEmail'] ?? '_________________________________________') . "</span></div>
+                        <div class='party-field'><span class='party-label'>Tax ID:</span><span class='party-value fill-field'>" . ($overrides['providerTaxId'] ?? '_________________________________________') . "</span></div>
                     </div>
                     <div class='party-block'>
                         <h3>CLIENT (\"Client\")</h3>
-                        <div class='party-field'><span class='party-label'>Name:</span><span class='party-value'>Acme Corporation</span></div>
-                        <div class='party-field'><span class='party-label'>Business Name:</span><span class='party-value'>Acme Corporation Inc.</span></div>
-                        <div class='party-field'><span class='party-label'>Address:</span><span class='party-value fill-field'>_________________________________________</span></div>
-                        <div class='party-field'><span class='party-label'>City, State, ZIP Code:</span><span class='party-value fill-field'>_________________________________________</span></div>
-                        <div class='party-field'><span class='party-label'>Country:</span><span class='party-value'>United States of America</span></div>
-                        <div class='party-field'><span class='party-label'>Email:</span><span class='party-value fill-field'>_________________________________________</span></div>
-                        <div class='party-field'><span class='party-label'>Phone:</span><span class='party-value fill-field'>_________________________________________</span></div>
-                        <div class='party-field'><span class='party-label'>Tax ID/EIN:</span><span class='party-value fill-field'>_________________________________________</span></div>
+                        <div class='party-field'><span class='party-label'>Name:</span><span class='party-value'>" . ($overrides['recipientName'] ?? 'Acme Corporation') . "</span></div>
+                        <div class='party-field'><span class='party-label'>Title:</span><span class='party-value'>" . ($overrides['recipientTitle'] ?? 'Manager') . "</span></div>
+                        <div class='party-field'><span class='party-label'>Address:</span><span class='party-value fill-field'>" . ($overrides['clientAddress'] ?? '_________________________________________') . "</span></div>
+                        <div class='party-field'><span class='party-label'>City, State, Zip:</span><span class='party-value fill-field'>" . ($overrides['clientCity'] ?? '_________________________________________') . "</span></div>
+                        <div class='party-field'><span class='party-label'>Country:</span><span class='party-value'>" . ($overrides['clientCountry'] ?? 'United States') . "</span></div>
+                        <div class='party-field'><span class='party-label'>Email:</span><span class='party-value fill-field'>" . ($overrides['clientEmail'] ?? '_________________________________________') . "</span></div>
+                        <div class='party-field'><span class='party-label'>Tax ID:</span><span class='party-value fill-field'>" . ($overrides['clientTaxId'] ?? '_________________________________________') . "</span></div>
                     </div>
                 </div>
 

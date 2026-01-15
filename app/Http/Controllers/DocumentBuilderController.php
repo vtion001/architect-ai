@@ -229,7 +229,11 @@ class DocumentBuilderController extends Controller
         $brandId = $validated['brand_id'] ?? null;
         
         try {
-            $html = $this->reportService->generatePreviewHtml($template, $variant, $brandId);
+            $overrides = $validated['contractDetails'] ?? [];
+            if (!empty($validated['recipientName'])) $overrides['recipientName'] = $validated['recipientName'];
+            if (!empty($validated['recipientTitle'])) $overrides['recipientTitle'] = $validated['recipientTitle'];
+
+            $html = $this->reportService->generatePreviewHtml($template, $variant, $brandId, $overrides);
             return response()->json(['html' => $html, 'success' => true]);
         } catch (\Exception $e) {
             return response()->json([

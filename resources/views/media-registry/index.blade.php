@@ -112,11 +112,27 @@
         @forelse($assets as $asset)
             <div class="group relative aspect-square bg-card border border-border rounded-[24px] overflow-hidden hover:border-primary/50 transition-all shadow-sm">
                 <!-- Visual Node -->
-                <img src="{{ $asset->url }}" class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" alt="Asset">
+                @if($asset->type === 'audio')
+                    <div class="w-full h-full flex flex-col items-center justify-center bg-slate-900 group-hover:bg-slate-800 transition-colors">
+                        <div class="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mb-4">
+                            <i data-lucide="file-audio" class="w-8 h-8 text-primary"></i>
+                        </div>
+                        <div class="flex items-center gap-1 opacity-50">
+                            <div class="w-1 h-4 bg-primary rounded-full animate-pulse" style="animation-delay: 0.1s"></div>
+                            <div class="w-1 h-6 bg-primary rounded-full animate-pulse" style="animation-delay: 0.2s"></div>
+                            <div class="w-1 h-3 bg-primary rounded-full animate-pulse" style="animation-delay: 0.3s"></div>
+                            <div class="w-1 h-5 bg-primary rounded-full animate-pulse" style="animation-delay: 0.1s"></div>
+                            <div class="w-1 h-4 bg-primary rounded-full animate-pulse" style="animation-delay: 0.2s"></div>
+                        </div>
+                        <audio src="{{ $asset->url }}" class="absolute bottom-4 left-4 right-4 z-20 w-[calc(100%-32px)] opacity-0 group-hover:opacity-100 transition-opacity" controls controlsList="nodownload noplaybackrate"></audio>
+                    </div>
+                @else
+                    <img src="{{ $asset->url }}" class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" alt="Asset">
+                @endif
                 
                 <!-- Metadata Overlay -->
-                <div class="absolute inset-0 bg-black/60 backdrop-blur-[2px] opacity-0 group-hover:opacity-100 transition-all flex flex-col justify-between p-6">
-                    <div class="flex justify-between items-start">
+                <div class="absolute inset-0 bg-black/60 backdrop-blur-[2px] opacity-0 group-hover:opacity-100 transition-all flex flex-col justify-between p-6 pointer-events-none">
+                    <div class="flex justify-between items-start pointer-events-auto">
                         <span class="px-2 py-0.5 rounded-lg bg-primary/20 text-primary text-[8px] font-black uppercase tracking-widest border border-primary/30">
                             {{ $asset->source === 'ai_generation' ? 'AI_PROV' : 'LOCAL_LINK' }}
                         </span>
@@ -155,7 +171,23 @@
             <!-- Asset Section -->
             <div class="flex-1 bg-black flex items-center justify-center relative overflow-hidden group">
                 <div class="absolute inset-0 grid-canvas opacity-20 pointer-events-none"></div>
-                <img :src="selectedAsset?.url" class="max-w-full max-h-full object-contain relative z-10">
+                
+                <template x-if="selectedAsset?.type === 'audio'">
+                    <div class="w-full max-w-md p-10 bg-slate-900/80 backdrop-blur-md rounded-3xl border border-white/10 flex flex-col items-center gap-8 relative z-10 shadow-2xl">
+                        <div class="w-32 h-32 rounded-full bg-gradient-to-tr from-primary/20 to-transparent flex items-center justify-center ring-1 ring-primary/30">
+                            <i data-lucide="file-audio" class="w-12 h-12 text-primary"></i>
+                        </div>
+                        <div class="space-y-2 text-center w-full">
+                            <h3 class="text-xl font-black text-white uppercase tracking-tight truncate" x-text="selectedAsset?.name"></h3>
+                            <p class="text-xs font-mono text-slate-400" x-text="selectedAsset?.metadata?.mime_type || 'AUDIO/WAV'"></p>
+                        </div>
+                        <audio :src="selectedAsset?.url" controls class="w-full h-12 rounded-lg"></audio>
+                    </div>
+                </template>
+
+                <template x-if="selectedAsset?.type !== 'audio'">
+                    <img :src="selectedAsset?.url" class="max-w-full max-h-full object-contain relative z-10">
+                </template>
             </div>
 
             <!-- Identity Section -->
