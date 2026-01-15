@@ -609,21 +609,28 @@
                 if (!navigator.mediaDevices || !navigator.mediaDevices.enumerateDevices) return;
                 
                 try {
-                    const devices = await navigator.mediaDevices.enumerateDevices();
-                    const audioInputs = devices.filter(device => device.kind === 'audioinput');
+                    let devices = await navigator.mediaDevices.enumerateDevices();
+                    let audioInputs = devices.filter(device => device.kind === 'audioinput');
                     
-                    console.log('Devices Enumerated:', devices);
-                    console.log('Audio Inputs:', audioInputs);
-
+                    // If no labels, we need to request permission to "unlock" them
                     if (audioInputs.length > 0 && audioInputs[0].label === '') {
-                        console.warn('Microphones found but labels are empty. Permission might be required.');
+                        console.log('Microphone labels are hidden. Requesting access to unlock names...');
+                        try {
+                            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                            // Re-enumerate now that we have permission
+                            devices = await navigator.mediaDevices.enumerateDevices();
+                            audioInputs = devices.filter(device => device.kind === 'audioinput');
+                            // Stop the temporary stream
+                            stream.getTracks().forEach(track => track.stop());
+                        } catch (e) {
+                            console.warn('Microphone access denied during label unlock:', e);
+                        }
                     }
+
+                    console.log('--- Audio Input Discovery ---');
+                    console.table(audioInputs.map(d => ({ label: d.label, id: d.deviceId })));
 
                     this.availableMicrophones = audioInputs;
-                    
-                    if (this.availableMicrophones.length > 0 && this.selectedMicrophoneId === 'default') {
-                        // Keep default
-                    }
                 } catch (err) {
                     console.error("Error fetching microphones:", err);
                 }

@@ -24,6 +24,7 @@ class PreviewReportRequest extends FormRequest
             'contractDetails' => ['nullable', 'array'],
             'recipientName' => ['nullable', 'string'],
             'recipientTitle' => ['nullable', 'string'],
+            'senderName' => ['nullable', 'string'],
         ];
     }
 }

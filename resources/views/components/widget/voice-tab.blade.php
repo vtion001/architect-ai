@@ -36,9 +36,10 @@
         
         <!-- Microphone Selector -->
         <div class="max-w-[220px] mx-auto flex items-center gap-2">
-            <div x-show="availableMicrophones.length > 0" class="relative flex-1">
+            <div class="relative flex-1">
                 <select x-model="selectedMicrophoneId" 
                         class="w-full bg-muted/30 border border-border/50 text-[10px] rounded-lg py-1.5 pl-2 pr-6 appearance-none focus:ring-1 focus:ring-primary/30 outline-none text-muted-foreground hover:text-foreground transition-colors cursor-pointer truncate">
+                    <option value="default">Default System Microphone</option>
                     <template x-for="mic in availableMicrophones" :key="mic.deviceId">
                         <option :value="mic.deviceId" x-text="mic.label || 'Microphone ' + (availableMicrophones.indexOf(mic) + 1)"></option>
                     </template>

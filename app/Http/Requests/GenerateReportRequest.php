@@ -22,6 +22,8 @@ class GenerateReportRequest extends FormRequest
             'variant' => ['nullable', 'string', 'max:255'],
             'recipientName' => ['nullable', 'string', 'max:255'],
             'recipientTitle' => ['nullable', 'string', 'max:255'],
+            'senderName' => ['nullable', 'string', 'max:255'],
+            'senderTitle' => ['nullable', 'string', 'max:255'],
             'companyAddress' => ['nullable', 'string', 'max:255'],
             'analysisType' => ['nullable', 'string', 'max:255'],
             'prompt' => ['nullable', 'string'],
