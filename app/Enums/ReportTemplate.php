@@ -158,8 +158,10 @@ enum ReportTemplate: string
                 ['id' => 'proposal-modern', 'name' => 'Modern Pitch', 'description' => 'Visually engaging proposal for creative services', 'previewImage' => 'strategy', 'tags' => ['Creative', 'Visual']],
             ],
             self::CONTRACT => [
-                ['id' => 'contract-service', 'name' => 'Service Agreement', 'description' => 'Standard service level agreement terms', 'previewImage' => 'contract', 'tags' => ['Legal', 'SLA']],
-                ['id' => 'contract-nda', 'name' => 'NDA', 'description' => 'Non-disclosure agreement template', 'previewImage' => 'audit', 'tags' => ['Legal', 'Protection']],
+                ['id' => 'contract-service', 'name' => 'Service Agreement', 'description' => 'Comprehensive international services contract with payment terms', 'previewImage' => 'contract', 'tags' => ['Legal', 'SLA']],
+                ['id' => 'contract-nda', 'name' => 'NDA', 'description' => 'Non-disclosure and confidentiality agreement', 'previewImage' => 'audit', 'tags' => ['Legal', 'Protection']],
+                ['id' => 'contract-employment', 'name' => 'Employment Contract', 'description' => 'Employee terms, compensation, and responsibilities', 'previewImage' => 'contract', 'tags' => ['Legal', 'HR']],
+                ['id' => 'contract-freelance', 'name' => 'Freelance Agreement', 'description' => 'Independent contractor project-based engagement', 'previewImage' => 'contract', 'tags' => ['Freelance', 'Project']],
             ],
             self::CV_RESUME => [
                 ['id' => 'cv-classic', 'name' => 'Classic Professional', 'description' => 'Clean, text-focused layout optimized for ATS', 'previewImage' => 'cv', 'tags' => ['Professional', 'ATS']],

@@ -159,9 +159,97 @@ class ReportService
                 $taskDescription = "HIGH-IMPACT business proposal";
                 $documentType = "proposal";
             } elseif ($data->template === ReportTemplate::CONTRACT) {
-                $roleDescription = "expert legal drafter and contract specialist";
-                $taskDescription = "LEGALLY SOUND business contract";
+                $roleDescription = "expert legal drafter, contract attorney, and international business law specialist";
+                $taskDescription = "COMPREHENSIVE, LEGALLY SOUND, PROFESSIONALLY FORMATTED business contract";
                 $documentType = "contract";
+                
+                $brandInstructions .= "\n\n[CONTRACT STRUCTURE MANDATE]\n";
+                $brandInstructions .= "You must generate a comprehensive, professional legal contract by analyzing the pasted content.\n";
+                $brandInstructions .= "CRITICAL: Extract all relevant details from the source content and organize into proper legal structure.\n\n";
+                
+                $brandInstructions .= "[REQUIRED CONTRACT SECTIONS - Generate ALL applicable sections]\n\n";
+                
+                $brandInstructions .= "1. PARTIES SECTION (REQUIRED):\n";
+                $brandInstructions .= "   Generate using this exact HTML structure:\n";
+                $brandInstructions .= "   <div class='parties-section'>\n";
+                $brandInstructions .= "     <div class='party-block'>\n";
+                $brandInstructions .= "       <h3>Service Provider (\"Provider\")</h3>\n";
+                $brandInstructions .= "       <div class='party-field'><span class='party-label'>Name:</span><span class='party-value'>[Extract or use ___________]</span></div>\n";
+                $brandInstructions .= "       <div class='party-field'><span class='party-label'>Business:</span><span class='party-value'>[Extract or use ___________]</span></div>\n";
+                $brandInstructions .= "       <div class='party-field'><span class='party-label'>Address:</span><span class='party-value'>[Extract or use ___________]</span></div>\n";
+                $brandInstructions .= "       <div class='party-field'><span class='party-label'>Email:</span><span class='party-value'>[Extract or use ___________]</span></div>\n";
+                $brandInstructions .= "     </div>\n";
+                $brandInstructions .= "     <div class='party-block'>\n";
+                $brandInstructions .= "       <h3>Client (\"Client\")</h3>\n";
+                $brandInstructions .= "       [Same structure for client details]\n";
+                $brandInstructions .= "     </div>\n";
+                $brandInstructions .= "   </div>\n\n";
+                
+                $brandInstructions .= "2. RECITALS/WHEREAS SECTION:\n";
+                $brandInstructions .= "   <div class='recitals'>\n";
+                $brandInstructions .= "     <p>WHEREAS, [context of the agreement];</p>\n";
+                $brandInstructions .= "     <p>WHEREAS, [provider qualifications];</p>\n";
+                $brandInstructions .= "     <p>WHEREAS, [purpose of engagement];</p>\n";
+                $brandInstructions .= "     <p class='therefore-clause'>NOW, THEREFORE, in consideration of the mutual covenants...</p>\n";
+                $brandInstructions .= "   </div>\n\n";
+                
+                $brandInstructions .= "3. ARTICLES - Use <h2> for main articles:\n";
+                $brandInstructions .= "   Use <h2>ARTICLE I: SCOPE OF WORK AND DELIVERABLES</h2>\n";
+                $brandInstructions .= "   Use <h3>1.1 Project Description</h3> for subsections\n";
+                $brandInstructions .= "   Use <h4>A. Component Name</h4> for sub-subsections\n\n";
+                
+                $brandInstructions .= "4. STANDARD ARTICLES TO INCLUDE:\n";
+                $brandInstructions .= "   - ARTICLE I: SCOPE OF WORK AND DELIVERABLES (extract from content)\n";
+                $brandInstructions .= "   - ARTICLE II: PROJECT TIMELINE AND MILESTONES (if applicable)\n";
+                $brandInstructions .= "   - ARTICLE III: COMPENSATION AND PAYMENT TERMS\n";
+                $brandInstructions .= "   - ARTICLE IV: CLIENT RESPONSIBILITIES AND OBLIGATIONS\n";
+                $brandInstructions .= "   - ARTICLE V: INTELLECTUAL PROPERTY RIGHTS\n";
+                $brandInstructions .= "   - ARTICLE VI: WARRANTIES AND DISCLAIMERS\n";
+                $brandInstructions .= "   - ARTICLE VII: DISPUTE RESOLUTION AND GOVERNING LAW\n";
+                $brandInstructions .= "   - ARTICLE VIII: TERMINATION\n";
+                $brandInstructions .= "   - ARTICLE IX: MISCELLANEOUS PROVISIONS\n\n";
+                
+                $brandInstructions .= "5. SPECIAL HTML CLASSES TO USE:\n";
+                $brandInstructions .= "   - For critical/warning clauses: <div class='callout-critical'><strong>CRITICAL:</strong> text...</div>\n";
+                $brandInstructions .= "   - For important notices: <div class='callout'><strong>Important:</strong> text...</div>\n";
+                $brandInstructions .= "   - For informational notes: <div class='callout-info'>text...</div>\n";
+                $brandInstructions .= "   - For milestone blocks: <div class='milestone-block'><h4>Milestone Name</h4><p>Details...</p></div>\n";
+                $brandInstructions .= "   - For payment tables: <table class='payment-table'>...</table>\n\n";
+                
+                $brandInstructions .= "6. PAYMENT SCHEDULE TABLE FORMAT:\n";
+                $brandInstructions .= "   <table class='payment-table'>\n";
+                $brandInstructions .= "     <thead><tr><th>Payment</th><th>Description</th><th>Due Date</th><th>Amount</th></tr></thead>\n";
+                $brandInstructions .= "     <tbody>\n";
+                $brandInstructions .= "       <tr><td>Payment 1</td><td>Deposit</td><td>Upon signing</td><td>$X,XXX.XX</td></tr>\n";
+                $brandInstructions .= "       <tr class='total-row'><td colspan='3'>Total Contract Value</td><td>$X,XXX.XX</td></tr>\n";
+                $brandInstructions .= "     </tbody>\n";
+                $brandInstructions .= "   </table>\n\n";
+                
+                $brandInstructions .= "7. LEGAL EMPHASIS:\n";
+                $brandInstructions .= "   - Use <strong>BOLD CAPS</strong> for critical legal terms\n";
+                $brandInstructions .= "   - Use <span class='legal-emphasis'>highlighted text</span> for key provisions\n";
+                $brandInstructions .= "   - Use numbered lists for sequential requirements\n";
+                $brandInstructions .= "   - Use bullet lists for non-sequential items\n\n";
+                
+                $brandInstructions .= "8. CONTENT EXTRACTION RULES:\n";
+                $brandInstructions .= "   - Identify ALL services/deliverables from pasted content\n";
+                $brandInstructions .= "   - Extract any pricing/payment terms mentioned\n";
+                $brandInstructions .= "   - Identify timelines/milestones if mentioned\n";
+                $brandInstructions .= "   - Extract party names and details if provided\n";
+                $brandInstructions .= "   - Infer appropriate warranties and terms based on service type\n";
+                $brandInstructions .= "   - Add industry-standard legal protections\n\n";
+                
+                $brandInstructions .= "9. DO NOT INCLUDE:\n";
+                $brandInstructions .= "   - Signature blocks (already in template)\n";
+                $brandInstructions .= "   - 'IN WITNESS WHEREOF' closing (already in template)\n";
+                $brandInstructions .= "   - Contract header/title (already in template)\n\n";
+                
+                $brandInstructions .= "10. OUTPUT QUALITY:\n";
+                $brandInstructions .= "    - Use formal, precise legal language\n";
+                $brandInstructions .= "    - Be comprehensive but avoid unnecessary repetition\n";
+                $brandInstructions .= "    - Include specific details from source content\n";
+                $brandInstructions .= "    - Use blank lines ___________ where specific values should be filled in\n";
+                $brandInstructions .= "    - Make the contract enforceable and professional\n";
             } elseif ($data->template === ReportTemplate::CV_RESUME) {
                 $roleDescription = "expert career coach and resume writer";
                 $taskDescription = "PROFESSIONAL ATS-FRIENDLY resume";
@@ -539,15 +627,74 @@ class ReportService
                 </table>
             ",
             ReportTemplate::CONTRACT => "
-                <h2>1. Services Provided</h2>
-                <p>The Provider agrees to deliver the services as outlined in the attached Statement of Work (SOW). All services will be performed in a professional manner.</p>
-                <h3>2. Payment Terms</h3>
-                <p>Client agrees to pay the Provider the total sum of $20,000. Payment shall be made in two installments: 50% upfront and 50% upon completion.</p>
-                <div class='callout'>
-                    <strong>Confidentiality:</strong> Both parties agree to maintain the confidentiality of all proprietary information disclosed during the term of this agreement.
+                <div class='parties-section'>
+                    <div class='party-block'>
+                        <h3>Service Provider (\"Provider\")</h3>
+                        <div class='party-field'><span class='party-label'>Name:</span><span class='party-value'>John Smith</span></div>
+                        <div class='party-field'><span class='party-label'>Business:</span><span class='party-value'>TechFlow Solutions LLC</span></div>
+                        <div class='party-field'><span class='party-label'>Address:</span><span class='party-value'>123 Innovation Drive, San Francisco, CA 94102</span></div>
+                        <div class='party-field'><span class='party-label'>Email:</span><span class='party-value'>john@techflow.io</span></div>
+                    </div>
+                    <div class='party-block'>
+                        <h3>Client (\"Client\")</h3>
+                        <div class='party-field'><span class='party-label'>Name:</span><span class='party-value'>Acme Corporation</span></div>
+                        <div class='party-field'><span class='party-label'>Business:</span><span class='party-value'>Acme Corporation Inc.</span></div>
+                        <div class='party-field'><span class='party-label'>Address:</span><span class='party-value'>456 Enterprise Blvd, New York, NY 10001</span></div>
+                        <div class='party-field'><span class='party-label'>Email:</span><span class='party-value'>contracts@acme.com</span></div>
+                    </div>
                 </div>
-                <h3>3. Termination</h3>
-                <p>Either party may terminate this agreement with 30 days written notice. In the event of termination, the Client shall pay for all services rendered up to the termination date.</p>
+
+                <div class='recitals'>
+                    <p>WHEREAS, the Client desires to engage the Provider to deliver professional software development services;</p>
+                    <p>WHEREAS, the Provider possesses the necessary skills, expertise, and resources to provide such services;</p>
+                    <p>WHEREAS, both parties wish to establish clear terms and conditions governing this business relationship;</p>
+                    <p class='therefore-clause'>NOW, THEREFORE, in consideration of the mutual covenants and agreements contained herein, and for other good and valuable consideration, the receipt and sufficiency of which are hereby acknowledged, the parties agree as follows:</p>
+                </div>
+
+                <h2>ARTICLE I: SCOPE OF WORK AND DELIVERABLES</h2>
+                <h3>1.1 Project Description</h3>
+                <p>The Provider agrees to design, develop, and deploy a custom web application for the Client, specifically:</p>
+                <ul>
+                    <li>Complete website development using modern web technologies</li>
+                    <li>Responsive design compatible with desktop, tablet, and mobile devices</li>
+                    <li>Custom admin panel and content management functionality</li>
+                    <li>API integration with third-party services</li>
+                    <li>Security implementation and performance optimization</li>
+                </ul>
+
+                <h3>1.2 Excluded from Scope</h3>
+                <p>The following items are explicitly excluded unless separately contracted: ongoing hosting fees, domain registration, third-party service subscriptions, content writing beyond basic optimization, and ongoing maintenance beyond the support period.</p>
+
+                <h2>ARTICLE II: COMPENSATION AND PAYMENT TERMS</h2>
+                <h3>2.1 Total Contract Value</h3>
+                <p>The total compensation for all services described in this Agreement is <strong>TWENTY THOUSAND DOLLARS ($20,000.00 USD)</strong>.</p>
+
+                <table class='payment-table'>
+                    <thead><tr><th>Payment</th><th>Description</th><th>Due Date</th><th>Amount</th></tr></thead>
+                    <tbody>
+                        <tr><td>Payment 1</td><td>Initial Deposit (50%)</td><td>Upon contract execution</td><td>$10,000.00</td></tr>
+                        <tr><td>Payment 2</td><td>Final Payment (50%)</td><td>Upon project completion</td><td>$10,000.00</td></tr>
+                        <tr class='total-row'><td colspan='3'>Total Contract Value</td><td>$20,000.00</td></tr>
+                    </tbody>
+                </table>
+
+                <div class='callout-critical'>
+                    <strong>CRITICAL PAYMENT PROVISION:</strong>
+                    The Provider shall not be obligated to commence any work or proceed to the next milestone until the applicable milestone payment has been received and cleared. This is a material term of this Agreement.
+                </div>
+
+                <h2>ARTICLE III: INTELLECTUAL PROPERTY RIGHTS</h2>
+                <p>Upon receipt of final payment and full satisfaction of all financial obligations, Provider hereby assigns, transfers, and conveys to Client all custom code, design elements, and documentation created specifically for this project.</p>
+
+                <h2>ARTICLE IV: WARRANTIES AND DISCLAIMERS</h2>
+                <p>Provider warrants that services will be performed in a professional and workmanlike manner. Work will conform to industry standards for web development and be reasonably free from defects at time of delivery.</p>
+
+                <div class='callout'>
+                    <strong>Confidentiality:</strong> Both parties agree to maintain the confidentiality of all proprietary information disclosed during the term of this agreement and for three (3) years thereafter.
+                </div>
+
+                <h2>ARTICLE V: TERMINATION</h2>
+                <p>Either party may terminate this Agreement with thirty (30) days written notice. In the event of termination, the Client shall pay for all services rendered up to the termination date. All milestone payments already made are non-refundable once work has commenced.</p>
             ",
             ReportTemplate::CV_RESUME => "
                 <h2>Professional Summary</h2>
