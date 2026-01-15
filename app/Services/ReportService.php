@@ -461,8 +461,12 @@ class ReportService
      * Build template-specific user prompts for AI generation.
      * This ensures each template type gets properly formatted output.
      */
-    private function buildUserPrompt(ReportRequestData $data, string $documentType, string $kbContext, string $researchData): string
+    private function buildUserPrompt(ReportRequestData $data, string $documentType, ?string $kbContext, ?string $researchData): string
     {
+        // Ensure null values become empty strings
+        $kbContext = $kbContext ?? '';
+        $researchData = $researchData ?? '';
+        
         $baseContext = "
             INTERNAL KNOWLEDGE BASE (CONTEXT):
             ---
