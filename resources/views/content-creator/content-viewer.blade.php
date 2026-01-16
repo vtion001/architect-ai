@@ -1,102 +1,15 @@
 @extends('layouts.app')
 
-@php
-    // Pre-process posts data for JavaScript
-    $rawResult = trim($content->result ?? '');
-    
-    // Improved regex to handle various newline formats and common separators (---, ***, ___)
-    // Using 'm' flag to treat as multiple lines, making start/end line anchors reliable
-    $rawSegments = preg_split('/^\s*[-*_]{3,}\s*$/m', $rawResult);
-    
-    // Fallback 1: Numbered list split (e.g. "1. ", "2. ")
-    if (count($rawSegments) < ($content->options['count'] ?? 1)) {
-        // Only split by numbers that are at the start of a line
-        $numberedSplit = preg_split('/^\s*\d+\.\s+/m', $rawResult);
-        $numberedSplit = array_values(array_filter(array_map('trim', $numberedSplit)));
-        if (count($numberedSplit) >= ($content->options['count'] ?? 1)) {
-            $rawSegments = $numberedSplit;
-        }
-    }
-
-    // Fallback 2: Double newline split
-    if (count($rawSegments) < ($content->options['count'] ?? 1)) {
-        $newlineSplit = preg_split('/\R{2,}/', $rawResult);
-        if (count($newlineSplit) >= ($content->options['count'] ?? 1)) {
-            $rawSegments = $newlineSplit;
-        }
-    }
-
-    $postsData = [];
-    $globalHashtags = '';
-
-    if (!empty($rawSegments)) {
-        $rawSegments = array_values(array_filter(array_map('trim', $rawSegments)));
-        
-        // Handle global hashtags if they appear as a separate segment at the end
-        $lastSegment = end($rawSegments);
-        if (count($rawSegments) > 1 && str_starts_with($lastSegment, '#') && strlen($lastSegment) < 300 && !str_contains($lastSegment, "\n")) {
-            array_pop($rawSegments);
-            $globalHashtags = $lastSegment;
-        }
-    } else {
-        $rawSegments = [$content->result ?? 'No content generated.'];
-    }
-
-    foreach ($rawSegments as $idx => $post) {
-        $finalPostContent = trim($post);
-        // Clean up remaining leading number if split didn't catch it
-        $finalPostContent = preg_replace('/^\d+\.\s*/', '', $finalPostContent);
-        
-        if ($globalHashtags && !str_contains($finalPostContent, $globalHashtags)) {
-            $finalPostContent .= "\n\n" . $globalHashtags;
-        }
-        
-        $cleanText = preg_replace('/^#+\s+/m', '', $finalPostContent);
-        $cleanText = str_replace(['*', '`'], '', $cleanText);
-        $cleanHtml = nl2br(e($cleanText));
-        
-        $postsData[] = [
-            'index' => $idx,
-            'raw' => $finalPostContent,
-            'html' => $cleanHtml,
-            'published' => in_array($idx, $publishedIndexes ?? [])
-        ];
-    }
-@endphp
+{{-- 
+    Post data is now prepared by App\View\Composers\ContentViewerComposer
+    The $postsData variable is automatically available via the View Composer
+--}}
 
 @section('content')
 @if($content->status === 'generating')
-    <div class="min-h-[80vh] flex flex-col items-center justify-center p-10">
-        <div class="relative w-24 h-24 mb-8">
-            <div class="absolute inset-0 border-t-2 border-primary rounded-full animate-spin"></div>
-            <div class="absolute inset-2 border-r-2 border-purple-500 rounded-full animate-spin" style="animation-duration: 1.5s"></div>
-            <div class="absolute inset-4 border-b-2 border-cyan-500 rounded-full animate-spin" style="animation-direction: reverse"></div>
-        </div>
-        <h2 class="text-2xl font-black uppercase tracking-tight text-slate-800">Architecting Content</h2>
-        <p class="text-sm font-mono text-slate-500 mt-2 uppercase tracking-widest animate-pulse">
-            {{ $content->type === 'video' ? 'Rendering Video Assets...' : 'Synthesizing Text & Context...' }}
-        </p>
-        <script>
-            setTimeout(() => window.location.reload(), 3000);
-        </script>
-    </div>
+    @include('content-creator.partials.loading-state')
 @elseif($content->status === 'failed')
-    <div class="min-h-[60vh] flex flex-col items-center justify-center animate-in fade-in duration-700">
-        <div class="w-20 h-20 bg-red-50 text-red-500 rounded-full flex items-center justify-center mb-6 border border-red-100 shadow-sm">
-            <i data-lucide="alert-triangle" class="w-10 h-10"></i>
-        </div>
-        <h2 class="text-2xl font-black text-slate-800 uppercase tracking-tight">Generation Failed</h2>
-        <p class="text-slate-500 mt-2 font-medium">The architect encountered an anomaly. Tokens have been refunded.</p>
-        <div class="flex gap-4 mt-8" x-data="{ isDismissing: false, dismiss() { if(!confirm('Dismiss failed entry?')) return; this.isDismissing = true; fetch('{{ route('content-creator.destroy', $content->id) }}', { method: 'DELETE', headers: {'X-CSRF-TOKEN': '{{ csrf_token() }}', 'Accept': 'application/json'} }).then(res => res.json()).then(data => { if(data.success) window.location.href = '{{ route('content-creator.index') }}'; else { alert(data.message); this.isDismissing = false; } }).catch(e => { console.error(e); this.isDismissing = false; }); } }">
-            <a href="{{ route('content-creator.index') }}" class="px-8 py-4 bg-white border border-slate-200 text-slate-700 rounded-xl text-xs font-black uppercase tracking-widest hover:bg-slate-50 transition-colors">
-                Back to Dashboard
-            </a>
-            <button @click="dismiss" :disabled="isDismissing" class="px-8 py-4 bg-primary text-primary-foreground rounded-xl text-xs font-black uppercase tracking-widest hover:bg-primary/90 transition-all shadow-lg shadow-primary/20 disabled:opacity-50">
-                <span x-show="!isDismissing">Dismiss & Retry</span>
-                <span x-show="isDismissing">Dismissing...</span>
-            </button>
-        </div>
-    </div>
+    @include('content-creator.partials.failed-state')
 @else
 <script>
     // Post data prepared server-side to avoid HTML attribute escaping issues
@@ -590,59 +503,11 @@
 </script>
 
 <div class="p-8 max-w-5xl mx-auto" x-data="batchManager()">
-    <div class="mb-6 flex items-center justify-between">
-        <div>
-            <a href="{{ route('content-creator.index') }}" class="text-sm text-muted-foreground hover:text-foreground flex items-center gap-1 mb-2">
-                <i data-lucide="arrow-left" class="w-4 h-4"></i>
-                Back to Creator
-            </a>
-            <h1 class="text-3xl font-bold">{{ $content->title }}</h1>
-            <p class="text-muted-foreground mt-1">{{ ucwords(str_replace('-', ' ', $content->type)) }} • {{ $content->created_at->format('M d, Y') }}</p>
-        </div>
-        <div class="flex gap-2 relative">
-            <button @click="showDeleteModal = true" class="inline-flex items-center justify-center rounded-md text-sm font-medium border border-red-200 bg-red-50 text-red-600 hover:bg-red-100 h-10 px-4 py-2 uppercase tracking-wider font-bold text-xs transition-colors">
-                <i data-lucide="trash-2" class="w-4 h-4 mr-2"></i>
-                Delete Batch
-            </button>
-            <button @click="copyAllPosts()" class="inline-flex items-center justify-center rounded-md text-sm font-medium border border-input bg-background hover:bg-accent hover:text-accent-foreground h-10 px-4 py-2 uppercase tracking-wider font-bold text-xs transition-all hover:border-primary">
-                <i data-lucide="copy" class="w-4 h-4 mr-2"></i>
-                Copy All
-            </button>
-            <button class="inline-flex items-center justify-center rounded-md text-sm font-medium bg-primary text-primary-foreground hover:bg-primary/90 h-10 px-4 py-2 uppercase tracking-wider font-bold text-xs shadow-lg shadow-primary/20">
-                <i data-lucide="send" class="w-4 h-4 mr-2"></i>
-                Publish All
-            </button>
-            
-            <!-- Copy All Success Toast -->
-            <div x-show="showCopyAllToast" 
-                 x-transition:enter="transition ease-out duration-300"
-                 x-transition:enter-start="opacity-0 translate-x-4"
-                 x-transition:enter-end="opacity-100 translate-x-0"
-                 x-transition:leave="transition ease-in duration-200"
-                 x-transition:leave-start="opacity-100 translate-x-0"
-                 x-transition:leave-end="opacity-0 translate-x-4"
-                 class="absolute -bottom-12 right-0 flex items-center gap-2 px-4 py-2.5 bg-green-500 text-white text-xs font-bold uppercase tracking-wider rounded-xl shadow-lg z-50">
-                <i data-lucide="check-circle" class="w-4 h-4"></i>
-                All posts copied to clipboard!
-            </div>
-        </div>
-    </div>
+    {{-- Batch Header: Title, actions, and toast notifications --}}
+    @include('content-creator.partials.batch-header')
 
-    <!-- Stats -->
-    <div class="grid grid-cols-3 gap-4 mb-8">
-        <div class="p-4 rounded-xl border border-border bg-card">
-            <p class="text-xs text-muted-foreground uppercase tracking-wider font-semibold">Length</p>
-            <p class="text-2xl font-bold text-blue-500">{{ $content->word_count }} Words</p>
-        </div>
-        <div class="p-4 rounded-xl border border-border bg-card">
-            <p class="text-xs text-muted-foreground uppercase tracking-wider font-semibold">Topic</p>
-            <p class="text-lg font-bold truncate">{{ $content->topic }}</p>
-        </div>
-        <div class="p-4 rounded-xl border border-border bg-card">
-            <p class="text-xs text-muted-foreground uppercase tracking-wider font-semibold">Status</p>
-            <p class="text-2xl font-bold text-purple-500 uppercase">{{ $content->status }}</p>
-        </div>
-    </div>
+    {{-- Stats Grid: Word count, topic, status --}}
+    @include('content-creator.partials.stats-grid')
 
     <!-- Social Media Feed Grid -->
     <div class="grid grid-cols-1 md:grid-cols-2 gap-6 pb-20">
@@ -1474,46 +1339,8 @@
         @endforeach
     </div>
 
-    <!-- Simple Delete Batch Confirmation Modal -->
-    <div x-show="showDeleteModal"
-         x-cloak
-         class="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
-         x-transition:enter="transition ease-out duration-300"
-         x-transition:enter-start="opacity-0"
-         x-transition:enter-end="opacity-100"
-         x-transition:leave="transition ease-in duration-200"
-         x-transition:leave-start="opacity-100"
-         x-transition:leave-end="opacity-0">
-        
-        <div @click.away="!isDeleting && (showDeleteModal = false)" 
-             class="bg-card w-full max-w-md rounded-2xl shadow-2xl border border-border p-8 text-center animate-in zoom-in-95 duration-300">
-            
-            <div class="w-20 h-20 rounded-full bg-red-100 flex items-center justify-center mx-auto mb-6">
-                <i data-lucide="alert-triangle" class="w-10 h-10 text-red-600"></i>
-            </div>
-            
-            <h2 class="text-2xl font-bold text-foreground mb-2">Delete Entire Batch?</h2>
-            <p class="text-muted-foreground mb-8 leading-relaxed">
-                This action is <span class="text-red-600 font-bold uppercase tracking-tight">permanent</span>. It will remove the local record and attempt to delete all associated posts from your social media platforms.
-            </p>
-            
-            <div class="flex flex-col gap-3">
-                <button @click="deleteBatch()" 
-                        :disabled="isDeleting"
-                        class="w-full py-4 rounded-xl bg-red-600 text-white font-bold uppercase tracking-wider text-sm hover:bg-red-700 transition-all shadow-lg shadow-red-200 disabled:opacity-50 flex items-center justify-center gap-2">
-                    <template x-if="isDeleting">
-                        <i data-lucide="loader-2" class="w-5 h-5 animate-spin"></i>
-                    </template>
-                    <span x-text="isDeleting ? 'Removing everything...' : 'Yes, Delete Batch'"></span>
-                </button>
-                <button @click="showDeleteModal = false" 
-                        :disabled="isDeleting"
-                        class="w-full py-4 rounded-xl bg-muted text-muted-foreground font-bold uppercase tracking-wider text-sm hover:bg-muted/80 transition-all disabled:opacity-50">
-                    Cancel
-                </button>
-            </div>
-        </div>
-    </div>
+    {{-- Delete Batch Confirmation Modal --}}
+    @include('content-creator.partials.delete-modal')
 </div>
 @endif
 @endsection

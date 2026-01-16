@@ -1,9 +1,7 @@
 <!-- resources/views/components/note-task-widget.blade.php -->
 <div x-data="noteTaskWidget()" 
      x-cloak
-     @open-notes.window="isOpen = true"
-     class="fixed z-[99999]" 
-     style="bottom: 96px; right: 24px;"> <!-- Stacked above AI Chat button (24px) -->
+     @open-notes.window="isOpen = true">
 
     <!-- Panel -->
     <div x-show="isOpen" 
@@ -14,15 +12,15 @@
          x-transition:leave-start="opacity-100 scale-100 translate-x-0"
          x-transition:leave-end="opacity-0 scale-95 translate-x-4"
          class="fixed bg-card border border-border rounded-2xl shadow-2xl overflow-hidden flex flex-col z-[99998]"
-         style="bottom: 24px; right: 94px; width: 380px; max-width: calc(100vw - 48px); height: 580px; max-height: calc(100vh - 48px);">
+         style="bottom: 96px; right: 94px; width: 380px; max-width: calc(100vw - 48px); height: 580px; max-height: calc(100vh - 120px);">
          
          <!-- Header -->
          <div class="px-4 py-3 border-b border-border shrink-0" 
-              style="background: linear-gradient(135deg, rgba(0, 242, 255, 0.08), rgba(0, 242, 255, 0.02));">
+              style="background: linear-gradient(135deg, rgba(99, 102, 241, 0.08), rgba(99, 102, 241, 0.02));">
              
              <div class="flex items-center justify-between mb-3">
                  <h3 class="text-xs font-black uppercase tracking-widest text-foreground/80 flex items-center gap-2">
-                     <i data-lucide="layout-grid" class="w-3.5 h-3.5 text-primary"></i>
+                     <i data-lucide="layout-grid" class="w-3.5 h-3.5 text-indigo-500"></i>
                      Command Center
                  </h3>
                  <div class="flex items-center gap-1">
@@ -40,27 +38,27 @@
              <!-- Segmented Tab Control -->
              <div class="flex bg-muted/50 rounded-xl p-1 border border-border/50">
                  <button @click="activeTab = 'tasks'" 
-                         :class="activeTab === 'tasks' ? 'bg-card text-primary shadow-sm' : 'text-muted-foreground hover:text-foreground'"
+                         :class="activeTab === 'tasks' ? 'bg-card text-indigo-600 shadow-sm' : 'text-muted-foreground hover:text-foreground'"
                          class="flex-1 flex items-center justify-center py-2 rounded-lg transition-all" title="Tasks">
                      <i data-lucide="check-square" class="w-4 h-4"></i>
                  </button>
                  <button @click="activeTab = 'notes'" 
-                         :class="activeTab === 'notes' ? 'bg-card text-primary shadow-sm' : 'text-muted-foreground hover:text-foreground'"
+                         :class="activeTab === 'notes' ? 'bg-card text-indigo-600 shadow-sm' : 'text-muted-foreground hover:text-foreground'"
                          class="flex-1 flex items-center justify-center py-2 rounded-lg transition-all" title="Notes">
                      <i data-lucide="sticky-note" class="w-4 h-4"></i>
                  </button>
                  <button @click="activeTab = 'voice'" 
-                         :class="activeTab === 'voice' ? 'bg-card text-primary shadow-sm' : 'text-muted-foreground hover:text-foreground'"
+                         :class="activeTab === 'voice' ? 'bg-card text-indigo-600 shadow-sm' : 'text-muted-foreground hover:text-foreground'"
                          class="flex-1 flex items-center justify-center py-2 rounded-lg transition-all" title="Meeting Scribe">
                      <i data-lucide="mic" class="w-4 h-4"></i>
                  </button>
                  <button @click="activeTab = 'studio'" 
-                         :class="activeTab === 'studio' ? 'bg-card text-primary shadow-sm' : 'text-muted-foreground hover:text-foreground'"
+                         :class="activeTab === 'studio' ? 'bg-card text-indigo-600 shadow-sm' : 'text-muted-foreground hover:text-foreground'"
                          class="flex-1 flex items-center justify-center py-2 rounded-lg transition-all" title="Ghost Studio">
                      <i data-lucide="clapperboard" class="w-4 h-4"></i>
                  </button>
                  <button @click="activeTab = 'history'" 
-                         :class="activeTab === 'history' ? 'bg-card text-primary shadow-sm' : 'text-muted-foreground hover:text-foreground'"
+                         :class="activeTab === 'history' ? 'bg-card text-indigo-600 shadow-sm' : 'text-muted-foreground hover:text-foreground'"
                          class="flex-1 flex items-center justify-center py-2 rounded-lg transition-all" title="Archive">
                      <i data-lucide="history" class="w-4 h-4"></i>
                  </button>
@@ -74,11 +72,11 @@
               x-transition:enter-end="opacity-100 translate-y-0"
               class="px-4 py-2 border-b border-border bg-card">
              <input type="text" x-model="searchQuery" placeholder="Search across all modules..." 
-                    class="w-full bg-muted/30 border border-border rounded-lg px-3 py-2 text-xs outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/50 transition-all">
+                    class="w-full bg-muted/30 border border-border rounded-lg px-3 py-2 text-xs outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500/50 transition-all">
          </div>
 
          <!-- Content Area -->
-         <div class="flex-1 overflow-y-auto p-4 custom-scrollbar bg-background/30">
+         <div class="flex-1 overflow-y-auto p-4 custom-scrollbar bg-background/30 relative">
              <div x-show="activeTab === 'tasks'">
                  @include('components.widget.tasks-tab')
              </div>
@@ -94,32 +92,26 @@
              <div x-show="activeTab === 'history'">
                  @include('components.widget.history-tab')
              </div>
-         </div>
-         
-         <!-- Global Overlays -->
-         <div class="relative">
+
+             <!-- Global Overlays (Modals) - Moved inside relative content area -->
              @include('components.widget.widget-modals')
          </div>
     </div>
 
     <!-- Trigger Button -->
     <button @click="isOpen = !isOpen" 
-            class="w-14 h-14 rounded-full shadow-2xl flex items-center justify-center bg-card border border-border text-foreground transition-all hover:scale-110 active:scale-95 group relative overflow-hidden ring-offset-4 ring-offset-background hover:ring-2 ring-primary/50">
-        <div class="absolute inset-0 bg-gradient-to-tr from-primary/20 to-transparent group-hover:from-primary/30 transition-colors"></div>
+            style="position: fixed; bottom: 96px; right: 24px; z-index: 99999; background-color: #6366f1; box-shadow: 0 8px 24px rgba(99, 102, 241, 0.4);"
+            class="w-14 h-14 rounded-full shadow-xl flex items-center justify-center text-white transition-all hover:scale-110 active:scale-95 group overflow-hidden">
         
         <div class="relative z-10 transition-transform group-hover:-rotate-12">
-            <template x-if="!isOpen">
-                <i data-lucide="check-square" class="w-6 h-6 text-primary"></i>
-            </template>
-            <template x-if="isOpen">
-                <i data-lucide="chevron-right" class="w-6 h-6 text-primary"></i>
-            </template>
+            <i x-show="!isOpen" data-lucide="layers" class="w-6 h-6"></i>
+            <i x-show="isOpen" data-lucide="chevron-right" class="w-6 h-6" x-cloak></i>
         </div>
 
         <template x-if="pendingCount > 0 && !isOpen">
             <span class="absolute top-3 right-3 flex h-3 w-3">
               <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
-              <span class="relative inline-flex rounded-full h-3 w-3 bg-red-500 border-2 border-card"></span>
+              <span class="relative inline-flex rounded-full h-3 w-3 bg-red-500 border-2 border-indigo-500"></span>
             </span>
         </template>
     </button>
@@ -198,31 +190,25 @@
             history: [],
             categories: [],
             
-            // New Task Form
             newTaskTitle: '',
             newTaskDate: '',
             selectedCategory: null,
             alarmEnabled: false,
             
-            // Category Management
             newCategoryName: '',
             newCategoryColor: '#3b82f6',
 
-            // AI Breakdown
             openBreakdownModal: false,
             breakdownPrompt: '',
             breakdownSteps: [],
             generatedTitle: '',
             isGenerating: false,
             
-            // Viewing Detail
             viewingTask: null,
 
-            // Search
             showSearch: false,
             searchQuery: '',
 
-            // Voice / Meeting Scribe
             isRecording: false,
             recordingTime: 0,
             audioBlob: null,
@@ -237,7 +223,6 @@
             availableMicrophones: [],
             selectedMicrophoneId: 'default',
 
-            // Ghost Studio
             isGhostRecording: false,
             ghostEvents: [],
             ghostDemos: [],
