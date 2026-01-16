@@ -159,7 +159,7 @@ class ContentCreatorController extends Controller
     public function uploadMedia(Request $request)
     {
         $request->validate([
-            'file' => 'required|file|mimes:jpeg,png,jpg,gif,svg,webp,mp4,mov,avi,wmv|max:51200', // 50MB max, images & videos
+            'file' => 'required|file|mimes:jpeg,png,jpg,gif,svg,webp,mp4,mov,avi,wmv|max:102400', // 100MB max, images & videos
         ]);
 
         if ($request->hasFile('file')) {

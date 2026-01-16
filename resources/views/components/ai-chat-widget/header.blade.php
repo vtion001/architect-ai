@@ -17,11 +17,57 @@
                     <i data-lucide="bot" class="w-5 h-5"></i>
                 </template>
             </div>
-            <div>
-                <h3 class="font-bold text-sm text-foreground" x-text="agentName"></h3>
-                <div class="flex items-center gap-1.5">
-                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
-                    <p class="text-[10px] text-muted-foreground uppercase tracking-wider" x-text="agentRole"></p>
+            <div class="relative">
+                <button @click="showAgentSwitcher = !showAgentSwitcher" class="text-left group transition-all">
+                    <h3 class="font-bold text-sm text-foreground flex items-center gap-2 group-hover:text-primary transition-colors">
+                        <span x-text="agentName"></span>
+                        <i data-lucide="chevron-down" class="w-3 h-3 text-muted-foreground group-hover:text-primary transition-colors"></i>
+                    </h3>
+                    <div class="flex items-center gap-1.5">
+                        <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                        <p class="text-[10px] text-muted-foreground uppercase tracking-wider" x-text="agentRole"></p>
+                    </div>
+                </button>
+
+                {{-- Agent Switcher Dropdown --}}
+                <div x-show="showAgentSwitcher" 
+                     @click.away="showAgentSwitcher = false"
+                     x-cloak
+                     class="absolute top-full left-0 mt-2 w-56 bg-card border border-border rounded-xl shadow-xl z-50 overflow-hidden"
+                     x-transition:enter="transition ease-out duration-100"
+                     x-transition:enter-start="opacity-0 scale-95"
+                     x-transition:enter-end="opacity-100 scale-100"
+                     x-transition:leave="transition ease-in duration-75"
+                     x-transition:leave-start="opacity-100 scale-100"
+                     x-transition:leave-end="opacity-0 scale-95">
+                    
+                    <div class="px-3 py-2 bg-muted/30 border-b border-border text-[9px] font-black uppercase tracking-widest text-muted-foreground">
+                        Switch Active Agent
+                    </div>
+                    
+                    <div class="max-h-60 overflow-y-auto custom-scrollbar p-1">
+                        <template x-for="agent in availableAgents" :key="agent.id">
+                            <button @click="switchAgent(agent)" 
+                                    class="w-full flex items-center gap-3 p-2 rounded-lg hover:bg-muted/50 transition-colors text-left group">
+                                <div class="w-8 h-8 rounded-lg flex items-center justify-center shrink-0 border border-border group-hover:border-primary/30 transition-colors"
+                                     :style="{ backgroundColor: (agent.primary_color || '#00F2FF') + '15', color: agent.primary_color || '#00F2FF' }">
+                                    <template x-if="agent.avatar_url">
+                                        <img :src="agent.avatar_url" class="w-full h-full object-cover rounded-lg">
+                                    </template>
+                                    <template x-if="!agent.avatar_url">
+                                        <i data-lucide="bot" class="w-4 h-4"></i>
+                                    </template>
+                                </div>
+                                <div class="min-w-0">
+                                    <p class="text-xs font-bold text-foreground truncate" x-text="agent.name"></p>
+                                    <p class="text-[9px] text-muted-foreground truncate uppercase" x-text="agent.role"></p>
+                                </div>
+                                <div x-show="agentId === agent.id" class="ml-auto">
+                                    <i data-lucide="check" class="w-3 h-3 text-primary"></i>
+                                </div>
+                            </button>
+                        </template>
+                    </div>
                 </div>
             </div>
         </div>

@@ -104,6 +104,16 @@ class AiAgentController extends Controller
         return response()->json(['success' => true, 'agent' => $agent]);
     }
 
+    public function list(): JsonResponse
+    {
+        $agents = AiAgent::where('tenant_id', auth()->user()->tenant_id)
+            ->where('is_active', true)
+            ->select('id', 'name', 'role', 'avatar_url', 'primary_color', 'welcome_message')
+            ->get();
+
+        return response()->json(['success' => true, 'agents' => $agents]);
+    }
+
     public function chat(Request $request): JsonResponse
     {
         $validated = $request->validate([

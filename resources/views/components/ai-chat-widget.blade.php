@@ -115,10 +115,13 @@
             inputMessage: '',
             messages: [],
             sessionId: null,
+            availableAgents: [],
+            showAgentSwitcher: false,
 
             init() {
                 this.setupSession();
                 this.loadConversation();
+                this.fetchAgents();
                 
                 // Sync initial state to store if not already set
                 if (this.agentId && Alpine.store('aiChat') && !Alpine.store('aiChat').activeAgentId) {
@@ -157,6 +160,22 @@
             setupSession() {
                 this.sessionId = localStorage.getItem(`ai_chat_session_${this.agentId}`) || this.generateSessionId();
                 localStorage.setItem(`ai_chat_session_${this.agentId}`, this.sessionId);
+            },
+
+            fetchAgents() {
+                fetch('/ai-agents/list')
+                    .then(r => r.json())
+                    .then(data => {
+                        if(data.success) this.availableAgents = data.agents;
+                    })
+                    .catch(e => console.error('Failed to load agents:', e));
+            },
+
+            switchAgent(agent) {
+                this.showAgentSwitcher = false;
+                if(Alpine.store('aiChat')) {
+                    Alpine.store('aiChat').openWithAgent(agent);
+                }
             },
 
             generateSessionId() {

@@ -148,6 +148,7 @@ Route::middleware(['auth', 'tenant', 'mfa', 'session_security'])->group(function
     Route::post('/ai-agents/chat', [\App\Http\Controllers\AiAgentController::class, 'chat'])->name('ai-agents.chat');
     Route::get('/ai-agents/conversation', [\App\Http\Controllers\AiAgentController::class, 'getConversation'])->name('ai-agents.conversation');
     Route::post('/ai-agents/conversation/clear', [\App\Http\Controllers\AiAgentController::class, 'clearConversation'])->name('ai-agents.conversation.clear');
+    Route::get('/ai-agents/list', [\App\Http\Controllers\AiAgentController::class, 'list'])->name('ai-agents.list');
     // Dynamic routes with {agent} parameter
     Route::get('/ai-agents/{agent}', [\App\Http\Controllers\AiAgentController::class, 'show'])->name('ai-agents.show');
     Route::put('/ai-agents/{agent}', [\App\Http\Controllers\AiAgentController::class, 'update'])->name('ai-agents.update');
