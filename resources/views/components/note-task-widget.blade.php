@@ -1,9 +1,9 @@
 <!-- resources/views/components/note-task-widget.blade.php -->
 <div x-data="noteTaskWidget()" 
      x-cloak
-     @open-notes.window="isOpen = true">
+     @open-notes.window="isOpen = true; activeTab = 'notes'">
 
-    <!-- Panel -->
+    {{-- Chat Popup Window - Fixed size, aligned with AI Chat --}}
     <div x-show="isOpen" 
          x-transition:enter="transition ease-out duration-200"
          x-transition:enter-start="opacity-0 scale-95 translate-x-4"
@@ -12,7 +12,7 @@
          x-transition:leave-start="opacity-100 scale-100 translate-x-0"
          x-transition:leave-end="opacity-0 scale-95 translate-x-4"
          class="fixed bg-card border border-border rounded-2xl shadow-2xl overflow-hidden flex flex-col z-[99998]"
-         style="bottom: 96px; right: 94px; width: 380px; max-width: calc(100vw - 48px); height: 580px; max-height: calc(100vh - 120px);">
+         style="bottom: 24px; right: 94px; width: 380px; max-width: calc(100vw - 48px); height: 580px; max-height: calc(100vh - 48px);">
          
          <!-- Header -->
          <div class="px-4 py-3 border-b border-border shrink-0" 
@@ -76,7 +76,7 @@
          </div>
 
          <!-- Content Area -->
-         <div class="flex-1 overflow-y-auto p-4 custom-scrollbar bg-background/30 relative">
+         <div class="flex-1 overflow-y-auto p-4 custom-scrollbar bg-background/30">
              <div x-show="activeTab === 'tasks'">
                  @include('components.widget.tasks-tab')
              </div>
@@ -92,21 +92,23 @@
              <div x-show="activeTab === 'history'">
                  @include('components.widget.history-tab')
              </div>
-
-             <!-- Global Overlays (Modals) - Moved inside relative content area -->
-             @include('components.widget.widget-modals')
          </div>
+         
+         <!-- Global Overlays (Modals) - Outside scrollable area to cover entire panel -->
+         @include('components.widget.widget-modals')
     </div>
 
-    <!-- Trigger Button -->
+    <!-- Floating Toggle Button -->
     <button @click="isOpen = !isOpen" 
             style="position: fixed; bottom: 96px; right: 24px; z-index: 99999; background-color: #6366f1; box-shadow: 0 8px 24px rgba(99, 102, 241, 0.4);"
             class="w-14 h-14 rounded-full shadow-xl flex items-center justify-center text-white transition-all hover:scale-110 active:scale-95 group overflow-hidden">
         
-        <div class="relative z-10 transition-transform group-hover:-rotate-12">
-            <i x-show="!isOpen" data-lucide="layers" class="w-6 h-6"></i>
-            <i x-show="isOpen" data-lucide="chevron-right" class="w-6 h-6" x-cloak></i>
-        </div>
+        <svg x-show="!isOpen" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-6 h-6">
+            <path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/>
+        </svg>
+        <svg x-show="isOpen" x-cloak xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-6 h-6">
+            <path d="m18 8-6 6-6-6"/>
+        </svg>
 
         <template x-if="pendingCount > 0 && !isOpen">
             <span class="absolute top-3 right-3 flex h-3 w-3">
@@ -118,7 +120,7 @@
 </div>
 
 <script>
-    // Global Audio Context Handler to ensure unlocking works across all interactions
+    // Global Audio Context Handler
     window.taskAudioContext = null;
     
     window.initTaskAudio = function() {
@@ -133,20 +135,14 @@
     window.playTaskSound = function(type) {
         window.initTaskAudio();
         const ctx = window.taskAudioContext;
-        
         if (!ctx) return;
-
-        if (ctx.state === 'suspended') {
-            ctx.resume().catch(e => console.error("Audio resume failed", e));
-        }
+        if (ctx.state === 'suspended') ctx.resume();
 
         try {
             const oscillator = ctx.createOscillator();
             const gainNode = ctx.createGain();
-
             oscillator.connect(gainNode);
             gainNode.connect(ctx.destination);
-
             const now = ctx.currentTime;
 
             if (type === 'add') {
@@ -173,9 +169,7 @@
                 oscillator.start(now);
                 oscillator.stop(now + 0.4);
             }
-        } catch (e) {
-            console.error("Sound playback error:", e);
-        }
+        } catch (e) { console.error("Sound error:", e); }
     };
 
     document.addEventListener('click', window.initTaskAudio);
@@ -189,26 +183,20 @@
             notes: [],
             history: [],
             categories: [],
-            
             newTaskTitle: '',
             newTaskDate: '',
             selectedCategory: null,
             alarmEnabled: false,
-            
             newCategoryName: '',
             newCategoryColor: '#3b82f6',
-
             openBreakdownModal: false,
             breakdownPrompt: '',
             breakdownSteps: [],
             generatedTitle: '',
             isGenerating: false,
-            
             viewingTask: null,
-
             showSearch: false,
             searchQuery: '',
-
             isRecording: false,
             recordingTime: 0,
             audioBlob: null,
@@ -222,58 +210,34 @@
             audioPlayer: null,
             availableMicrophones: [],
             selectedMicrophoneId: 'default',
-
             isGhostRecording: false,
             ghostEvents: [],
             ghostDemos: [],
             stopFn: null,
 
-            get pendingCount() {
-                return this.tasks.filter(t => t.status !== 'completed').length;
-            },
-
+            get pendingCount() { return this.tasks.filter(t => t.status !== 'completed').length; },
             get filteredTasks() {
                 if (!this.searchQuery.trim()) return this.tasks;
                 const q = this.searchQuery.toLowerCase();
-                return this.tasks.filter(t => 
-                    t.title.toLowerCase().includes(q) || 
-                    (t.description && t.description.toLowerCase().includes(q))
-                );
+                return this.tasks.filter(t => t.title.toLowerCase().includes(q));
             },
-
             get filteredNotes() {
                 if (!this.searchQuery.trim()) return this.notes;
                 const q = this.searchQuery.toLowerCase();
-                return this.notes.filter(n => 
-                    n.title.toLowerCase().includes(q) || 
-                    (n.description && n.description.toLowerCase().includes(q))
-                );
+                return this.notes.filter(n => n.title.toLowerCase().includes(q) || (n.description && n.description.toLowerCase().includes(q)));
             },
 
             init() {
                 this.fetchData();
                 this.getMicrophones();
-                
-                this.$watch('isOpen', value => {
-                    if (value && window.lucide) {
-                        setTimeout(() => lucide.createIcons(), 100);
-                    }
-                });
+                if (window.lucide) window.lucide.createIcons();
+                this.$watch('isOpen', value => { if (value && window.lucide) setTimeout(() => lucide.createIcons(), 100); });
                 this.$watch('activeTab', value => {
-                    if (value === 'history') {
-                        this.fetchHistory();
-                    }
-                    if (value === 'voice') {
-                        this.getMicrophones();
-                    }
-                    if (window.lucide) {
-                        setTimeout(() => lucide.createIcons(), 50);
-                    }
+                    if (value === 'history') this.fetchHistory();
+                    if (value === 'voice') this.getMicrophones();
+                    if (window.lucide) setTimeout(() => lucide.createIcons(), 50);
                 });
-                
-                setInterval(() => {
-                    this.checkAlarms();
-                }, 30000);
+                setInterval(() => { this.checkAlarms(); }, 30000);
             },
 
             checkAlarms() {
@@ -281,25 +245,14 @@
                 this.tasks.forEach(task => {
                     if (task.alarm_enabled && task.due_date && task.status !== 'completed') {
                         const dueDate = new Date(task.due_date);
-                        const diff = now - dueDate;
-                        if (diff >= 0 && diff < 60000) {
-                            this.triggerAlarm(task);
-                        }
+                        if (now - dueDate >= 0 && now - dueDate < 60000) this.triggerAlarm(task);
                     }
                 });
             },
 
             triggerAlarm(task) {
                 window.playTaskSound('alarm');
-                if (Notification.permission === "granted") {
-                    new Notification("Task Due: " + task.title);
-                } else if (Notification.permission !== "denied") {
-                    Notification.requestPermission().then(permission => {
-                        if (permission === "granted") {
-                            new Notification("Task Due: " + task.title);
-                        }
-                    });
-                }
+                if (Notification.permission === "granted") new Notification("Task Due: " + task.title);
             },
 
             async fetchData() {
@@ -311,9 +264,7 @@
                          this.tasks = data.tasks.filter(t => t.type === 'task');
                          this.notes = data.tasks.filter(t => t.type === 'note');
                     }
-                } catch (e) {
-                    console.error('Failed to fetch data', e);
-                }
+                } catch (e) { console.error('Failed to fetch data', e); }
             },
 
             async fetchHistory() {
@@ -325,24 +276,16 @@
             },
 
             async restoreItem(id) {
-                if (!confirm('Restore this item?')) return;
                 try {
-                    await fetch(`/tasks/${id}/restore`, {
-                        method: 'POST',
-                        headers: { 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content }
-                    });
-                    this.fetchHistory();
-                    this.fetchData();
+                    await fetch(`/tasks/${id}/restore`, { method: 'POST', headers: { 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content } });
+                    this.fetchHistory(); this.fetchData();
                 } catch (e) { console.error(e); }
             },
 
             async forceDeleteItem(id) {
-                if (!confirm('Permanently delete? This cannot be undone.')) return;
+                if (!confirm('Permanently delete?')) return;
                 try {
-                    await fetch(`/tasks/${id}/force`, {
-                        method: 'DELETE',
-                        headers: { 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content }
-                    });
+                    await fetch(`/tasks/${id}/force`, { method: 'DELETE', headers: { 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content } });
                     this.fetchHistory();
                 } catch (e) { console.error(e); }
             },
@@ -350,41 +293,14 @@
             async addTask(title = null, parentId = null, skipRefresh = false) {
                 const taskTitle = title || this.newTaskTitle;
                 if (!taskTitle || !taskTitle.trim()) return;
-
-                const payload = { 
-                    title: taskTitle.trim(), 
-                    type: 'task', 
-                    parent_id: parentId,
-                    category_id: this.selectedCategory ? this.selectedCategory.id : null,
-                    due_date: this.newTaskDate || null,
-                    alarm_enabled: this.alarmEnabled
-                };
-
+                const payload = { title: taskTitle.trim(), type: 'task', parent_id: parentId, category_id: this.selectedCategory ? this.selectedCategory.id : null, due_date: this.newTaskDate || null, alarm_enabled: this.alarmEnabled };
                 try {
-                    const res = await fetch('/tasks', {
-                        method: 'POST',
-                        headers: { 
-                            'Content-Type': 'application/json', 
-                            'Accept': 'application/json',
-                            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content 
-                        },
-                        body: JSON.stringify(payload)
-                    });
-                    
+                    const res = await fetch('/tasks', { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content }, body: JSON.stringify(payload) });
                     const data = await res.json();
                     if (data.success) {
                         window.playTaskSound('add');
-                        if (!parentId) {
-                            this.tasks.unshift(data.task);
-                            this.newTaskTitle = '';
-                            this.alarmEnabled = false; 
-                        } else if (!skipRefresh) {
-                            await this.fetchData();
-                            if (this.viewingTask && this.viewingTask.id === parentId) {
-                                const updatedParent = this.tasks.find(t => t.id === parentId);
-                                if(updatedParent) this.viewingTask = updatedParent;
-                            }
-                        }
+                        if (!parentId) { this.tasks.unshift(data.task); this.newTaskTitle = ''; this.alarmEnabled = false; }
+                        else if (!skipRefresh) { await this.fetchData(); if (this.viewingTask && this.viewingTask.id === parentId) this.viewingTask = this.tasks.find(t => t.id === parentId); }
                     }
                 } catch (e) { console.error(e); }
             },
@@ -394,284 +310,123 @@
 
             async updateTaskTitle(task, newTitle) {
                 if (!newTitle.trim()) return;
-                try {
-                    await fetch(`/tasks/${task.id}`, {
-                        method: 'PUT',
-                        headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content },
-                        body: JSON.stringify({ title: newTitle })
-                    });
-                } catch (e) { console.error(e); }
+                try { await fetch(`/tasks/${task.id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content }, body: JSON.stringify({ title: newTitle }) }); } catch (e) {}
             },
 
             async updateTaskField(task, field, value) {
-                try {
-                    await fetch(`/tasks/${task.id}`, {
-                        method: 'PUT',
-                        headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content },
-                        body: JSON.stringify({ [field]: value })
-                    });
-                } catch (e) { console.error(e); }
+                try { await fetch(`/tasks/${task.id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content }, body: JSON.stringify({ [field]: value }) }); } catch (e) {}
             },
 
             async addNote() {
                 try {
-                    const res = await fetch('/tasks', {
-                        method: 'POST',
-                        headers: { 
-                            'Content-Type': 'application/json', 
-                            'Accept': 'application/json',
-                            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content 
-                        },
-                        body: JSON.stringify({ title: 'Untitled Note', type: 'note' })
-                    });
+                    const res = await fetch('/tasks', { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content }, body: JSON.stringify({ title: 'Untitled Note', type: 'note' }) });
                     const data = await res.json();
                     if (data.success) this.notes.unshift(data.task);
-                } catch (e) { console.error(e); }
+                } catch (e) {}
             },
 
             async addCategory() {
                 if (!this.newCategoryName.trim()) return;
                 try {
-                    const res = await fetch('/task-categories', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content },
-                        body: JSON.stringify({ name: this.newCategoryName, color: this.newCategoryColor })
-                    });
+                    const res = await fetch('/task-categories', { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content }, body: JSON.stringify({ name: this.newCategoryName, color: this.newCategoryColor }) });
                     const data = await res.json();
-                    if (data.success) {
-                        this.categories.push(data.category);
-                        this.newCategoryName = '';
-                        this.selectedCategory = data.category;
-                    }
-                } catch (e) { console.error(e); }
+                    if (data.success) { this.categories.push(data.category); this.newCategoryName = ''; this.selectedCategory = data.category; }
+                } catch (e) {}
             },
 
             async deleteCategory(id) {
-                if (!confirm('Delete this category?')) return;
-                try {
-                    await fetch(`/task-categories/${id}`, {
-                        method: 'DELETE',
-                        headers: { 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content }
-                    });
-                    this.categories = this.categories.filter(c => c.id !== id);
-                    if (this.selectedCategory && this.selectedCategory.id === id) this.selectedCategory = null;
-                    this.fetchData();
-                } catch (e) { console.error(e); }
+                try { await fetch(`/task-categories/${id}`, { method: 'DELETE', headers: { 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content } }); this.categories = this.categories.filter(c => c.id !== id); this.fetchData(); } catch (e) {}
             },
 
             async updateNote(note) {
-                try {
-                    await fetch(`/tasks/${note.id}`, {
-                        method: 'PUT',
-                        headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content },
-                        body: JSON.stringify({ title: note.title, description: note.description })
-                    });
-                } catch (e) { console.error(e); }
+                try { await fetch(`/tasks/${note.id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content }, body: JSON.stringify({ title: note.title, description: note.description }) }); } catch (e) {}
             },
 
             async toggleTask(task) {
                 const newStatus = task.status === 'completed' ? 'pending' : 'completed';
                 task.status = newStatus;
                 if (newStatus === 'completed') window.playTaskSound('success');
-                try {
-                    await fetch(`/tasks/${task.id}`, {
-                        method: 'PUT',
-                        headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content },
-                        body: JSON.stringify({ status: newStatus })
-                    });
-                } catch (e) { 
-                    task.status = task.status === 'completed' ? 'pending' : 'completed';
-                }
+                try { await fetch(`/tasks/${task.id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content }, body: JSON.stringify({ status: newStatus }) }); } catch (e) { task.status = task.status === 'completed' ? 'pending' : 'completed'; }
             },
 
             async deleteTask(id) {
-                if (!confirm('Delete this item? It will be moved to history.')) return;
-                try {
-                    await fetch(`/tasks/${id}`, {
-                        method: 'DELETE',
-                        headers: { 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content }
-                    });
-                    this.tasks = this.tasks.filter(t => t.id !== id && (!t.parent_id || t.parent_id !== id));
-                    this.notes = this.notes.filter(t => t.id !== id);
-                    if (this.viewingTask && this.viewingTask.id === id) this.closeTaskDetails();
-                } catch (e) { console.error(e); }
+                if (!confirm('Move to history?')) return;
+                try { await fetch(`/tasks/${id}`, { method: 'DELETE', headers: { 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content } }); this.fetchData(); if (this.viewingTask && this.viewingTask.id === id) this.closeTaskDetails(); } catch (e) {}
             },
 
             async generateBreakdown() {
                 if (this.breakdownSteps.length > 0) {
                     const parentTitle = this.generatedTitle || (this.breakdownPrompt.length > 50 ? this.breakdownPrompt.substring(0, 47) + '...' : this.breakdownPrompt);
                     try {
-                        const res = await fetch('/tasks', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json', 'Accept': 'application/json', 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content },
-                            body: JSON.stringify({ 
-                                title: parentTitle, description: this.breakdownPrompt, type: 'task',
-                                category_id: this.selectedCategory ? this.selectedCategory.id : null,
-                                due_date: this.newTaskDate || null, alarm_enabled: this.alarmEnabled
-                            })
-                        });
+                        const res = await fetch('/tasks', { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content }, body: JSON.stringify({ title: parentTitle, description: this.breakdownPrompt, type: 'task', category_id: this.selectedCategory ? this.selectedCategory.id : null, due_date: this.newTaskDate || null, alarm_enabled: this.alarmEnabled }) });
                         const data = await res.json();
-                        if (data.success) {
-                            const parent = data.task;
-                            window.playTaskSound('add');
-                            for (const step of this.breakdownSteps) {
-                                await this.addTask(step, parent.id, true);
-                            }
-                            this.breakdownSteps = []; this.breakdownPrompt = ''; this.generatedTitle = ''; this.openBreakdownModal = false;
-                            this.fetchData();
-                        }
-                    } catch (e) { console.error(e); }
-                    return;
+                        if (data.success) { window.playTaskSound('add'); for (const step of this.breakdownSteps) { await this.addTask(step, data.task.id, true); } this.breakdownSteps = []; this.breakdownPrompt = ''; this.openBreakdownModal = false; this.fetchData(); }
+                    } catch (e) {} return;
                 }
                 this.isGenerating = true;
                 try {
-                    const res = await fetch('/tasks/breakdown', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content },
-                        body: JSON.stringify({ content: this.breakdownPrompt })
-                    });
+                    const res = await fetch('/tasks/breakdown', { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content }, body: JSON.stringify({ content: this.breakdownPrompt }) });
                     const data = await res.json();
-                    if (data.success) {
-                        this.breakdownSteps = data.steps;
-                        this.generatedTitle = data.title;
-                    } else { alert('AI Breakdown failed: ' + data.message); }
-                } catch (e) { console.error(e); alert('Connection error.'); }
-                finally { this.isGenerating = false; }
+                    if (data.success) { this.breakdownSteps = data.steps; this.generatedTitle = data.title; }
+                } catch (e) {} finally { this.isGenerating = false; }
             },
 
             async getMicrophones() {
-                if (!navigator.mediaDevices || !navigator.mediaDevices.enumerateDevices) return;
+                if (!navigator.mediaDevices) return;
                 try {
                     let devices = await navigator.mediaDevices.enumerateDevices();
-                    let audioInputs = devices.filter(device => device.kind === 'audioinput');
-                    if (audioInputs.length > 0 && audioInputs[0].label === '') {
-                        try {
-                            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-                            devices = await navigator.mediaDevices.enumerateDevices();
-                            audioInputs = devices.filter(device => device.kind === 'audioinput');
-                            stream.getTracks().forEach(track => track.stop());
-                        } catch (e) {}
-                    }
-                    this.availableMicrophones = audioInputs;
-                } catch (err) { console.error("Error fetching microphones:", err); }
+                    this.availableMicrophones = devices.filter(device => device.kind === 'audioinput');
+                } catch (err) {}
             },
 
             async startRecording() {
-                if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-                    alert('Audio recording is not supported in this browser.');
-                    return;
-                }
                 try {
-                    const constraints = { audio: { deviceId: this.selectedMicrophoneId !== 'default' ? { exact: this.selectedMicrophoneId } : undefined } };
-                    const stream = await navigator.mediaDevices.getUserMedia(constraints);
-                    this.getMicrophones();
-                    let options = { audioBitsPerSecond: 128000 };
-                    if (MediaRecorder.isTypeSupported('audio/webm;codecs=opus')) options.mimeType = 'audio/webm;codecs=opus';
-                    else if (MediaRecorder.isTypeSupported('audio/mp4')) options.mimeType = 'audio/mp4';
-                    this.mediaRecorder = new MediaRecorder(stream, options);
+                    const stream = await navigator.mediaDevices.getUserMedia({ audio: { deviceId: this.selectedMicrophoneId !== 'default' ? { exact: this.selectedMicrophoneId } : undefined } });
+                    this.mediaRecorder = new MediaRecorder(stream);
                     this.audioChunks = [];
-                    this.mediaRecorder.ondataavailable = (event) => { if (event.data.size > 0) this.audioChunks.push(event.data); };
+                    this.mediaRecorder.ondataavailable = (e) => { if (e.data.size > 0) this.audioChunks.push(e.data); };
                     this.mediaRecorder.onstop = () => {
-                        this.audioBlob = new Blob(this.audioChunks, { type: options.mimeType || 'audio/webm' });
-                        this.audioChunks = [];
-                        this.isRecording = false;
-                        if (this.timerInterval) clearInterval(this.timerInterval);
-                        stream.getTracks().forEach(track => track.stop());
+                        this.audioBlob = new Blob(this.audioChunks, { type: 'audio/webm' });
+                        this.isRecording = false; clearInterval(this.timerInterval);
+                        stream.getTracks().forEach(t => t.stop());
                     };
-                    this.mediaRecorder.start();
-                    this.isRecording = true;
-                    this.recordingTime = 0;
-                    this.recordingTitle = 'Meeting - ' + new Date().toLocaleDateString();
+                    this.mediaRecorder.start(); this.isRecording = true; this.recordingTime = 0;
                     this.timerInterval = setInterval(() => { this.recordingTime++; }, 1000);
-                } catch (err) { alert("Microphone access is required."); }
+                } catch (err) {}
             },
 
             stopRecording() { if (this.mediaRecorder && this.mediaRecorder.state !== 'inactive') this.mediaRecorder.stop(); },
-            discardRecording() { this.audioBlob = null; this.recordingTime = 0; this.isRecording = false; if (this.timerInterval) clearInterval(this.timerInterval); if (this.audioPlayer) { this.audioPlayer.pause(); this.audioPlayer = null; this.isPlayingAudio = false; } },
-
-            toggleAudioPlayback() {
-                if (this.isPlayingAudio && this.audioPlayer) { this.audioPlayer.pause(); this.isPlayingAudio = false; return; }
-                if (!this.audioPlayer && this.audioBlob) {
-                    const audioUrl = URL.createObjectURL(this.audioBlob);
-                    this.audioPlayer = new Audio(audioUrl);
-                    this.audioPlayer.onended = () => { this.isPlayingAudio = false; };
-                }
-                if (this.audioPlayer) { this.audioPlayer.play(); this.isPlayingAudio = true; }
-            },
-
-            formatTime(seconds) { const mins = Math.floor(seconds / 60); const secs = seconds % 60; return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`; },
+            discardRecording() { this.audioBlob = null; this.isRecording = false; clearInterval(this.timerInterval); },
+            toggleAudioPlayback() { if (this.isPlayingAudio && this.audioPlayer) { this.audioPlayer.pause(); this.isPlayingAudio = false; return; } if (!this.audioPlayer && this.audioBlob) { this.audioPlayer = new Audio(URL.createObjectURL(this.audioBlob)); this.audioPlayer.onended = () => { this.isPlayingAudio = false; }; } if (this.audioPlayer) { this.audioPlayer.play(); this.isPlayingAudio = true; } },
+            formatTime(s) { const m = Math.floor(s / 60); const ss = s % 60; return `${m.toString().padStart(2, '0')}:${ss.toString().padStart(2, '0')}`; },
 
             async processAudio(type) {
-                if (!this.audioBlob) return;
-                this.isProcessing = true;
-                const extension = this.audioBlob.type.includes('mp4') ? 'mp4' : 'webm';
-                const formData = new FormData();
-                formData.append('audio', this.audioBlob, `recording.${extension}`);
-                formData.append('type', type);
-                formData.append('title', this.recordingTitle);
-                formData.append('description', this.recordingDescription);
+                if (!this.audioBlob) return; this.isProcessing = true;
+                const formData = new FormData(); formData.append('audio', this.audioBlob, 'recording.webm'); formData.append('type', type);
                 try {
-                    const res = await fetch('/tasks/voice-to-intelligence', {
-                        method: 'POST',
-                        headers: { 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content },
-                        body: formData
-                    });
+                    const res = await fetch('/tasks/voice-to-intelligence', { method: 'POST', headers: { 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content }, body: formData });
                     const data = await res.json();
-                    if (data.success) {
-                        window.playTaskSound('success');
-                        if (type === 'note') { this.notes.unshift(data.note); this.activeTab = 'notes'; }
-                        else if (type === 'tasks') { if (data.task) this.tasks.unshift(data.task); this.activeTab = 'tasks'; }
-                        this.discardRecording(); this.fetchData();
-                    } else { alert('Processing failed: ' + (data.message || 'Unknown error')); }
-                } catch (e) { alert('Upload failed.'); } finally { this.isProcessing = false; }
+                    if (data.success) { window.playTaskSound('success'); this.discardRecording(); this.fetchData(); }
+                } catch (e) {} finally { this.isProcessing = false; }
             },
 
             async saveAudio() {
-                if (!this.audioBlob) return;
-                this.isProcessing = true;
-                const extension = this.audioBlob.type.includes('mp4') ? 'mp4' : 'webm';
-                const formData = new FormData();
-                formData.append('audio', this.audioBlob, `recording.${extension}`);
-                formData.append('title', this.recordingTitle);
-                formData.append('description', this.recordingDescription);
+                if (!this.audioBlob) return; this.isProcessing = true;
+                const formData = new FormData(); formData.append('audio', this.audioBlob, 'recording.webm'); formData.append('title', 'Voice Note');
                 try {
-                    const res = await fetch('/tasks/voice-save', {
-                        method: 'POST',
-                        headers: { 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content },
-                        body: formData
-                    });
+                    const res = await fetch('/tasks/voice-save', { method: 'POST', headers: { 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content }, body: formData });
                     const data = await res.json();
-                    if (data.success) { window.playTaskSound('success'); alert('Recording saved to Media Hub!'); this.discardRecording(); }
-                    else { alert('Save failed.'); }
-                } catch (e) { alert('Upload failed.'); } finally { this.isProcessing = false; }
+                    if (data.success) { window.playTaskSound('success'); this.discardRecording(); }
+                } catch (e) {} finally { this.isProcessing = false; }
             },
 
-            startGhostRecording() {
-                if (typeof rrweb === 'undefined') { alert('Ghost Recorder resources not loaded.'); return; }
-                this.ghostEvents = []; this.isGhostRecording = true; this.isOpen = false;
-                this.stopFn = rrweb.record({ emit: (event) => { this.ghostEvents.push(event); }, recordCanvas: true, collectFonts: true });
-            },
-
-            stopGhostRecording() { if (this.stopFn) { this.stopFn(); this.stopFn = null; } this.isGhostRecording = false; this.isOpen = true; this.saveGhostRecording(); },
-
-            async saveGhostRecording() {
-                if (this.ghostEvents.length < 2) return;
-                const title = 'Demo ' + new Date().toLocaleTimeString();
-                try {
-                    const res = await fetch('/tasks/ghost-demo', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content },
-                        body: JSON.stringify({ title: title, events: this.ghostEvents })
-                    });
-                    const data = await res.json();
-                    if(data.success) { this.ghostDemos.unshift(data.demo); this.ghostEvents = []; window.playTaskSound('success'); }
-                } catch(e) { alert('Failed to save demo.'); }
-            },
-
+            startGhostRecording() { this.ghostEvents = []; this.isGhostRecording = true; this.isOpen = false; this.stopFn = rrweb.record({ emit: (e) => { this.ghostEvents.push(e); }, recordCanvas: true }); },
+            stopGhostRecording() { if (this.stopFn) this.stopFn(); this.isGhostRecording = false; this.isOpen = true; this.saveGhostRecording(); },
+            async saveGhostRecording() { if (this.ghostEvents.length < 2) return; try { const res = await fetch('/tasks/ghost-demo', { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content }, body: JSON.stringify({ title: 'Demo', events: this.ghostEvents }) }); const data = await res.json(); if(data.success) { this.ghostDemos.unshift(data.demo); window.playTaskSound('success'); } } catch(e) {} },
             playDemo(id) { window.open('/tasks/ghost-demo/' + id, '_blank'); },
-            formatDate(dateString) { if (!dateString) return ''; const date = new Date(dateString); return date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' }); },
-            formatDateTimeShort(dateString) { if (!dateString) return ''; const date = new Date(dateString); return date.toLocaleDateString(undefined, { month: 'numeric', day: 'numeric' }) + ' ' + date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }); },
-            isOverdue(dateString) { if (!dateString) return false; return new Date(dateString) < new Date(); }
+            formatDate(d) { if (!d) return ''; return new Date(d).toLocaleDateString(); },
+            formatDateTimeShort(d) { if (!d) return ''; return new Date(d).toLocaleString([], { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' }); },
+            isOverdue(d) { if (!d) return false; return new Date(d) < new Date(); }
         }));
     });
 </script>
