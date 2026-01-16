@@ -24,35 +24,16 @@ export function createAiChatWidgetComponent(initialAgentId, initialName, initial
         inputMessage: '',
         messages: [],
         sessionId: null,
+        availableAgents: [],
+        showAgentSwitcher: false,
 
         init() {
             this.setupSession();
             this.loadConversation();
+            this.fetchAgents();
             
-            // Register store logic if not already present (idempotent check)
-            if (typeof Alpine !== 'undefined' && !Alpine.store('aiChat')) {
-                Alpine.store('aiChat', {
-                    isOpen: false,
-                    activeAgentId: null,
-                    openWithAgent(agent) {
-                        this.activeAgentId = agent.id;
-                        this.isOpen = true;
-                        window.dispatchEvent(new CustomEvent('ai-chat-switch-agent', { 
-                            detail: { 
-                                id: agent.id,
-                                name: agent.name,
-                                primaryColor: agent.primary_color,
-                                welcomeMessage: agent.welcome_message,
-                                role: agent.role,
-                                avatar_url: agent.avatar_url
-                            } 
-                        }));
-                    }
-                });
-            }
-
             // Sync initial state to store if not already set
-            if (this.agentId && typeof Alpine !== 'undefined' && Alpine.store('aiChat') && !Alpine.store('aiChat').activeAgentId) {
+            if (this.agentId && Alpine.store('aiChat') && !Alpine.store('aiChat').activeAgentId) {
                 Alpine.store('aiChat').activeAgentId = this.agentId;
             }
 
@@ -73,7 +54,7 @@ export function createAiChatWidgetComponent(initialAgentId, initialName, initial
                     this.agentId = agent.id;
                     this.agentName = agent.name;
                     this.primaryColor = agent.primaryColor || '#00F2FF';
-                    this.welcomeMessage = agent.welcomeMessage || 'Hello!';
+                    this.welcomeMessage = agent.welcome_message || 'Hello!';
                     this.agentRole = agent.role || 'AI Assistant';
                     this.agentAvatar = agent.avatar_url || null;
                     this.messages = [];
@@ -94,6 +75,22 @@ export function createAiChatWidgetComponent(initialAgentId, initialName, initial
         setupSession() {
             this.sessionId = localStorage.getItem(`ai_chat_session_${this.agentId}`) || this.generateSessionId();
             localStorage.setItem(`ai_chat_session_${this.agentId}`, this.sessionId);
+        },
+
+        fetchAgents() {
+            fetch('/ai-agents/list')
+                .then(r => r.json())
+                .then(data => {
+                    if(data.success) this.availableAgents = data.agents;
+                })
+                .catch(e => console.error('Failed to load agents:', e));
+        },
+
+        switchAgent(agent) {
+            this.showAgentSwitcher = false;
+            if(Alpine.store('aiChat')) {
+                Alpine.store('aiChat').openWithAgent(agent);
+            }
         },
 
         generateSessionId() {

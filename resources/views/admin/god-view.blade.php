@@ -1,300 +1,46 @@
+{{--
+    Admin God View Dashboard
+    
+    Global Grid Master Registry for super admin oversight.
+    
+    Required variables:
+    - $statistics: Global platform stats (tenants, identities, credits, waitlist)
+    - $llmHealth: Optional LLMOps health metrics
+    - $globalAudit: Collection of recent audit log entries
+    - $waitlistEntries: Collection of pending waitlist entries
+    
+    Features:
+    - Global telemetry metrics
+    - LLMOps system vitality monitor
+    - Protocol registry (audit log)
+    - Lead provisioning hub
+    - Master waitlist registry
+--}}
+
 @extends('layouts.admin')
 
 @section('title', 'Global Grid Master Registry')
 
 @section('content')
 <div class="space-y-12 animate-in fade-in duration-700">
-    <!-- Global Telemetry Matrix -->
-    <div class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-6">
-        <div class="bg-slate-900 border border-slate-800 rounded-[32px] p-8 relative overflow-hidden group shadow-xl">
-            <div class="absolute -top-10 -right-10 w-32 h-32 bg-blue-500/5 blur-3xl rounded-full group-hover:bg-blue-500/10 transition-colors"></div>
-            <div class="flex items-center justify-between mb-6">
-                <div class="w-12 h-12 rounded-2xl bg-blue-500/10 flex items-center justify-center text-blue-500 border border-blue-500/20 group-hover:bg-blue-500 group-hover:text-white transition-all">
-                    <i data-lucide="server" class="w-6 h-6"></i>
-                </div>
-                <span class="mono text-[8px] uppercase text-slate-600 font-black tracking-widest">Nodes</span>
-            </div>
-            <p class="text-4xl font-black text-white">{{ $statistics['total_tenants'] }}</p>
-            <p class="text-[10px] font-bold text-slate-500 uppercase mt-2 italic">Provisioned Tenants</p>
-        </div>
+    {{-- Global Telemetry Matrix --}}
+    @include('admin.partials.god-view.telemetry')
 
-        <div class="bg-slate-900 border border-slate-800 rounded-[32px] p-8 relative overflow-hidden group shadow-xl">
-            <div class="absolute -top-10 -right-10 w-32 h-32 bg-purple-500/5 blur-3xl rounded-full group-hover:bg-purple-500/10 transition-colors"></div>
-            <div class="flex items-center justify-between mb-6">
-                <div class="w-12 h-12 rounded-2xl bg-purple-500/10 flex items-center justify-center text-purple-500 border border-purple-500/20 group-hover:bg-purple-500 group-hover:text-white transition-all">
-                    <i data-lucide="users" class="w-6 h-6"></i>
-                </div>
-                <span class="mono text-[8px] uppercase text-slate-600 font-black tracking-widest">Identities</span>
-            </div>
-            <p class="text-4xl font-black text-white">{{ $statistics['total_identities'] }}</p>
-            <p class="text-[10px] font-bold text-slate-500 uppercase mt-2 italic">Active Verified Blocks</p>
-        </div>
-
-        <div class="bg-slate-900 border border-slate-800 rounded-[32px] p-8 relative overflow-hidden group shadow-xl">
-            <div class="absolute -top-10 -right-10 w-32 h-32 bg-cyan-500/5 blur-3xl rounded-full group-hover:bg-cyan-500/10 transition-colors"></div>
-            <div class="flex items-center justify-between mb-6">
-                <div class="w-12 h-12 rounded-2xl bg-cyan-500/10 flex items-center justify-center text-cyan-500 border border-cyan-500/20 group-hover:bg-cyan-500 group-hover:text-black transition-all">
-                    <i data-lucide="zap" class="w-6 h-6"></i>
-                </div>
-                <span class="mono text-[8px] uppercase text-slate-600 font-black tracking-widest">Credits</span>
-            </div>
-            <p class="text-4xl font-black text-cyan-400">{{ number_format($statistics['global_credits']) }}</p>
-            <p class="text-[10px] font-bold text-slate-500 uppercase mt-2 italic">Global Token Hashing</p>
-        </div>
-
-        <div class="bg-slate-900 border border-slate-800 rounded-[32px] p-8 relative overflow-hidden group shadow-xl">
-            <div class="absolute -top-10 -right-10 w-32 h-32 bg-amber-500/5 blur-3xl rounded-full group-hover:bg-amber-500/10 transition-colors"></div>
-            <div class="flex items-center justify-between mb-6">
-                <div class="w-12 h-12 rounded-2xl bg-amber-500/10 flex items-center justify-center text-amber-500 border border-amber-500/20 group-hover:bg-amber-500 group-hover:text-white transition-all">
-                    <i data-lucide="user-plus" class="w-6 h-6"></i>
-                </div>
-                <span class="mono text-[8px] uppercase text-slate-600 font-black tracking-widest">Growth</span>
-            </div>
-            <div class="flex items-end gap-2">
-                <p class="text-4xl font-black text-amber-400">{{ $statistics['total_waitlist'] }}</p>
-                <div class="mb-1 flex flex-col">
-                    <span class="text-[8px] font-black text-green-500 uppercase leading-none">+{{ $statistics['signups_today'] }} Today</span>
-                    <span class="text-[8px] font-bold text-slate-500 uppercase leading-none mt-1">+{{ $statistics['signups_this_week'] }} week</span>
-                </div>
-            </div>
-            <p class="text-[10px] font-bold text-slate-500 uppercase mt-2 italic">{{ $statistics['active_waitlist'] }} Pending Approval</p>
-        </div>
-
-        <div class="bg-slate-900 border border-slate-800 rounded-[32px] p-8 relative overflow-hidden group shadow-xl">
-            <div class="absolute -top-10 -right-10 w-32 h-32 bg-emerald-500/5 blur-3xl rounded-full group-hover:bg-emerald-500/10 transition-colors"></div>
-            <div class="flex items-center justify-between mb-6">
-                <div class="w-12 h-12 rounded-2xl bg-emerald-500/10 flex items-center justify-center text-emerald-500 border border-emerald-500/20 group-hover:bg-emerald-500 group-hover:text-white transition-all">
-                    <i data-lucide="shield-check" class="w-6 h-6"></i>
-                </div>
-                <span class="mono text-[8px] uppercase text-slate-600 font-black tracking-widest">Integrity</span>
-            </div>
-            <div class="flex items-end gap-2">
-                <p class="text-4xl font-black text-emerald-400">99.9%</p>
-                <span class="text-[10px] font-black text-green-500 uppercase mb-1">Health</span>
-            </div>
-            <p class="text-[10px] font-bold text-slate-500 uppercase mt-2 italic">Global MFA Sync: Verified</p>
-        </div>
-    </div>
-
-    <!-- LLMOps System Vitality -->
-    @if(isset($llmHealth))
-    <div class="grid grid-cols-1 lg:grid-cols-4 gap-6">
-        <!-- Status Monitor -->
-        <div class="lg:col-span-3 bg-slate-900 border border-slate-800 rounded-[32px] p-8 shadow-xl flex flex-col md:flex-row justify-between items-center gap-8">
-            <div class="flex items-center gap-6 w-full md:w-auto">
-                <div class="w-16 h-16 rounded-2xl bg-slate-800 flex items-center justify-center text-slate-400 border border-slate-700">
-                    <i data-lucide="terminal" class="w-8 h-8"></i>
-                </div>
-                <div>
-                    <h3 class="text-lg font-black text-white uppercase tracking-tight">LLMOps Master Monitor</h3>
-                    <div class="flex items-center gap-2 mt-1">
-                        <span class="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
-                        <span class="text-[10px] font-bold text-green-500 uppercase tracking-widest">Master Node: Operational</span>
-                    </div>
-                </div>
-            </div>
-            
-            <div class="flex-1 w-full grid grid-cols-2 md:grid-cols-4 gap-4">
-                <div class="p-4 rounded-2xl bg-slate-950 border border-slate-800 text-center">
-                    <p class="text-[9px] font-black text-slate-500 uppercase tracking-widest mb-1">OpenAI Gateway</p>
-                    <p class="text-sm font-bold text-emerald-400">{{ $llmHealth['api_status'] ?? 'N/A' }}</p>
-                </div>
-                <div class="p-4 rounded-2xl bg-slate-950 border border-slate-800 text-center">
-                    <p class="text-[9px] font-black text-slate-500 uppercase tracking-widest mb-1">Vector Index</p>
-                    <p class="text-sm font-bold text-blue-400">{{ $llmHealth['vector_db_status'] ?? 'N/A' }}</p>
-                </div>
-                <div class="p-4 rounded-2xl bg-slate-950 border border-slate-800 text-center">
-                    <p class="text-[9px] font-black text-slate-500 uppercase tracking-widest mb-1">Queue Workers</p>
-                    <p class="text-sm font-bold text-white">{{ $llmHealth['active_workers'] ?? 0 }} Up</p>
-                </div>
-                <div class="p-4 rounded-2xl bg-slate-950 border border-slate-800 text-center group/err cursor-pointer hover:border-red-500/50 transition-colors">
-                    <p class="text-[9px] font-black text-slate-500 uppercase tracking-widest mb-1 group-hover/err:text-red-500">Log Errors</p>
-                    <p class="text-sm font-bold {{ ($llmHealth['error_rate'] ?? 0) > 0 ? 'text-red-500' : 'text-slate-400' }}">{{ $llmHealth['error_rate'] ?? 0 }} Failed</p>
-                </div>
-            </div>
-        </div>
-
-        <!-- Token Burn Rate -->
-        <div class="bg-slate-900 border border-slate-800 rounded-[32px] p-8 shadow-xl flex flex-col justify-center relative overflow-hidden">
-            <div class="absolute inset-0 bg-orange-500/5"></div>
-            <p class="text-[9px] font-black text-orange-500 uppercase tracking-widest mb-2">24h Token Burn</p>
-            <p class="text-4xl font-black text-white">{{ number_format($llmHealth['tokens_burned_24h'] ?? 0) }}</p>
-            <p class="text-[10px] text-slate-500 mt-2 font-medium italic">Resource Consumption Rate</p>
-        </div>
-    </div>
-    @endif
+    {{-- LLMOps System Vitality --}}
+    @include('admin.partials.god-view.llmops')
 
     <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
-        <!-- Global Protocol Registry -->
-        <div class="lg:col-span-8 space-y-6">
-            <h3 class="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] px-1">Cross-Grid Protocol Registry</h3>
-            <div class="bg-slate-900 border border-slate-800 rounded-[40px] overflow-hidden shadow-2xl">
-                <table class="w-full text-left text-xs border-collapse">
-                    <thead class="bg-slate-950/50 text-slate-500 font-black uppercase tracking-widest border-b border-slate-800">
-                        <tr>
-                            <th class="p-6">Origin Node</th>
-                            <th class="p-6">Identity</th>
-                            <th class="p-6">Protocol Action</th>
-                            <th class="p-6 text-right">Registry Cycle</th>
-                        </tr>
-                    </thead>
-                    <tbody class="divide-y divide-slate-800/50">
-                        @foreach($globalAudit as $log)
-                            <tr class="hover:bg-slate-800/30 transition-colors group">
-                                <td class="p-6">
-                                    <div class="flex flex-col">
-                                        <span class="font-bold text-slate-300 uppercase tracking-tight">{{ $log->tenant?->name ?? 'GRID_CORE' }}</span>
-                                        <span class="text-[8px] font-mono text-slate-600 uppercase">{{ substr($log->tenant_id ?? 'root', 0, 13) }}</span>
-                                    </div>
-                                </td>
-                                <td class="p-6">
-                                    <span class="text-slate-400 font-medium">{{ $log->actor?->email ?? 'SYSTEM' }}</span>
-                                </td>
-                                <td class="p-6 font-mono text-blue-400 font-bold tracking-tighter uppercase">
-                                    {{ $log->action }}
-                                </td>
-                                <td class="p-6 text-right text-slate-500 font-medium italic">
-                                    {{ $log->timestamp->diffForHumans() }}
-                                </td>
-                            </tr>
-                        @endforeach
-                    </tbody>
-                </table>
-            </div>
-        </div>
+        {{-- Global Protocol Registry --}}
+        @include('admin.partials.god-view.protocol-registry')
 
-        <!-- Beta Lead Hub -->
-        <div class="lg:col-span-4 space-y-6" x-data="{
-            isConverting: false,
-            convertLead(id) {
-                if (!confirm('Provision new tenant from this master lead?')) return;
-                this.isConverting = true;
-                fetch(`/admin/waitlist/${id}/convert`, {
-                    method: 'POST',
-                    headers: { 'X-CSRF-TOKEN': '{{ csrf_token() }}', 'Accept': 'application/json' }
-                })
-                .then(res => res.json())
-                .then(data => {
-                    if (data.success) {
-                        alert('Identity Provisioned Successfully.\n\nLink: ' + data.invitation_url);
-                        window.location.reload();
-                    }
-                })
-                .finally(() => { this.isConverting = false; });
-            }
-        }">
-            <h3 class="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] px-1 text-cyan-500">Master Lead Provisioning</h3>
-            <div class="bg-slate-900 border border-slate-800 rounded-[40px] p-8 space-y-6 shadow-2xl relative overflow-hidden">
-                <div class="absolute -top-20 -right-20 w-40 h-40 bg-cyan-400/5 rounded-full blur-3xl"></div>
-                
-                @forelse($waitlistEntries as $entry)
-                    <div class="p-5 rounded-3xl bg-slate-950/50 border border-slate-800 hover:border-cyan-500/30 transition-all group">
-                        <div class="flex items-center justify-between mb-4">
-                            <div class="w-10 h-10 rounded-xl bg-cyan-500/10 flex items-center justify-center text-cyan-500 font-black">
-                                {{ substr($entry->email, 0, 1) }}
-                            </div>
-                            <span class="text-[8px] font-black uppercase px-2 py-0.5 rounded border {{ $entry->status === 'pending' ? 'text-amber-500 border-amber-500/20' : 'text-green-500 border-green-500/20' }}">
-                                {{ $entry->status }}
-                            </span>
-                        </div>
-                        <div class="mb-4">
-                            <p class="text-xs font-bold text-white truncate">{{ $entry->email }}</p>
-                            <p class="text-[10px] text-slate-500 uppercase font-black tracking-widest mt-1">{{ $entry->agency_name ?? 'Individual Node' }}</p>
-                        </div>
-                        <div class="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                            @if($entry->status === 'pending')
-                                <button @click="convertLead('{{ $entry->id }}')" :disabled="isConverting" class="flex-1 h-9 bg-cyan-500 text-black rounded-xl font-black uppercase text-[8px] tracking-widest hover:bg-white transition-all disabled:opacity-50">
-                                    <span x-show="!isConverting">Provision</span>
-                                    <span x-show="isConverting">...</span>
-                                </button>
-                            @else
-                                <span class="flex-1 text-center py-2 text-[8px] font-black uppercase text-slate-600">Protocol Active</span>
-                            @endif
-                            <button class="w-9 h-9 bg-slate-800 text-slate-400 rounded-xl flex items-center justify-center hover:bg-red-600 hover:text-white transition-all"><i data-lucide="trash-2" class="w-3.5 h-3.5"></i></button>
-                        </div>
-                    </div>
-                @empty
-                    <div class="py-20 text-center opacity-30 italic">
-                        <i data-lucide="inbox" class="w-12 h-12 mx-auto mb-4"></i>
-                        <p class="text-xs font-bold uppercase tracking-widest">Lead queue empty</p>
-                    </div>
-                @endforelse
-
-                <a href="/admin/tenants" class="w-full h-14 bg-slate-800 border border-slate-700 rounded-2xl font-black uppercase text-[9px] tracking-widest hover:bg-slate-700 text-white transition-all flex items-center justify-center gap-3">
-                    Grid Explorer
-                    <i data-lucide="arrow-right" class="w-4 h-4"></i>
-                </a>
-            </div>
-        </div>
+        {{-- Beta Lead Hub --}}
+        @include('admin.partials.god-view.lead-hub')
     </div>
 
-    <!-- Section Divider -->
+    {{-- Section Divider --}}
     <div class="h-px bg-gradient-to-r from-transparent via-slate-800 to-transparent"></div>
 
-    <!-- Master Waitlist Registry -->
-    <div class="space-y-6">
-        <div class="flex items-center justify-between px-1">
-            <div class="flex items-center gap-4">
-                <div class="w-2 h-8 bg-amber-500 rounded-full"></div>
-                <div>
-                    <h3 class="text-xl font-black text-white uppercase tracking-tighter">Master Waitlist Registry</h3>
-                    <p class="text-[9px] font-bold text-slate-500 uppercase tracking-widest italic">Global user acquisition queue</p>
-                </div>
-            </div>
-            <span class="text-[9px] font-black text-amber-500 uppercase tracking-widest bg-amber-500/10 px-3 py-1 rounded-full border border-amber-500/20">Authorized Master Node Only</span>
-        </div>
-        <div class="bg-slate-900 border border-slate-800 rounded-[40px] overflow-hidden shadow-2xl">
-            <table class="w-full text-left text-xs border-collapse">
-                <thead class="bg-slate-950/50 text-slate-500 font-black uppercase tracking-widest border-b border-slate-800">
-                    <tr>
-                        <th class="p-6">Lead Identity</th>
-                        <th class="p-6">Agency / Brand</th>
-                        <th class="p-6">Status</th>
-                        <th class="p-6 text-right">Acquisition Date</th>
-                    </tr>
-                </thead>
-                <tbody class="divide-y divide-slate-800/50">
-                    @forelse($waitlistEntries as $entry)
-                        <tr class="hover:bg-slate-800/30 transition-colors group">
-                            <td class="p-6">
-                                <div class="flex items-center gap-3">
-                                    <div class="w-8 h-8 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center text-[10px] font-black text-slate-500 uppercase">
-                                        {{ substr($entry->name ?? $entry->email, 0, 1) }}
-                                    </div>
-                                    <div class="flex flex-col">
-                                        <span class="font-bold text-slate-300 uppercase tracking-tight">{{ $entry->name ?? 'Anonymous Identity' }}</span>
-                                        <div class="flex items-center gap-2 group/copy cursor-pointer" onclick="navigator.clipboard.writeText('{{ $entry->email }}'); alert('Identity Hashed to Clipboard');">
-                                            <span class="text-[9px] text-slate-500 font-medium italic group-hover/copy:text-primary transition-colors">{{ $entry->email }}</span>
-                                            <i data-lucide="copy" class="w-2.5 h-3 text-slate-600 group-hover/copy:text-primary transition-colors opacity-0 group-hover/copy:opacity-100"></i>
-                                        </div>
-                                    </div>
-                                </div>
-                            </td>
-                            <td class="p-6">
-                                <span class="text-slate-400 font-medium uppercase tracking-widest text-[10px]">{{ $entry->agency_name ?? 'Individual Node' }}</span>
-                            </td>
-                            <td class="p-6">
-                                <div class="flex items-center gap-2">
-                                    <div class="w-1.5 h-1.5 rounded-full {{ $entry->status === 'pending' ? 'bg-amber-500 animate-pulse' : 'bg-green-500' }}"></div>
-                                    <span class="text-[9px] font-black uppercase tracking-widest {{ $entry->status === 'pending' ? 'text-amber-500' : 'text-green-500' }}">
-                                        {{ $entry->status }}
-                                    </span>
-                                </div>
-                            </td>
-                            <td class="p-6 text-right text-slate-500 font-medium italic">
-                                {{ $entry->created_at->format('M d, Y • H:i') }}
-                            </td>
-                        </tr>
-                    @empty
-                        <tr>
-                            <td colspan="4" class="p-20 text-center opacity-30 italic text-slate-500">
-                                No master leads found in the grid queue.
-                            </td>
-                        </tr>
-                    @endforelse
-                </tbody>
-            </table>
-        </div>
-    </div>
+    {{-- Master Waitlist Registry --}}
+    @include('admin.partials.god-view.waitlist-table')
 </div>
 @endsection
