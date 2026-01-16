@@ -7,6 +7,70 @@
 --}}
 @extends('layouts.app')
 
+@php
+    // Pre-process posts data for JavaScript
+    $rawResult = trim($content->result ?? '');
+    
+    // Improved regex to handle various newline formats and common separators (---, ***, ___)
+    // Using 'm' flag to treat as multiple lines, making start/end line anchors reliable
+    $rawSegments = preg_split('/^\s*[-*_]{3,}\s*$/m', $rawResult);
+    
+    // Fallback 1: Numbered list split (e.g. "1. ", "2. ")
+    if (count($rawSegments) < ($content->options['count'] ?? 1)) {
+        // Only split by numbers that are at the start of a line
+        $numberedSplit = preg_split('/^\s*\d+\.\s+/m', $rawResult);
+        $numberedSplit = array_values(array_filter(array_map('trim', $numberedSplit)));
+        if (count($numberedSplit) >= ($content->options['count'] ?? 1)) {
+            $rawSegments = $numberedSplit;
+        }
+    }
+
+    // Fallback 2: Double newline split
+    if (count($rawSegments) < ($content->options['count'] ?? 1)) {
+        $newlineSplit = preg_split('/\R{2,}/', $rawResult);
+        if (count($newlineSplit) >= ($content->options['count'] ?? 1)) {
+            $rawSegments = $newlineSplit;
+        }
+    }
+
+    $postsData = [];
+    $globalHashtags = '';
+
+    if (!empty($rawSegments)) {
+        $rawSegments = array_values(array_filter(array_map('trim', $rawSegments)));
+        
+        // Handle global hashtags if they appear as a separate segment at the end
+        $lastSegment = end($rawSegments);
+        if (count($rawSegments) > 1 && str_starts_with($lastSegment, '#') && strlen($lastSegment) < 300 && !str_contains($lastSegment, "\n")) {
+            array_pop($rawSegments);
+            $globalHashtags = $lastSegment;
+        }
+    } else {
+        $rawSegments = [$content->result ?? 'No content generated.'];
+    }
+
+    foreach ($rawSegments as $idx => $post) {
+        $finalPostContent = trim($post);
+        // Clean up remaining leading number if split didn't catch it
+        $finalPostContent = preg_replace('/^\d+\.\s*/', '', $finalPostContent);
+        
+        if ($globalHashtags && !str_contains($finalPostContent, $globalHashtags)) {
+            $finalPostContent .= "\n\n" . $globalHashtags;
+        }
+        
+        $cleanText = preg_replace('/^#+\s+/m', '', $finalPostContent);
+        $cleanText = str_replace(['*', '`'], '', $cleanText);
+        $cleanHtml = nl2br(e($cleanText));
+        
+        $postsData[] = [
+            'index' => $idx,
+            'raw' => $finalPostContent,
+            'html' => $cleanHtml,
+            'published' => in_array($idx, $publishedIndexes ?? [])
+        ];
+    }
+@endphp
+
 @section('content')
 @if($content->status === 'generating')
     @include('content-creator.partials.loading-state')

@@ -1,6 +1,7 @@
 import './bootstrap';
 import { createIcons, icons } from 'lucide';
 import Chart from 'chart.js/auto';
+import './components/ai-chat-widget';
 
 // Initialize icons
 createIcons({ icons });
