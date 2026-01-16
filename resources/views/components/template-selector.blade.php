@@ -66,7 +66,8 @@
                         class="group relative rounded-[32px] border border-slate-800 bg-slate-900 p-6 hover:border-primary transition-all cursor-pointer overflow-hidden flex flex-col h-full"
                     >
                         <!-- Blueprint Preview Image -->
-                        <div class="mb-6 aspect-video w-full rounded-2xl overflow-hidden relative bg-slate-950 border border-slate-800 flex items-center justify-center group-hover:border-primary/50 transition-all">
+                        <div class="mb-6 aspect-video w-full rounded-2xl overflow-hidden relative bg-slate-950 border border-slate-800 flex items-center justify-center transition-all"
+                             :style="{ borderColor: currentBrandColor + '40' }">
                             <!-- Actual Thumbnail Image -->
                             <img :src="'/images/templates/' + (variant.previewImage || selectedCategory?.id || 'custom') + '.png'" 
                                  class="absolute inset-0 w-full h-full object-cover opacity-60 group-hover:opacity-80 group-hover:scale-110 transition-all duration-700"
@@ -76,15 +77,17 @@
                             <!-- Tactical Overlays -->
                             <div class="absolute inset-0 bg-gradient-to-t from-slate-950 via-transparent to-transparent opacity-60"></div>
                             <div class="absolute inset-0 grid-canvas pointer-events-none opacity-20"></div>
+                            <!-- Brand Tint -->
+                            <div class="absolute inset-0 opacity-20 mix-blend-color pointer-events-none" :style="{ backgroundColor: currentBrandColor }"></div>
                             
                             <!-- Blueprint Icon (Centered) -->
                             <i :data-lucide="selectedCategory?.icon" 
                                class="relative z-10 w-12 h-12 opacity-40 group-hover:opacity-100 group-hover:scale-125 transition-all duration-500" 
-                               :style="{ color: selectedCategory?.color }"></i>
+                               :style="{ color: currentBrandColor }"></i>
                             
                             <!-- Visual Badge -->
                             <div class="absolute top-3 left-3 px-2 py-1 rounded-md bg-black/60 border border-white/10 backdrop-blur-md z-20">
-                                <span class="mono text-[7px] font-black text-primary uppercase tracking-widest" x-text="'NODE_' + variant.id.toUpperCase().substring(0,8)"></span>
+                                <span class="mono text-[7px] font-black uppercase tracking-widest" :style="{ color: currentBrandColor }" x-text="'NODE_' + variant.id.toUpperCase().substring(0,8)"></span>
                             </div>
 
                             <!-- Scanline Effect -->

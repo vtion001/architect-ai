@@ -22,7 +22,7 @@ class DocumentsController extends Controller
             'storage_used' => round($documents->sum('size') / 1024, 1) . ' KB',
         ];
 
-        return view('documents.index', compact('documents', 'stats'));
+        return view('documents.documents', compact('documents', 'stats'));
     }
 
     public function show(Request $request, Document $document)

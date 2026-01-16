@@ -9,141 +9,110 @@ use App\Enums\ReportTemplate;
 use App\Http\Requests\GenerateReportRequest;
 use App\Http\Requests\PreviewReportRequest;
 use App\Services\ReportService;
-use App\Services\PdfToTextService;
-use App\Models\Document;
+use App\Services\ResumeParserService;
+use App\Services\CoverLetterDraftService;
 use App\Services\TokenService;
+use App\Models\Document;
+use App\Models\Brand;
+use App\Models\Research;
+use App\Models\Tenant;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 use Illuminate\View\View;
 use Illuminate\Support\Str;
+use Illuminate\Support\Facades\Log;
 
+/**
+ * Document Builder Controller
+ * 
+ * Handles document generation, preview, and related file operations.
+ * 
+ * Refactored to delegate business logic to services:
+ * - ResumeParserService: Resume parsing and AI extraction
+ * - CoverLetterDraftService: AI-powered cover letter drafting
+ * - ReportService: Document generation and preview
+ */
 class DocumentBuilderController extends Controller
 {
     public function __construct(
         protected ReportService $reportService,
         protected TokenService $tokenService,
-        protected PdfToTextService $pdfToTextService
+        protected ResumeParserService $resumeParser,
+        protected CoverLetterDraftService $coverLetterDraft
     ) {}
 
-    public function index(\Illuminate\Http\Request $request): View
+    /**
+     * Display the document builder interface.
+     */
+    public function index(Request $request): View
     {
-        $templateCategories = array_map(fn(ReportTemplate $template) => [
-            'id' => $template->value,
-            'name' => $template->label(),
-            'icon' => $template->icon(),
-            'color' => $template->hexColor(),
-            'variants' => $template->variants(),
-        ], ReportTemplate::cases());
+        $templateCategories = $this->getTemplateCategories();
+        $selectedResearch = $this->getSelectedResearch($request);
+        $brands = $this->getTenantBrands();
 
-        $selectedResearch = null;
-        if ($request->has('research_id')) {
-            $selectedResearch = \App\Models\Research::find($request->research_id);
-        }
-
-        $tenant = app(\App\Models\Tenant::class);
-        $brands = $tenant->brands()->get();
-
-        return view('document-builder.document-builder', compact('templateCategories', 'selectedResearch', 'brands'));
+        return view('document-builder.document-builder', compact(
+            'templateCategories', 
+            'selectedResearch', 
+            'brands'
+        ));
     }
 
-    public function parseResume(\Illuminate\Http\Request $request): JsonResponse
+    /**
+     * Parse uploaded resume and extract candidate data.
+     */
+    public function parseResume(Request $request): JsonResponse
     {
         $request->validate([
-            'resume' => 'required|file|mimes:pdf,txt,md,docx|max:5120', // 5MB max
+            'resume' => 'required|file|mimes:pdf,txt,md,docx|max:5120',
         ]);
 
-        try {
-            $file = $request->file('resume');
-            $text = '';
+        $result = $this->resumeParser->parse($request->file('resume'));
 
-            if ($file->getClientOriginalExtension() === 'pdf') {
-                $text = $this->pdfToTextService->extract($file->getPathname());
-            } else {
-                // Fallback for text-based files
-                $text = file_get_contents($file->getPathname());
-            }
-
-            if (empty(trim($text))) {
-                return response()->json(['success' => false, 'message' => 'Could not extract text from the document.'], 422);
-            }
-
-            // AI Extraction Logic
-            $apiKey = config('services.openai.key');
-            $extractedData = [];
-
-            if ($apiKey) {
-                try {
-                    $response = \Illuminate\Support\Facades\Http::withToken($apiKey)->post('https://api.openai.com/v1/chat/completions', [
-                        'model' => 'gpt-4o',
-                        'messages' => [
-                            [
-                                'role' => 'system',
-                                'content' => "You are an HR Data Extraction Specialist.
-                                Extract the following candidate details from the resume text into a JSON object:
-                                - `full_name`: Candidate's full name.
-                                - `title`: Current or most recent job title.
-                                - `email`: Email address.
-                                - `phone`: Phone number.
-                                - `location`: City/Country.
-                                - `website`: Portfolio or LinkedIn URL.
-                                - `personal_info`: object containing `age`, `dob`, `gender`, `civil_status`, `nationality`, `height`, `weight`, `place_of_birth`, `religion`, `languages`.
-                                
-                                If a field is not found, leave it as null or empty string."
-                            ],
-                            [
-                                'role' => 'user',
-                                'content' => "Resume Text:\n" . substr($text, 0, 10000)
-                            ]
-                        ],
-                        'response_format' => ['type' => 'json_object']
-                    ]);
-
-                    if ($response->successful()) {
-                        $extractedData = $response->json('choices.0.message.content');
-                        $extractedData = json_decode($extractedData, true);
-                    }
-                } catch (\Exception $e) {
-                    \Illuminate\Support\Facades\Log::error('Resume extraction failed: ' . $e->getMessage());
-                }
-            }
-
-            return response()->json([
-                'success' => true, 
-                'text' => $text,
-                'extracted_data' => $extractedData
-            ]);
-
-        } catch (\Exception $e) {
-            return response()->json(['success' => false, 'message' => 'Parsing failed: ' . $e->getMessage()], 500);
+        if (!$result['success']) {
+            return response()->json($result, 422);
         }
+
+        return response()->json($result);
     }
 
-    public function uploadPhoto(\Illuminate\Http\Request $request): JsonResponse
+    /**
+     * Upload profile photo for CV/resume.
+     */
+    public function uploadPhoto(Request $request): JsonResponse
     {
         $request->validate([
             'photo' => 'required|image|mimes:jpeg,png,jpg,webp|max:5120',
         ]);
 
-        if ($request->hasFile('photo')) {
-            $file = $request->file('photo');
-            $filename = 'cv-' . time() . '-' . \Illuminate\Support\Str::random(10) . '.' . $file->getClientOriginalExtension();
-            $file->move(public_path('uploads/cv-photos'), $filename);
-            
-            return response()->json([
-                'success' => true,
-                'url' => asset('uploads/cv-photos/' . $filename)
-            ]);
+        if (!$request->hasFile('photo')) {
+            return response()->json(['success' => false, 'message' => 'Upload failed'], 400);
         }
 
-        return response()->json(['success' => false, 'message' => 'Upload failed'], 400);
+        $file = $request->file('photo');
+        $filename = 'cv-' . time() . '-' . Str::random(10) . '.' . $file->getClientOriginalExtension();
+        $file->move(public_path('uploads/cv-photos'), $filename);
+        
+        return response()->json([
+            'success' => true,
+            'url' => asset('uploads/cv-photos/' . $filename)
+        ]);
     }
 
+    /**
+     * Generate a document using AI.
+     */
     public function generate(GenerateReportRequest $request): JsonResponse
     {
         try {
             $tokenCost = 30;
 
-            // 1. Check & Consume Tokens
-            if (!$this->tokenService->consume(auth()->user(), $tokenCost, 'report_generation', ['topic' => $request->researchTopic ?? $request->analysisType ?? 'Report Generation'])) {
+            // Check & consume tokens
+            if (!$this->tokenService->consume(
+                auth()->user(), 
+                $tokenCost, 
+                'report_generation', 
+                ['topic' => $request->researchTopic ?? $request->analysisType ?? 'Report Generation']
+            )) {
                 return response()->json([
                     'success' => false,
                     'message' => "Insufficient tokens. Report architecture requires $tokenCost tokens."
@@ -151,53 +120,12 @@ class DocumentBuilderController extends Controller
             }
 
             $validated = $request->validated();
-
-            // Inject Brand Context
-            if (!empty($validated['brand_id'])) {
-                $brand = \App\Models\Brand::find($validated['brand_id']);
-                if ($brand) {
-                    $brandContext = "\n\n[SYSTEM: STRICT BRAND IDENTITY ENFORCED]\n";
-                    $brandContext .= "Organization Name: {$brand->name}\n";
-                    if (!empty($brand->voice_profile['tone'])) $brandContext .= "Tone of Voice: {$brand->voice_profile['tone']}\n";
-                    if (!empty($brand->contact_info['website'])) $brandContext .= "Website: {$brand->contact_info['website']}\n";
-                    
-                    $validated['prompt'] = ($validated['prompt'] ?? '') . $brandContext;
-                }
-            }
-
+            $validated = $this->injectBrandContext($validated);
+            
             $data = ReportRequestData::fromArray($validated);
+            $document = $this->createPendingDocument($request, $validated);
             
-            // Determine Document Name
-            $templateLabel = ReportTemplate::tryFrom($request->template)?->label() ?? 'Report';
-            $baseName = $request->researchTopic ?? $request->analysisType ?? 'Generated Document';
-            
-            // Generate a more descriptive title
-            if (!empty($request->recipientName)) {
-                $baseName = $request->recipientName . ' - ' . $templateLabel;
-            } elseif (!empty($request->targetRole)) {
-                $baseName = $request->targetRole . ' - ' . $templateLabel;
-            } elseif (!empty($request->researchTopic)) {
-                $baseName = $request->researchTopic . ' - ' . $templateLabel;
-            }
-
-            // Create Document with pending status (will be updated by job)
-            $document = Document::create([
-                'tenant_id' => auth()->user()->tenant_id,
-                'user_id' => auth()->id(),
-                'name' => Str::limit($baseName, 150) . ' (' . now()->format('M d, Y') . ')',
-                'type' => 'HTML',
-                'category' => 'Reports',
-                'status' => 'pending',
-                'content' => '', // Will be populated by job
-                'metadata' => [
-                    'template' => $request->template,
-                    'variant' => $request->variant,
-                    'research_topic' => $request->researchTopic,
-                    'profile_photo_url' => $validated['profilePhotoUrl'] ?? null 
-                ]
-            ]);
-            
-            // Dispatch background job for generation
+            // Dispatch background job
             \App\Jobs\GenerateDocument::dispatch($document, auth()->user(), $data, $tokenCost);
             
             return response()->json([
@@ -208,7 +136,7 @@ class DocumentBuilderController extends Controller
             ]);
 
         } catch (\Exception $e) {
-            \Illuminate\Support\Facades\Log::error('Report generation dispatch failed', [
+            Log::error('Report generation dispatch failed', [
                 'error' => $e->getMessage(),
                 'file' => $e->getFile(),
                 'line' => $e->getLine(),
@@ -221,6 +149,9 @@ class DocumentBuilderController extends Controller
         }
     }
 
+    /**
+     * Generate preview HTML for a template.
+     */
     public function preview(PreviewReportRequest $request): JsonResponse
     {
         $validated = $request->validated();
@@ -229,66 +160,181 @@ class DocumentBuilderController extends Controller
         $brandId = $validated['brand_id'] ?? null;
         
         try {
-            $overrides = $validated['contractDetails'] ?? [];
-            if (!empty($validated['recipientName'])) $overrides['recipientName'] = $validated['recipientName'];
-            if (!empty($validated['recipientTitle'])) $overrides['recipientTitle'] = $validated['recipientTitle'];
-
+            $overrides = $this->buildPreviewOverrides($validated);
             $html = $this->reportService->generatePreviewHtml($template, $variant, $brandId, $overrides);
+            
             return response()->json(['html' => $html, 'success' => true]);
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             return response()->json([
-                'html' => '<div style="padding: 40px; text-align: center; color: #666;"><h2>Template Preview Unavailable</h2><p>The template view is not yet created for this variant.</p></div>',
+                'html' => $this->getPreviewErrorHtml($e),
                 'success' => false,
                 'error' => $e->getMessage()
             ]);
         }
     }
 
-    public function draftCoverLetter(\Illuminate\Http\Request $request): JsonResponse
+    /**
+     * Draft a cover letter using AI.
+     */
+    public function draftCoverLetter(Request $request): JsonResponse
     {
         $request->validate([
             'target_role' => 'required|string',
             'source_content' => 'required|string',
         ]);
 
-        $apiKey = config('services.openai.key');
-        if (!$apiKey) return response()->json(['success' => false, 'message' => 'AI not configured']);
+        $result = $this->coverLetterDraft->draft(
+            $request->target_role,
+            $request->source_content
+        );
 
-        try {
-            $response = \Illuminate\Support\Facades\Http::withToken($apiKey)->post('https://api.openai.com/v1/chat/completions', [
-                'model' => 'gpt-4o',
-                'messages' => [
-                    [
-                        'role' => 'system',
-                        'content' => "You are an Expert Career Strategist. 
-                        Your job is to draft a NARRATIVE and PERSUASIVE cover letter story based on a candidate's CV and a Target Role.
-                        
-                        RULES:
-                        1. THE HOOK: Explain why this specific role at this specific company matters. (Narrative story).
-                        2. THE EVIDENCE: Pick 2-3 'Hero Moments' from the CV. Use quantifiable results (numbers).
-                        3. THE SOLUTION: Address a likely company pain point and explain how the candidate solves it.
-                        4. CALL TO ACTION: Proactive closing.
-                        
-                        STYLE: Narrative, conversational, and enthusiastic. 
-                        FORMAT: Return raw text paragraphs. No HTML, no symbols."
-                    ],
-                    [
-                        'role' => 'user',
-                        'content' => "TARGET ROLE:\n{$request->target_role}\n\nCANDIDATE CV:\n{$request->source_content}"
-                    ]
-                ]
-            ]);
-
-            if ($response->successful()) {
-                return response()->json([
-                    'success' => true,
-                    'draft' => $response->json('choices.0.message.content')
-                ]);
-            }
-        } catch (\Exception $e) {
-            return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
+        if (!$result['success']) {
+            return response()->json($result, 500);
         }
 
-        return response()->json(['success' => false, 'message' => 'Drafting failed'], 500);
+        return response()->json($result);
+    }
+
+    // =========================================================================
+    // Private Helper Methods
+    // =========================================================================
+
+    /**
+     * Get template categories for the UI.
+     */
+    private function getTemplateCategories(): array
+    {
+        return array_map(fn(ReportTemplate $template) => [
+            'id' => $template->value,
+            'name' => $template->label(),
+            'thumbnail' => $template->thumbnail(),
+            'icon' => $template->icon(),
+            'color' => $template->hexColor(),
+            'variants' => $template->variants(),
+        ], ReportTemplate::cases());
+    }
+
+    /**
+     * Get selected research if provided.
+     */
+    private function getSelectedResearch(Request $request): ?Research
+    {
+        if (!$request->has('research_id')) {
+            return null;
+        }
+        
+        return Research::find($request->research_id);
+    }
+
+    /**
+     * Get brands for the current tenant.
+     */
+    private function getTenantBrands()
+    {
+        $tenant = app(Tenant::class);
+        return $tenant->brands()->get();
+    }
+
+    /**
+     * Inject brand context into validated data.
+     */
+    private function injectBrandContext(array $validated): array
+    {
+        if (empty($validated['brand_id'])) {
+            return $validated;
+        }
+
+        $brand = Brand::find($validated['brand_id']);
+        if (!$brand) {
+            return $validated;
+        }
+
+        $brandContext = "\n\n[SYSTEM: STRICT BRAND IDENTITY ENFORCED]\n";
+        $brandContext .= "Organization Name: {$brand->name}\n";
+        
+        if (!empty($brand->voice_profile['tone'])) {
+            $brandContext .= "Tone of Voice: {$brand->voice_profile['tone']}\n";
+        }
+        if (!empty($brand->contact_info['website'])) {
+            $brandContext .= "Website: {$brand->contact_info['website']}\n";
+        }
+        
+        $validated['prompt'] = ($validated['prompt'] ?? '') . $brandContext;
+        
+        return $validated;
+    }
+
+    /**
+     * Create a pending document for background processing.
+     */
+    private function createPendingDocument(GenerateReportRequest $request, array $validated): Document
+    {
+        $templateLabel = ReportTemplate::tryFrom($request->template)?->label() ?? 'Report';
+        $baseName = $this->generateDocumentName($request, $templateLabel);
+
+        return Document::create([
+            'tenant_id' => auth()->user()->tenant_id,
+            'user_id' => auth()->id(),
+            'name' => Str::limit($baseName, 150) . ' (' . now()->format('M d, Y') . ')',
+            'type' => 'HTML',
+            'category' => 'Reports',
+            'status' => 'pending',
+            'content' => '',
+            'metadata' => [
+                'template' => $request->template,
+                'variant' => $request->variant,
+                'research_topic' => $request->researchTopic,
+                'profile_photo_url' => $validated['profilePhotoUrl'] ?? null 
+            ]
+        ]);
+    }
+
+    /**
+     * Generate document name based on input.
+     */
+    private function generateDocumentName(GenerateReportRequest $request, string $templateLabel): string
+    {
+        if (!empty($request->recipientName)) {
+            return $request->recipientName . ' - ' . $templateLabel;
+        }
+        
+        if (!empty($request->targetRole)) {
+            return $request->targetRole . ' - ' . $templateLabel;
+        }
+        
+        if (!empty($request->researchTopic)) {
+            return $request->researchTopic . ' - ' . $templateLabel;
+        }
+        
+        return $request->analysisType ?? 'Generated Document';
+    }
+
+    /**
+     * Build overrides array for preview.
+     */
+    private function buildPreviewOverrides(array $validated): array
+    {
+        $overrides = $validated['contractDetails'] ?? [];
+        
+        if (!empty($validated['recipientName'])) {
+            $overrides['recipientName'] = $validated['recipientName'];
+        }
+        if (!empty($validated['recipientTitle'])) {
+            $overrides['recipientTitle'] = $validated['recipientTitle'];
+        }
+        
+        return $overrides;
+    }
+
+    /**
+     * Get error HTML for preview failures.
+     */
+    private function getPreviewErrorHtml(\Throwable $e): string
+    {
+        return '<div style="padding: 40px; text-align: center; color: #666;">'
+            . '<h2>Template Preview Unavailable</h2>'
+            . '<p>The template view is not yet created for this variant.</p>'
+            . '<p class="text-xs text-red-400 mt-2">' . $e->getMessage() . '</p>'
+            . '</div>';
     }
 }

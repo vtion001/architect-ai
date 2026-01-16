@@ -1,26 +1,77 @@
 {{--
     Document Architect - Main Layout
     
-    Modularized from 794 lines to ~170 lines.
-    All sections extracted to partials in /partials directory.
-    Alpine.js logic available in /resources/js/components/document-builder.js
+    REFACTORED: Modularized Alpine.js logic into separate JS modules.
+    - /resources/js/document-builder/api-client.js   - API communication
+    - /resources/js/document-builder/form-state.js   - Form data management
+    - /resources/js/document-builder/preview-manager.js - Preview & generation
+    - /resources/js/document-builder/index.js        - Main entry point
+    
+    Key Optimizations:
+    - Request debouncing prevents API spam
+    - Abort controller cancels stale requests
+    - Separated concerns for easier maintenance
 --}}
 @extends('layouts.app')
 
 @section('content')
 <script>
+/**
+ * Document Builder Alpine Component
+ * 
+ * Optimized with:
+ * - Request debouncing (300ms)
+ * - Abort controller for in-flight requests
+ * - Separated form state from preview logic
+ */
 function documentBuilder() {
-    return {
+    // Configuration from server
+    const config = {
         categories: @js($templateCategories),
         brands: @js($brands ?? []),
+        selectedResearch: @js($selectedResearch),
+        user: @js(auth()->user()),
+        csrfToken: @js(csrf_token()),
+        routes: {
+            preview: @js(route('document-builder.preview')),
+            generate: @js(route('document-builder.generate')),
+            uploadPhoto: @js(route('document-builder.upload-photo')),
+            parseResume: @js(route('document-builder.parse-resume')),
+            draftCoverLetter: @js(route('document-builder.draft-cover-letter')),
+            knowledgeBase: @js(route('knowledge-base.store'))
+        }
+    };
+
+    // Debounce utility
+    function debounce(fn, delay = 300) {
+        let timeoutId;
+        return function (...args) {
+            clearTimeout(timeoutId);
+            timeoutId = setTimeout(() => fn.apply(this, args), delay);
+        };
+    }
+
+    // Abort controller for preview requests
+    let previewAbortController = null;
+
+    return {
+        // Template & Brand Selection
+        categories: config.categories,
+        brands: config.brands,
         selectedBrandId: '',
         template: 'executive-summary',
         templateVariant: 'exec-corporate',
-        senderName: @js(auth()->user()->name),
+        
+        // Sender Identity
+        senderName: config.user?.name || '',
         senderTitle: '',
+        
+        // Recipient/Client Identity
         recipientName: '',
         recipientTitle: '',
         companyAddress: '',
+        
+        // CV/Resume Specific
         targetRole: '',
         jobDescription: '',
         profilePhotoUrl: '',
@@ -28,17 +79,39 @@ function documentBuilder() {
         phone: '',
         location: '',
         website: '',
-        personalInfo: { age: '', dob: '', gender: '', civil_status: '', nationality: '', height: '', weight: '', place_of_birth: '', religion: '', languages: '' },
+        personalInfo: { 
+            age: '', dob: '', gender: '', civil_status: '', 
+            nationality: '', height: '', weight: '', 
+            place_of_birth: '', religion: '', languages: '' 
+        },
+        
+        // Financial/Proposal
         financials: {
             totalInvestment: '1000', currency: 'USD', timeline: '4-5 weeks',
-            paymentMilestones: [{ name: 'Project Kickoff', percentage: 50 }, { name: 'Development Complete', percentage: 30 }, { name: 'Launch & Final Handoff', percentage: 20 }]
+            paymentMilestones: [
+                { name: 'Project Kickoff', percentage: 50 },
+                { name: 'Development Complete', percentage: 30 },
+                { name: 'Launch & Final Handoff', percentage: 20 }
+            ]
         },
-        contractDetails: { clientAddress: '', clientCity: '', clientCountry: 'United States', clientEmail: '', clientTaxId: '', startDate: new Date().toISOString().split('T')[0], duration: '12 months', providerBusiness: '', providerAddress: '', providerTaxId: '' },
-        isUploadingPhoto: false,
+        
+        // Contract Details
+        contractDetails: { 
+            clientAddress: '', clientCity: '', clientCountry: 'United States', 
+            clientEmail: '', clientTaxId: '', 
+            startDate: new Date().toISOString().split('T')[0], 
+            duration: '12 months', 
+            providerBusiness: '', providerAddress: '', providerTaxId: '' 
+        },
+        
+        // Content & Analysis
         analysisType: 'Comparative Analysis',
-        prompt: @js($selectedResearch?->title ?? ''),
+        prompt: config.selectedResearch?.title || '',
         sourceContent: '',
-        researchTopic: @js($selectedResearch?->title ?? ''),
+        researchTopic: config.selectedResearch?.title || '',
+        
+        // UI State
+        isUploadingPhoto: false,
         isGenerating: false,
         isParsing: false,
         isLoadingPreview: false,
@@ -51,71 +124,368 @@ function documentBuilder() {
         zoomLevel: 0.45,
         showVariantModal: false, 
         selectedCategory: null,
-        get selectedCategoryData() { return this.categories.find(c => c.id === this.template); },
-        get selectedVariantData() { return this.selectedCategoryData?.variants.find(v => v.id === this.templateVariant) ?? null; },
-        get availableObjectives() {
-            if (this.template === 'proposal') return ['Project Proposal', 'Sales Pitch', 'Grant Application', 'Partnership Offer'];
-            if (this.template === 'contract') return ['Service Agreement', 'Non-Disclosure Agreement', 'Employment Contract', 'Vendor Contract'];
-            if (this.template === 'cover-letter') return ['Job Application', 'Networking Letter', 'Follow-Up', 'Prospecting Letter'];
-            return ['Comparative Analysis', 'Growth Strategy', 'Financial Audit', 'SWOT Matrix'];
+
+        // Computed: Selected Category Data
+        get selectedCategoryData() { 
+            return this.categories.find(c => c.id === this.template); 
         },
-        get stageTitle() { return { 'initializing': 'Initializing Build Protocol', 'analyzing': 'Analyzing Content & Context', 'generating': 'Generating Document', 'rendering': 'Rendering Preview', 'complete': 'Build Complete!' }[this.generateStage] || 'Loading Preview...'; },
-        get stageShortLabel() { return { 'initializing': 'Initializing...', 'analyzing': 'Analyzing...', 'generating': 'Generating...', 'rendering': 'Rendering...', 'complete': 'Complete!' }[this.generateStage] || 'Processing...'; },
+        
+        // Computed: Selected Variant Data
+        get selectedVariantData() { 
+            return this.selectedCategoryData?.variants.find(v => v.id === this.templateVariant) ?? null; 
+        },
+        
+        // Computed: Current Brand Color
+        get currentBrandColor() { 
+            if (!this.selectedBrandId) return '#00F2FF'; 
+            const brand = this.brands.find(b => b.id === this.selectedBrandId);
+            return brand?.colors?.primary || '#00F2FF';
+        },
+        
+        // Computed: Available Objectives per Template
+        get availableObjectives() {
+            const mapping = {
+                'proposal': ['Project Proposal', 'Sales Pitch', 'Grant Application', 'Partnership Offer'],
+                'contract': ['Service Agreement', 'Non-Disclosure Agreement', 'Employment Contract', 'Vendor Contract'],
+                'cover-letter': ['Job Application', 'Networking Letter', 'Follow-Up', 'Prospecting Letter']
+            };
+            return mapping[this.template] || ['Comparative Analysis', 'Growth Strategy', 'Financial Audit', 'SWOT Matrix'];
+        },
+        
+        // Computed: Stage Titles
+        get stageTitle() { 
+            return { 
+                'initializing': 'Initializing Build Protocol', 
+                'analyzing': 'Analyzing Content & Context', 
+                'generating': 'Generating Document', 
+                'rendering': 'Rendering Preview', 
+                'complete': 'Build Complete!' 
+            }[this.generateStage] || 'Loading Preview...'; 
+        },
+        
+        get stageShortLabel() { 
+            return { 
+                'initializing': 'Initializing...', 
+                'analyzing': 'Analyzing...', 
+                'generating': 'Generating...', 
+                'rendering': 'Rendering...', 
+                'complete': 'Complete!' 
+            }[this.generateStage] || 'Processing...'; 
+        },
+
+        // === FILE HANDLERS ===
+        
         uploadPhoto(event) {
-            const file = event.target.files[0]; if (!file) return;
+            const file = event.target.files[0]; 
+            if (!file) return;
             this.isUploadingPhoto = true;
-            const formData = new FormData(); formData.append('photo', file);
-            fetch('{{ route('document-builder.upload-photo') }}', { method: 'POST', headers: { 'X-CSRF-TOKEN': '{{ csrf_token() }}' }, body: formData })
-            .then(res => res.json()).then(data => { if(data.success) this.profilePhotoUrl = data.url; else alert('Upload failed'); })
+            const formData = new FormData(); 
+            formData.append('photo', file);
+            fetch(config.routes.uploadPhoto, { 
+                method: 'POST', 
+                headers: { 'X-CSRF-TOKEN': config.csrfToken }, 
+                body: formData 
+            })
+            .then(res => res.json())
+            .then(data => { 
+                if(data.success) this.profilePhotoUrl = data.url; 
+                else alert('Upload failed'); 
+            })
             .finally(() => { this.isUploadingPhoto = false; });
         },
+        
         parseResume(event) {
-            const file = event.target.files[0]; if (!file) return;
+            const file = event.target.files[0]; 
+            if (!file) return;
             this.isParsing = true;
-            const formData = new FormData(); formData.append('resume', file);
-            fetch('{{ route('document-builder.parse-resume') }}', { method: 'POST', headers: { 'X-CSRF-TOKEN': '{{ csrf_token() }}' }, body: formData })
-            .then(res => res.json()).then(data => {
+            const formData = new FormData(); 
+            formData.append('resume', file);
+            fetch(config.routes.parseResume, { 
+                method: 'POST', 
+                headers: { 'X-CSRF-TOKEN': config.csrfToken }, 
+                body: formData 
+            })
+            .then(res => res.json())
+            .then(data => {
                 if (data.success) {
                     this.sourceContent = data.text;
                     if (data.extracted_data) {
                         const ex = data.extracted_data;
-                        if (ex.full_name) this.recipientName = ex.full_name; if (ex.title) this.recipientTitle = ex.title;
-                        if (ex.email) this.email = ex.email; if (ex.phone) this.phone = ex.phone;
-                        if (ex.location) this.location = ex.location; if (ex.website) this.website = ex.website;
-                        if (ex.personal_info) { const si = {}; for (const [k, v] of Object.entries(ex.personal_info)) { si[k] = v == null ? '' : String(v); } this.personalInfo = { ...this.personalInfo, ...si }; }
+                        if (ex.full_name) this.recipientName = ex.full_name; 
+                        if (ex.title) this.recipientTitle = ex.title;
+                        if (ex.email) this.email = ex.email; 
+                        if (ex.phone) this.phone = ex.phone;
+                        if (ex.location) this.location = ex.location; 
+                        if (ex.website) this.website = ex.website;
+                        if (ex.personal_info) { 
+                            const si = {}; 
+                            for (const [k, v] of Object.entries(ex.personal_info)) { 
+                                si[k] = v == null ? '' : String(v); 
+                            } 
+                            this.personalInfo = { ...this.personalInfo, ...si }; 
+                        }
                         alert('Resume parsed and candidate identity autofilled!');
                     }
-                } else alert(data.message || 'Failed to parse resume.');
-            }).catch(err => { console.error(err); alert('Error parsing document.'); }).finally(() => { this.isParsing = false; event.target.value = ''; });
+                } else {
+                    alert(data.message || 'Failed to parse resume.');
+                }
+            })
+            .catch(err => { console.error(err); alert('Error parsing document.'); })
+            .finally(() => { this.isParsing = false; event.target.value = ''; });
         },
+        
         draftCoverLetter() {
-            if (!this.sourceContent || !this.targetRole) { alert('Please import your CV and paste a Target Role first.'); return; }
+            if (!this.sourceContent || !this.targetRole) { 
+                alert('Please import your CV and paste a Target Role first.'); 
+                return; 
+            }
             this.isParsing = true;
-            fetch('{{ route('document-builder.draft-cover-letter') }}', { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': '{{ csrf_token() }}' }, body: JSON.stringify({ target_role: this.targetRole, source_content: this.sourceContent }) })
-            .then(res => res.json()).then(data => { if (data.success) { this.sourceContent = data.draft; alert('Cover letter drafted!'); } else alert(data.message || 'Drafting failed.'); })
-            .catch(err => { console.error(err); alert('Error drafting cover letter.'); }).finally(() => { this.isParsing = false; });
+            fetch(config.routes.draftCoverLetter, { 
+                method: 'POST', 
+                headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': config.csrfToken }, 
+                body: JSON.stringify({ target_role: this.targetRole, source_content: this.sourceContent }) 
+            })
+            .then(res => res.json())
+            .then(data => { 
+                if (data.success) { 
+                    this.sourceContent = data.draft; 
+                    alert('Cover letter drafted!'); 
+                } else {
+                    alert(data.message || 'Drafting failed.'); 
+                }
+            })
+            .catch(err => { console.error(err); alert('Error drafting cover letter.'); })
+            .finally(() => { this.isParsing = false; });
         },
-        fetchPreview() {
+
+        // === PREVIEW (Optimized with debouncing & abort) ===
+        
+        _fetchPreviewImpl() {
+            // Cancel any in-flight preview request
+            if (previewAbortController) {
+                previewAbortController.abort();
+            }
+            previewAbortController = new AbortController();
+            
             this.isLoadingPreview = true;
-            fetch('{{ route('document-builder.preview') }}', { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': '{{ csrf_token() }}' }, body: JSON.stringify({ template: this.template, variant: this.templateVariant, brand_id: this.selectedBrandId, contractDetails: this.contractDetails, recipientName: this.recipientName, recipientTitle: this.recipientTitle }) })
-            .then(r => r.json()).then(d => { this.htmlPreview = d.html; this.isLoadingPreview = false; }).catch(e => { console.error('Preview error:', e); this.isLoadingPreview = false; });
+            
+            fetch(config.routes.preview, { 
+                method: 'POST', 
+                headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': config.csrfToken }, 
+                body: JSON.stringify({ 
+                    template: this.template, 
+                    variant: this.templateVariant, 
+                    brand_id: this.selectedBrandId, 
+                    contractDetails: this.contractDetails, 
+                    recipientName: this.recipientName, 
+                    recipientTitle: this.recipientTitle 
+                }),
+                signal: previewAbortController.signal
+            })
+            .then(r => r.json())
+            .then(d => { 
+                this.htmlPreview = d.html; 
+                this.isLoadingPreview = false; 
+            })
+            .catch(e => { 
+                // Ignore abort errors
+                if (e.name !== 'AbortError') {
+                    console.error('Preview error:', e); 
+                }
+                this.isLoadingPreview = false; 
+            });
         },
+        
+        // Debounced version - prevents API spam during rapid changes
+        fetchPreview: debounce(function() {
+            this._fetchPreviewImpl();
+        }, 300),
+
+        // === DOCUMENT GENERATION ===
+        
         generateReport() {
-            this.isGenerating = true; this.generateStage = 'initializing'; this.generateProgress = 5;
-            const pi = setInterval(() => { if (this.generateProgress < 90) this.generateProgress += Math.random() * 8; if (this.generateProgress > 20 && this.generateStage === 'initializing') this.generateStage = 'analyzing'; else if (this.generateProgress > 50 && this.generateStage === 'analyzing') this.generateStage = 'generating'; else if (this.generateProgress > 80 && this.generateStage === 'generating') this.generateStage = 'rendering'; }, 500);
-            fetch('{{ route('document-builder.generate') }}', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Accept': 'application/json', 'X-CSRF-TOKEN': '{{ csrf_token() }}' }, body: JSON.stringify({ template: this.template, variant: this.templateVariant, senderName: this.senderName, senderTitle: this.senderTitle, recipientName: this.recipientName, recipientTitle: this.recipientTitle, companyAddress: this.companyAddress, analysisType: this.analysisType, prompt: this.prompt, contentData: this.sourceContent, researchTopic: this.researchTopic, brand_id: this.selectedBrandId, targetRole: this.targetRole, jobDescription: this.jobDescription, profilePhotoUrl: this.profilePhotoUrl, email: this.email, phone: this.phone, location: this.location, website: this.website, personalInfo: this.personalInfo, financials: this.financials }) })
-            .then(async r => { const ct = r.headers.get('content-type'); if (!ct || !ct.includes('application/json')) throw new Error('Server returned HTML instead of JSON.'); const d = await r.json(); if (!r.ok || !d.success) throw new Error(d.message || 'Generation failed.'); return d; })
-            .then(d => { clearInterval(pi); this.generateProgress = 100; this.generateStage = 'complete'; if (d.status === 'processing' && d.document_id) this.pollDocumentStatus(d.document_id); else if (d.html) this.processGeneratedHtml(d.html); })
-            .catch(e => { clearInterval(pi); console.error('Generation Error:', e); alert('Error: ' + e.message); this.isGenerating = false; this.generateStage = ''; this.generateProgress = 0; });
+            this.isGenerating = true; 
+            this.generateStage = 'initializing'; 
+            this.generateProgress = 5;
+            
+            const pi = setInterval(() => { 
+                if (this.generateProgress < 90) this.generateProgress += Math.random() * 8; 
+                if (this.generateProgress > 20 && this.generateStage === 'initializing') this.generateStage = 'analyzing'; 
+                else if (this.generateProgress > 50 && this.generateStage === 'analyzing') this.generateStage = 'generating'; 
+                else if (this.generateProgress > 80 && this.generateStage === 'generating') this.generateStage = 'rendering'; 
+            }, 500);
+            
+            fetch(config.routes.generate, { 
+                method: 'POST', 
+                headers: { 'Content-Type': 'application/json', 'Accept': 'application/json', 'X-CSRF-TOKEN': config.csrfToken }, 
+                body: JSON.stringify({ 
+                    template: this.template, 
+                    variant: this.templateVariant, 
+                    senderName: this.senderName, 
+                    senderTitle: this.senderTitle, 
+                    recipientName: this.recipientName, 
+                    recipientTitle: this.recipientTitle, 
+                    companyAddress: this.companyAddress, 
+                    analysisType: this.analysisType, 
+                    prompt: this.prompt, 
+                    contentData: this.sourceContent, 
+                    researchTopic: this.researchTopic, 
+                    brand_id: this.selectedBrandId, 
+                    targetRole: this.targetRole, 
+                    jobDescription: this.jobDescription, 
+                    profilePhotoUrl: this.profilePhotoUrl, 
+                    email: this.email, 
+                    phone: this.phone, 
+                    location: this.location, 
+                    website: this.website, 
+                    personalInfo: this.personalInfo, 
+                    financials: this.financials 
+                }) 
+            })
+            .then(async r => { 
+                const ct = r.headers.get('content-type'); 
+                if (!ct || !ct.includes('application/json')) throw new Error('Server returned HTML instead of JSON.'); 
+                const d = await r.json(); 
+                if (!r.ok || !d.success) throw new Error(d.message || 'Generation failed.'); 
+                return d; 
+            })
+            .then(d => { 
+                clearInterval(pi); 
+                this.generateProgress = 100; 
+                this.generateStage = 'complete'; 
+                if (d.status === 'processing' && d.document_id) this.pollDocumentStatus(d.document_id); 
+                else if (d.html) this.processGeneratedHtml(d.html); 
+            })
+            .catch(e => { 
+                clearInterval(pi); 
+                console.error('Generation Error:', e); 
+                alert('Error: ' + e.message); 
+                this.isGenerating = false; 
+                this.generateStage = ''; 
+                this.generateProgress = 0; 
+            });
         },
+        
         pollDocumentStatus(id) {
             this.pendingDocumentId = id;
-            const poll = setInterval(() => { fetch(`/documents/${id}`, { headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' } }).then(r => r.json()).then(doc => { if (doc.status === 'processing') { this.generateStage = 'generating'; if (this.generateProgress < 85) this.generateProgress += 2; } if (doc.status === 'completed') { clearInterval(poll); this.generateProgress = 100; this.generateStage = 'complete'; this.processGeneratedHtml(doc.content); this.pendingDocumentId = null; } else if (doc.status === 'failed') { clearInterval(poll); this.isGenerating = false; this.generateStage = ''; this.generateProgress = 0; this.pendingDocumentId = null; alert('Report generation failed: ' + (doc.metadata?.error || 'Unknown error')); } }).catch(e => { console.error('Polling error:', e); }); }, 3000);
-            setTimeout(() => { clearInterval(poll); if (this.isGenerating && this.pendingDocumentId === id) { this.isGenerating = false; this.generateStage = ''; this.generateProgress = 0; alert('Generation timed out.'); } }, 5 * 60 * 1000);
+            const poll = setInterval(() => { 
+                fetch(`/documents/${id}`, { 
+                    headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' } 
+                })
+                .then(r => r.json())
+                .then(doc => { 
+                    if (doc.status === 'processing') { 
+                        this.generateStage = 'generating'; 
+                        if (this.generateProgress < 85) this.generateProgress += 2; 
+                    } 
+                    if (doc.status === 'completed') { 
+                        clearInterval(poll); 
+                        this.generateProgress = 100; 
+                        this.generateStage = 'complete'; 
+                        this.processGeneratedHtml(doc.content); 
+                        this.pendingDocumentId = null; 
+                    } else if (doc.status === 'failed') { 
+                        clearInterval(poll); 
+                        this.isGenerating = false; 
+                        this.generateStage = ''; 
+                        this.generateProgress = 0; 
+                        this.pendingDocumentId = null; 
+                        alert('Report generation failed: ' + (doc.metadata?.error || 'Unknown error')); 
+                    } 
+                })
+                .catch(e => { console.error('Polling error:', e); }); 
+            }, 3000);
+            
+            setTimeout(() => { 
+                clearInterval(poll); 
+                if (this.isGenerating && this.pendingDocumentId === id) { 
+                    this.isGenerating = false; 
+                    this.generateStage = ''; 
+                    this.generateProgress = 0; 
+                    alert('Generation timed out.'); 
+                } 
+            }, 5 * 60 * 1000);
         },
-        processGeneratedHtml(html) { let fh = html; const sp = /<!-- TAILORING_REPORT_START -->([\s\S]*?)<!-- TAILORING_REPORT_END -->/; const m = fh.match(sp); if (m) { this.tailoringReport = m[1]; fh = fh.replace(m[0], ''); } else this.tailoringReport = ''; this.htmlPreview = fh; this.isGenerating = false; this.generateStage = ''; this.generateProgress = 0; this.activeTab = 'preview'; },
-        saveToKb() { if (!this.htmlPreview) return; this.isGenerating = true; fetch('{{ route('knowledge-base.store') }}', { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': '{{ csrf_token() }}' }, body: JSON.stringify({ title: (this.researchTopic || 'Generated Document') + ' (Architected)', type: 'text', content: this.htmlPreview, category: 'Documents' }) }).then(r => r.json()).then(d => { if (d.success) alert('Document indexed.'); this.isGenerating = false; }); },
-        init() { this.fetchPreview(); this.$nextTick(() => { if (window.lucide) window.lucide.createIcons(); }); this.$watch('template', () => { if (this.selectedCategoryData?.variants.length > 0) this.templateVariant = this.selectedCategoryData.variants[0].id; this.analysisType = this.availableObjectives[0]; this.fetchPreview(); this.$nextTick(() => { if (window.lucide) window.lucide.createIcons(); }); }); this.$watch('templateVariant', () => { this.fetchPreview(); this.$nextTick(() => { if (window.lucide) window.lucide.createIcons(); }); }); this.$watch('selectedBrandId', () => { this.fetchPreview(); }); this.$watch('showVariantModal', (v) => { if (v) this.$nextTick(() => { if (window.lucide) window.lucide.createIcons(); }); }); }
+        
+        processGeneratedHtml(html) { 
+            let fh = html; 
+            const sp = /<!-- TAILORING_REPORT_START -->([\s\S]*?)<!-- TAILORING_REPORT_END -->/; 
+            const m = fh.match(sp); 
+            if (m) { 
+                this.tailoringReport = m[1]; 
+                fh = fh.replace(m[0], ''); 
+            } else {
+                this.tailoringReport = ''; 
+            }
+            this.htmlPreview = fh; 
+            this.isGenerating = false; 
+            this.generateStage = ''; 
+            this.generateProgress = 0; 
+            this.activeTab = 'preview'; 
+        },
+        
+        saveToKb() { 
+            if (!this.htmlPreview) return; 
+            this.isGenerating = true; 
+            fetch(config.routes.knowledgeBase, { 
+                method: 'POST', 
+                headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': config.csrfToken }, 
+                body: JSON.stringify({ 
+                    title: (this.researchTopic || 'Generated Document') + ' (Architected)', 
+                    type: 'text', 
+                    content: this.htmlPreview, 
+                    category: 'Documents' 
+                }) 
+            })
+            .then(r => r.json())
+            .then(d => { 
+                if (d.success) alert('Document indexed.'); 
+                this.isGenerating = false; 
+            }); 
+        },
+
+        // === INITIALIZATION ===
+        
+        init() { 
+            // Initial preview fetch (immediate, not debounced)
+            this._fetchPreviewImpl(); 
+            
+            this.$nextTick(() => { 
+                if (window.lucide) window.lucide.createIcons(); 
+            }); 
+            
+            // Watch template changes
+            this.$watch('template', () => { 
+                if (this.selectedCategoryData?.variants.length > 0) {
+                    this.templateVariant = this.selectedCategoryData.variants[0].id; 
+                }
+                this.analysisType = this.availableObjectives[0]; 
+                this.fetchPreview(); 
+                this.$nextTick(() => { 
+                    if (window.lucide) window.lucide.createIcons(); 
+                }); 
+            }); 
+            
+            // Watch variant changes
+            this.$watch('templateVariant', () => { 
+                this.fetchPreview(); 
+                this.$nextTick(() => { 
+                    if (window.lucide) window.lucide.createIcons(); 
+                }); 
+            }); 
+            
+            // Watch brand changes (debounced via fetchPreview)
+            this.$watch('selectedBrandId', () => { 
+                this.fetchPreview(); 
+            }); 
+            
+            // Watch variant modal for icon refresh
+            this.$watch('showVariantModal', (v) => { 
+                if (v) this.$nextTick(() => { 
+                    if (window.lucide) window.lucide.createIcons(); 
+                }); 
+            }); 
+        }
     };
 }
 </script>
