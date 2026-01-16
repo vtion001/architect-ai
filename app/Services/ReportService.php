@@ -598,15 +598,27 @@ class ReportService
 
         // Proposal-specific prompt
         if ($data->template === ReportTemplate::PROPOSAL) {
+            $brandData = $this->brandResolverService->resolve($data->brandId);
+            $brandName = $brandData['brand']?->name ?? 'Service Provider';
+
             return "Generate a professional business proposal.
                 
+                PROPOSAL FROM (The Brand): {$brandName}
+                PROPOSAL FOR (The Client / Identity Destination): {$data->recipientName}
+                CLIENT ROLE: {$data->recipientTitle}
+                CLIENT ADDRESS: {$data->companyAddress}
+                
                 PROJECT/SERVICE: {$data->researchTopic}
-                CLIENT: {$data->recipientName} ({$data->recipientTitle})
                 OBJECTIVE: {$data->analysisType}
                 FOCUS: {$data->prompt}
                 STYLE VARIANT: {$data->variant}
                 
                 {$baseContext}
+                
+                CORE MANDATE: 
+                - Address the content to the Client ({$data->recipientName}).
+                - The document is written FROM the perspective of {$brandName}.
+                - Ensure the 'Problem Statement' and 'Proposed Solution' are centered on the Client's needs.
                 
                 STRUCTURE:
                 1. Executive Summary
