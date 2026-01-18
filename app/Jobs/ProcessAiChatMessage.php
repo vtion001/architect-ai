@@ -1,20 +1,37 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Jobs;
 
 use App\Models\AiAgent;
 use App\Models\AgentConversation;
-use App\Models\Brand;
 use App\Models\User;
-use App\Services\ResearchService;
+use App\Services\AiChatProcessingService;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
-use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 
+/**
+ * Process AI Chat Message Job
+ * 
+ * Queue job for processing AI chat messages asynchronously.
+ * 
+ * ARCHITECTURE NOTE: This job is DECOUPLED from UI rendering.
+ * All AI processing logic is delegated to AiChatProcessingService.
+ * 
+ * Changes to this job will NOT affect:
+ * - Chat widget UI layout
+ * - Chat head positions
+ * - Message bubble styling
+ * - UI animations
+ * 
+ * The UI components (ai-chat-widget.blade.php) are completely
+ * independent and can be modified without affecting this job.
+ */
 class ProcessAiChatMessage implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
@@ -31,127 +48,79 @@ class ProcessAiChatMessage implements ShouldQueue
         protected ?string $imageUrl = null
     ) {}
 
-    public function handle(ResearchService $researchService): void
+    /**
+     * Execute the job.
+     * 
+     * Delegates all processing to AiChatProcessingService which is
+     * completely isolated from UI components.
+     */
+    public function handle(AiChatProcessingService $chatService): void
     {
-        // Set Tenant Context
-        if ($this->user->tenant) {
-            app()->instance(\App\Models\Tenant::class, $this->user->tenant);
-        }
+        // Set Tenant Context for multi-tenancy
+        $this->setTenantContext();
 
         try {
-            // Build messages for API
-            $systemPrompt = $this->agent->getFullSystemPrompt();
-            
-            // Inject Brand Context
-            if (!empty($this->brandId)) {
-                $brand = Brand::find($this->brandId);
-                if ($brand) {
-                    $systemPrompt .= "\n\n[STRICT BRAND IDENTITY ACTIVE]\n";
-                    $systemPrompt .= "You are representing the brand: {$brand->name}\n";
-                    if ($brand->voice_profile) {
-                        $voice = $brand->voice_profile;
-                        $systemPrompt .= "Tone: " . ($voice['tone'] ?? 'Standard') . "\n";
-                        $systemPrompt .= "Style: " . ($voice['writing_style'] ?? 'Standard') . "\n";
-                        if (!empty($voice['keywords'])) $systemPrompt .= "Key Phrases: {$voice['keywords']}\n";
-                        if (!empty($voice['avoid_words'])) $systemPrompt .= "Avoid Words: {$voice['avoid_words']}\n";
-                    }
-                    if ($brand->description) $systemPrompt .= "Context: {$brand->description}\n";
-                    $systemPrompt .= "[END BRAND IDENTITY]\n";
-                }
-            }
-            
-            // Add knowledge context if available (Explicitly Linked)
-            $pinnedContext = $this->agent->getKnowledgeContext();
-            if ($pinnedContext) {
-                $systemPrompt .= "\n\n--- PINNED KNOWLEDGE ---\n" . $pinnedContext;
-            }
+            // Delegate to isolated service
+            $result = $chatService->process(
+                user: $this->user,
+                agent: $this->agent,
+                conversation: $this->conversation,
+                userMessage: $this->userMessage,
+                brandId: $this->brandId,
+                mode: $this->mode,
+                imageUrl: $this->imageUrl
+            );
 
-            // Add Dynamic RAG Context (Vector/Hybrid Search)
-            try {
-                $ragContext = $researchService->getKnowledgeBaseContext($this->userMessage);
-                if ($ragContext) {
-                    $systemPrompt .= "\n\n--- RELEVANT KNOWLEDGE (SEARCH) ---\n" . $ragContext;
-                }
-            } catch (\Exception $e) {
-                Log::warning("Agent RAG failed: " . $e->getMessage());
-            }
-
-            // Format User Message (with Vision support if needed)
-            $userContent = [];
-            if ($this->imageUrl) {
-                $userContent[] = ['type' => 'text', 'text' => $this->userMessage ?: 'Analyze this image.'];
-                $userContent[] = ['type' => 'image_url', 'image_url' => ['url' => $this->imageUrl]];
-            } else {
-                $userContent = $this->userMessage;
-            }
-
-            $messages = [
-                ['role' => 'system', 'content' => $systemPrompt . "\n\nCRITICAL: DO NOT use markdown symbols like '*' or '#' for formatting. Use plain text and clear spacing. For lists, use simple bullet points like '-' or '•'"],
-                ...$this->conversation->getMessagesForApi(),
-            ];
-
-            // If we just added the last message locally, replace its content with the Vision-formatted one
-            if ($this->imageUrl) {
-                $lastIdx = count($messages) - 1;
-                if ($messages[$lastIdx]['role'] === 'user') {
-                    $messages[$lastIdx]['content'] = $userContent;
-                }
-            }
-
-            $apiKey = config('services.openai.key');
-            if (!$apiKey) {
-                Log::error('AI service not configured for job.');
-                return;
-            }
-
-            // Determine Model: Thinking mode or Images require higher tier
-            $model = $this->agent->model ?? config('services.openai.model', 'gpt-4o-mini');
-            if ($this->mode === 'thinking' || $this->imageUrl) {
-                $model = 'gpt-4o'; // Upgrade for deep thinking or vision
-            }
-
-            $response = Http::withToken($apiKey)
-                ->timeout(90) // Increased for thinking/vision
-                ->post('https://api.openai.com/v1/chat/completions', [
-                    'model' => $model,
-                    'messages' => $messages,
-                    'temperature' => $this->agent->temperature ?? 0.7,
-                    'max_tokens' => $this->agent->max_tokens ?? 2000,
-                ]);
-
-            if ($response->successful()) {
-                $assistantMessage = $response->json('choices.0.message.content');
-                
-                // Sanitize response
-                $assistantMessage = $this->sanitizeAgentResponse($assistantMessage);
-                
-                // Add assistant response to conversation
-                $this->conversation->addMessage('assistant', $assistantMessage);
-            } else {
-                Log::error('AI Agent chat job error', [
+            if (!$result->success) {
+                Log::warning('AI Chat processing returned failure', [
                     'agent_id' => $this->agent->id,
-                    'error' => $response->body()
+                    'error' => $result->error,
                 ]);
-                $this->conversation->addMessage('assistant', 'Sorry, I encountered an error processing your request.');
             }
 
         } catch (\Throwable $e) {
-            Log::error('AI Agent chat job exception', [
+            Log::error('AI Chat job exception', [
                 'agent_id' => $this->agent->id,
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
             ]);
-            $this->conversation->addMessage('assistant', 'An error occurred while processing your request.');
+            
+            // Ensure error message is saved to conversation
+            $this->conversation->addMessage(
+                'assistant', 
+                'An error occurred while processing your request.'
+            );
         }
     }
 
-    private function sanitizeAgentResponse(string $text): string
+    /**
+     * Set the tenant context for multi-tenancy support.
+     */
+    protected function setTenantContext(): void
     {
-        // Remove markdown bold/italic/header symbols
-        $text = str_replace(['**', '##', '#'], '', $text);
-        
-        // Final fallback: remove any single * that might be lingering
-        $text = str_replace('*', '', $text);
+        if ($this->user->tenant) {
+            app()->instance(\App\Models\Tenant::class, $this->user->tenant);
+        }
+    }
 
-        return trim($text);
+    /**
+     * Handle job failure.
+     */
+    public function failed(\Throwable $exception): void
+    {
+        Log::error('AI Chat job failed permanently', [
+            'agent_id' => $this->agent->id,
+            'error' => $exception->getMessage(),
+        ]);
+
+        // Ensure user gets feedback even on job failure
+        try {
+            $this->conversation->addMessage(
+                'assistant',
+                'I apologize, but I was unable to process your request. Please try again.'
+            );
+        } catch (\Throwable $e) {
+            // Silently fail - conversation may be in bad state
+        }
     }
 }

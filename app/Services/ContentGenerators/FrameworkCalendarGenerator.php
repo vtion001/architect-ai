@@ -23,10 +23,15 @@ class FrameworkCalendarGenerator extends BaseContentGenerator
     public function getSystemPrompt(array $options = []): string
     {
         $tone = $options['tone'] ?? 'Professional';
+        $brandTone = $options['brand_tone'] ?? '';
         $humanize = $this->getHumanizeInstruction($tone);
+        
+        $brandInstruction = $brandTone ? "Adopt this brand voice: $brandTone." : "";
 
         return "You are a Strategic Content Manager. Your goal is to plan a high-impact weekly content calendar.
             
+            $brandInstruction
+
             FRAMEWORK PILLARS:
             1. Educational (3 posts): How-to guides, insights, tutorials. Goal: Build Authority.
             2. Showcase (2 posts): Case studies, before/after, portfolio. Goal: Demonstrate Expertise.
@@ -36,11 +41,14 @@ class FrameworkCalendarGenerator extends BaseContentGenerator
             $humanize
 
             OUTPUT FORMAT:
-            You must return a valid JSON object. Do not include markdown formatting (like ```json).
+            You must return a strictly valid JSON object. 
+            Do NOT include markdown formatting (like ```json or ```). 
+            Do NOT include any text before or after the JSON.
+            
             Structure:
             {
                 \"educational\": [
-                    { \"hook\": \"...\", \"caption\": \"...\", \"visual_idea\": \"Description for a poster/image\" },
+                    { \"hook\": \"Attention-grabbing headline\", \"caption\": \"Full caption text...\", \"visual_idea\": \"Description for a poster/image\" },
                     ... (3 items)
                 ],
                 \"showcase\": [
@@ -61,7 +69,8 @@ class FrameworkCalendarGenerator extends BaseContentGenerator
     public function getUserPrompt(string $topic, ?string $context = null, array $options = []): string
     {
         return "Generate a 1-week content calendar for the topic: \"$topic\".
-        Context/Brand Info: $context.
-        Ensure the 'visual_idea' for each post describes a clean, modern poster or image concept that matches the caption.";
+        Context/Mandates: $context.
+        Ensure the 'visual_idea' for each post describes a clean, modern poster or image concept that matches the caption.
+        Focus on value and engagement.";
     }
 }

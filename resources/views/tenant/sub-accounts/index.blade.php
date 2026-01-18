@@ -35,7 +35,7 @@
             return;
         }
         this.isProvisioning = true;
-        fetch('{{ route('agency.sub-accounts.store') }}', {
+        fetch('{{ route('sub-accounts.store') }}', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': '{{ csrf_token() }}', 'Accept': 'application/json' },
             body: JSON.stringify({ name: this.name, slug: this.slug, admin_email: this.adminEmail })

@@ -1,8 +1,21 @@
-{{-- Global Scripts --}}
+{{-- 
+    Global Scripts (Performance Optimized - Stable Version)
+    
+    This file loads global widgets and initializes icons.
+    
+    Strategy:
+    - Widgets are included directly for reliability
+    - Icons are refreshed efficiently with debouncing
+    - Performance monitoring in dev mode only
+--}}
+
+{{-- Initialize Lucide icons from Vite bundle --}}
 <script>
-    if (window.lucide) {
-        lucide.createIcons();
-    }
+    document.addEventListener('DOMContentLoaded', function() {
+        if (typeof window.refreshIcons === 'function') {
+            window.refreshIcons();
+        }
+    });
 </script>
 
 {{-- Task & Note Widget --}}
@@ -24,21 +37,58 @@
     @endif
 @endauth
 
+{{-- Page-specific scripts stack --}}
 @stack('scripts')
 
-{{-- Re-initialize Lucide icons after dynamic content --}}
+{{-- Debounced Lucide refresh for dynamic content --}}
 <script>
-    document.addEventListener('DOMContentLoaded', function() {
-        if (window.lucide) {
-            lucide.createIcons();
+    (function() {
+        let refreshTimeout;
+        const debouncedRefresh = () => {
+            clearTimeout(refreshTimeout);
+            refreshTimeout = setTimeout(() => {
+                if (typeof window.refreshIcons === 'function') {
+                    window.refreshIcons();
+                }
+            }, 100);
+        };
+        
+        // Observe DOM for dynamic content (for Alpine.js updates)
+        if ('MutationObserver' in window) {
+            const observer = new MutationObserver((mutations) => {
+                const hasNewContent = mutations.some(m => m.addedNodes.length > 0);
+                if (hasNewContent) {
+                    debouncedRefresh();
+                }
+            });
+            
+            observer.observe(document.body, {
+                childList: true,
+                subtree: true
+            });
         }
-    });
-    // Also refresh on Alpine init
-    document.addEventListener('alpine:init', () => {
-        Alpine.effect(() => {
-            if (window.lucide) {
-                setTimeout(() => lucide.createIcons(), 100);
+        
+        // Alpine integration
+        document.addEventListener('alpine:initialized', debouncedRefresh);
+    })();
+</script>
+
+{{-- Performance monitoring (dev only) --}}
+@if(config('app.debug'))
+<script>
+    window.addEventListener('load', () => {
+        setTimeout(() => {
+            const perf = performance.getEntriesByType('navigation')[0];
+            if (perf) {
+                console.log('⚡ Performance Metrics:');
+                console.table({
+                    'TTFB (ms)': Math.round(perf.responseStart - perf.requestStart),
+                    'DOM Interactive (ms)': Math.round(perf.domInteractive),
+                    'DOM Complete (ms)': Math.round(perf.domComplete),
+                    'Load Complete (ms)': Math.round(perf.loadEventEnd),
+                });
             }
-        });
+        }, 0);
     });
 </script>
+@endif

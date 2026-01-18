@@ -158,39 +158,21 @@
         </div>
     </div>
 
-    <div class="text-xs text-muted-foreground mt-4 italic">
-        Estimated Token Consumption: <span class="font-bold text-foreground" x-text="videoDuration === '15 seconds (10 tokens)' ? 10 : 7"></span>
-    </div>
-
-    {{-- Insufficient Tokens Alert --}}
-    <div class="border border-red-200 bg-red-50 rounded-lg p-4 flex items-center gap-4">
-        <div class="bg-red-100 p-2 rounded-full">
-            <i data-lucide="alert-circle" class="w-5 h-5 text-red-500"></i>
-        </div>
-        <div>
-            <p class="text-sm font-bold text-red-700">Insufficient Tokens</p>
-            <p class="text-xs text-red-600 italic">
-                You need 7 tokens to generate this video, but you only have 0 tokens. 
-                <a href="#" class="font-bold underline">Upgrade your plan</a> to get more tokens.
-            </p>
-        </div>
-    </div>
-
     {{-- Bottom Button --}}
-    <div class="pt-2">
+    <div class="pt-4">
         <button @click="generateContent" 
                 :disabled="isGenerating" 
-                class="w-full h-14 bg-primary hover:opacity-90 text-primary-foreground rounded-lg font-black uppercase tracking-widest shadow-lg shadow-primary/20 hover:scale-[1.01] active:scale-[0.99] transition-all flex items-center justify-center gap-3 disabled:opacity-50 disabled:pointer-events-none">
+                class="w-full h-14 bg-primary hover:opacity-90 text-primary-foreground rounded-xl font-black uppercase tracking-[0.2em] shadow-lg shadow-primary/20 hover:scale-[1.01] active:scale-[0.99] transition-all flex items-center justify-center gap-3 text-xs disabled:opacity-50 disabled:pointer-events-none">
             <template x-if="!isGenerating">
                 <div class="flex items-center gap-2">
                     <i data-lucide="sparkles" class="w-5 h-5"></i>
-                    <span>Generate Video (<span x-text="videoDuration === '15 seconds (10 tokens)' ? 10 : 7"></span> tokens)</span>
+                    <span>Generate Text Content</span>
                 </div>
             </template>
             <template x-if="isGenerating">
                 <div class="flex items-center gap-2">
                     <i data-lucide="loader-2" class="w-5 h-5 animate-spin"></i>
-                    <span>Architecting Video...</span>
+                    <span>Architecting Posts...</span>
                 </div>
             </template>
         </button>

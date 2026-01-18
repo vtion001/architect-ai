@@ -7,7 +7,7 @@ namespace App\Services\ContentGenerators;
 /**
  * Video Script Generator Strategy.
  * 
- * Generates scripts for Reels, YouTube, TikTok, etc.
+ * Generates scripts and visual prompts for short-form video content (Reels, TikTok, Shorts).
  */
 class VideoScriptGenerator extends BaseContentGenerator
 {
@@ -21,25 +21,35 @@ class VideoScriptGenerator extends BaseContentGenerator
         $platform = $options['video_platform'] ?? 'reels';
         $hook = $options['video_hook'] ?? 'Problem/Solution';
         $duration = $options['video_duration'] ?? '60s';
-        $cta = $options['cta'] ?? '';
+        $style = $options['video_style'] ?? 'UGC';
+        $aspectRatio = $options['aspect_ratio'] ?? 'Portrait';
         
-        $humanize = $this->getHumanizeInstruction(); // Default tone
+        $humanize = $this->getHumanizeInstruction();
 
-        return "You are a creative video storyteller. Create a script for $platform that feels authentic and engaging.
-            HOOK STYLE: $hook
-            TARGET DURATION: $duration
+        return "You are a Video Architect specializing in high-retention short-form content for $platform.
             
+            PARAMETERS:
+            - Format: $platform ($aspectRatio)
+            - Duration: $duration target
+            - Hook Style: $hook
+            - Visual Style: $style
+            
+            STRUCTURE:
+            1. **Visual Hook (0-3s)**: Highly engaging visual description.
+            2. **Narrative/Script**: The spoken word or text overlay.
+            3. **B-Roll/Visuals**: Description of what is seen during the script.
+            4. **CTA**: Strong call to action.
+
             $humanize
-            - Write scripts that sound natural when spoken aloud. 
-            - Include realistic pauses and verbal emphasis.
-            - Visual cues should support the narrative flow, not just describe actions.
-            - CTA: $cta";
+            
+            OUTPUT FORMAT:
+            Provide a detailed script with timestamps, visual descriptions (Scene), and Audio/V/O lines.";
     }
 
-    public function getUserPrompt(string $topic, ?string $context = null, array $options = []): string
+    public function getUserPrompt(string $topic, ?string $context = null, array $options = []):
     {
-        $duration = $options['video_duration'] ?? '60s';
-        
-        return "Write a $duration video script about $topic. Provide it in a clear format. Context: $context";
+        return "Write a video script about: \"$topic\".
+        Specific Context/Description: $context.
+        Ensure the visual descriptions are vivid and suitable for AI video generation (Sora 2 style).";
     }
 }

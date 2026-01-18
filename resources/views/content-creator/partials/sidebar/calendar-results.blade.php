@@ -18,7 +18,7 @@
                 <div class="w-2 h-2 rounded-full bg-blue-500"></div>
                 <h4 class="text-xs font-black uppercase tracking-widest text-blue-500">Educational (Authority)</h4>
             </div>
-            <template x-for="post in generatedCalendar.educational">
+            <template x-for="post in generatedCalendar?.educational || []">
                 <div class="bg-card border border-border rounded-xl p-4 space-y-3 hover:border-blue-500/30 transition-all">
                     <div>
                         <span class="text-[9px] font-black bg-blue-500/10 text-blue-500 px-2 py-0.5 rounded uppercase tracking-wider">Hook</span>
@@ -41,7 +41,7 @@
                 <div class="w-2 h-2 rounded-full bg-purple-500"></div>
                 <h4 class="text-xs font-black uppercase tracking-widest text-purple-500">Showcase (Expertise)</h4>
             </div>
-            <template x-for="post in generatedCalendar.showcase">
+            <template x-for="post in generatedCalendar?.showcase || []">
                 <div class="bg-card border border-border rounded-xl p-4 space-y-3 hover:border-purple-500/30 transition-all">
                     <div>
                         <span class="text-[9px] font-black bg-purple-500/10 text-purple-500 px-2 py-0.5 rounded uppercase tracking-wider">Hook</span>
@@ -64,7 +64,7 @@
                 <div class="w-2 h-2 rounded-full bg-green-500"></div>
                 <h4 class="text-xs font-black uppercase tracking-widest text-green-500">Conversational (Community)</h4>
             </div>
-            <template x-for="post in generatedCalendar.conversational">
+            <template x-for="post in generatedCalendar?.conversational || []">
                 <div class="bg-card border border-border rounded-xl p-4 space-y-3 hover:border-green-500/30 transition-all">
                     <div>
                         <span class="text-[9px] font-black bg-green-500/10 text-green-500 px-2 py-0.5 rounded uppercase tracking-wider">Hook</span>
@@ -83,7 +83,7 @@
                 <div class="w-2 h-2 rounded-full bg-amber-500"></div>
                 <h4 class="text-xs font-black uppercase tracking-widest text-amber-500">Promotional (Conversion)</h4>
             </div>
-            <template x-for="post in generatedCalendar.promotional">
+            <template x-for="post in generatedCalendar?.promotional || []">
                 <div class="bg-card border border-border rounded-xl p-4 space-y-3 hover:border-amber-500/30 transition-all">
                     <div>
                         <span class="text-[9px] font-black bg-amber-500/10 text-amber-500 px-2 py-0.5 rounded uppercase tracking-wider">Hook</span>

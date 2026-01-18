@@ -40,4 +40,18 @@ Route::middleware(['auth:sanctum', 'tenant', 'session_security'])->group(functio
     
     // Global Grid Search (for Command Palette)
     Route::get('/search', [\App\Http\Controllers\GlobalSearchController::class, 'index']);
+
+    /*
+    |--------------------------------------------------------------------------
+    | Template Preview API (Isolated from Document Builder)
+    |--------------------------------------------------------------------------
+    | These routes are DECOUPLED from the Document Builder UI.
+    | Changes to Document Builder will NOT affect these endpoints.
+    */
+    Route::prefix('templates')->group(function () {
+        Route::get('/', [\App\Http\Controllers\TemplatePreviewController::class, 'index']);
+        Route::get('/{templateId}', [\App\Http\Controllers\TemplatePreviewController::class, 'show']);
+        Route::post('/preview', [\App\Http\Controllers\TemplatePreviewController::class, 'preview']);
+        Route::get('/{templateId}/validate/{variantId?}', [\App\Http\Controllers\TemplatePreviewController::class, 'validateCombination']);
+    });
 });

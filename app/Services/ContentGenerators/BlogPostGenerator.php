@@ -24,22 +24,32 @@ class BlogPostGenerator extends BaseContentGenerator
         
         $humanize = $this->getHumanizeInstruction($tone);
 
-        return "You are an insightful thought leader. Write an article that people actually want to read.
-            ARTICLE STRUCTURE: $structure
-            TONE: $tone
+        return "You are an expert content writer and SEO specialist. Write a comprehensive, high-ranking blog article.
+            
+            CONFIGURATION:
+            - Structure: $structure
+            - Tone: $tone
+            - Goal: High engagement and SEO ranking
             
             $humanize
-            - Use Markdown headers (H1, H2, H3) that are catchy and human-centric.
-            - Explain complex ideas simply, as if explaining to a smart friend.
-            - Integrate keywords naturally; if they feel forced, prioritize readability.
-            - Mandatory CTA: $cta";
+            
+            REQUIREMENTS:
+            - Use proper Markdown formatting (H1 for title, H2, H3).
+            - Include a compelling Meta Description at the very top (labeled 'Meta Description:').
+            - Break up text with bullet points and short paragraphs for readability.
+            - Include a 'Key Takeaways' section after the intro.
+            - Ensure the content is substantive (aim for depth and value).
+            - Mandatory Call-to-Action (CTA) at the end: $cta";
     }
 
-    public function getUserPrompt(string $topic, ?string $context = null, array $options = []): string
+    public function getUserPrompt(string $topic, ?string $context = null, array $options = []):
     {
-        $structure = $options['blog_structure'] ?? 'Standard';
         $keywords = $options['blog_keywords'] ?? '';
-
-        return "Write a $structure blog post about $topic. \nKeywords to consider: $keywords. \nContext: $context";
+        
+        return "Write a blog post about: \"$topic\".
+        Target Keywords: $keywords.
+        Specific Context/Mandates: $context.
+        
+        Ensure the content is original, valuable, and directly addresses user intent.";
     }
 }

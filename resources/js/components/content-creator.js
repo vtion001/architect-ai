@@ -1,28 +1,13 @@
-/**
- * Content Creator Alpine.js Component
- * 
- * Extracted from content-creator.blade.php for modularity.
- * This file contains the main component logic for the content creator page.
- */
-
-/**
- * Factory function to create the content creator component configuration
- * @param {Object} config - Configuration object containing routes and data
- * @returns {Object} - Alpine.js component data object
- */
-export function createContentCreatorComponent(config) {
-    return {
-        // Generator State
+document.addEventListener('alpine:init', () => {
+    Alpine.data('contentCreator', () => ({
         generator: 'post',
         topic: '',
-        type: 'blog-post',
+        type: 'social-media', // Default type for post generator
         count: 2,
         tone: 'Default Tone',
         length: 'Default Length',
         context: '',
         cta: '',
-
-        // CTA Snippets
         cta_snippets: [
             'Join the waitlist at arch-ai.io/beta',
             'Book a free consultation today!',
@@ -34,22 +19,20 @@ export function createContentCreatorComponent(config) {
         showCtaSnippets: false,
         newSnippet: '',
         isManagingSnippets: false,
-
-        // Brand Selection
-        brands: config.brands || [],
+        
+        brands: [],
         selectedBrandId: '',
 
-        // Post Settings
         addLineBreaks: true,
         includeHashtags: false,
-
-        // Blog Settings
+        
+        // Blog specific
         keywords: '',
         structure: 'Standard',
         isBatchMode: false,
         featuredImageType: 'ai',
-
-        // Video Settings
+        
+        // Video specific
         videoStyle: 'UGC',
         videoDescription: '',
         sourceImage: '',
@@ -60,23 +43,25 @@ export function createContentCreatorComponent(config) {
         platform: 'reels',
         hookStyle: 'Problem/Solution',
         duration: '60s',
-
-        // Suggestions State
+        
+        // Suggestions & AI
         suggestions: '',
         kbDiscovered: 0,
         isLoadingSuggestions: false,
-
-        // Generation State
+        
         isRefining: false,
+        
         isGenerating: false,
         showSuccessModal: false,
         createdContentId: null,
         generatedCalendar: null,
 
-        /**
-         * Initialize component - load saved snippets from localStorage
-         */
         init() {
+            // Initialize brands from global variable if available
+            if (window.__contentCreatorBrands) {
+                this.brands = window.__contentCreatorBrands;
+            }
+
             const savedSnippets = localStorage.getItem('arch_ai_cta_snippets');
             if (savedSnippets) {
                 try {
@@ -85,15 +70,20 @@ export function createContentCreatorComponent(config) {
                     console.error('Failed to parse saved snippets');
                 }
             }
-
+            
             this.$watch('cta_snippets', (value) => {
                 localStorage.setItem('arch_ai_cta_snippets', JSON.stringify(value));
             });
+
+            // Watch generator changes to set appropriate default types
+            this.$watch('generator', (value) => {
+                if (value === 'post') this.type = 'social-media';
+                if (value === 'blog') this.type = 'blog-post';
+                if (value === 'video') this.type = 'video';
+                if (value === 'framework') this.type = 'framework_calendar';
+            });
         },
 
-        /**
-         * Add a new CTA snippet
-         */
         addSnippet() {
             if (this.newSnippet.trim()) {
                 this.cta_snippets.push(this.newSnippet.trim());
@@ -101,90 +91,74 @@ export function createContentCreatorComponent(config) {
             }
         },
 
-        /**
-         * Remove a CTA snippet by index
-         * @param {number} index 
-         */
         removeSnippet(index) {
             this.cta_snippets.splice(index, 1);
         },
-
-        /**
-         * Fetch AI-powered topic suggestions
-         */
+        
         fetchSuggestions() {
             if (!this.topic || this.isLoadingSuggestions) return;
-
             this.isLoadingSuggestions = true;
             this.suggestions = '';
             this.kbDiscovered = 0;
-
-            fetch(config.routes.suggestions, {
+            
+            fetch('/content-creator/suggestions', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'X-CSRF-TOKEN': config.csrfToken
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
                 },
                 body: JSON.stringify({ topic: this.topic })
             })
-                .then(res => res.json())
-                .then(data => {
-                    this.suggestions = data.suggestions;
-                    this.kbDiscovered = data.kb_count || 0;
-                    this.isLoadingSuggestions = false;
-                })
-                .catch(err => {
-                    console.error(err);
-                    this.suggestions = 'Error fetching suggestions.';
-                    this.isLoadingSuggestions = false;
-                });
+            .then(res => res.json())
+            .then(data => {
+                this.suggestions = data.suggestions;
+                this.kbDiscovered = data.kb_count || 0;
+                this.isLoadingSuggestions = false;
+            })
+            .catch(err => {
+                console.error(err);
+                this.suggestions = 'Error fetching suggestions.';
+                this.isLoadingSuggestions = false;
+            });
         },
 
-        /**
-         * Refine context using AI
-         */
         refineContext() {
             if (!this.context || this.isRefining) return;
-
             this.isRefining = true;
-
-            fetch(config.routes.refine, {
+            
+            fetch('/content-creator/refine', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'X-CSRF-TOKEN': config.csrfToken
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
                 },
                 body: JSON.stringify({ context: this.context })
             })
-                .then(res => res.json())
-                .then(data => {
-                    if (data.context) {
-                        this.context = data.context;
-                    }
-                    this.isRefining = false;
-                })
-                .catch(err => {
-                    console.error(err);
-                    this.isRefining = false;
-                });
+            .then(res => res.json())
+            .then(data => {
+                if (data.context) {
+                    this.context = data.context;
+                }
+                this.isRefining = false;
+            })
+            .catch(err => {
+                console.error(err);
+                this.isRefining = false;
+            });
         },
-
-        /**
-         * Generate content based on current settings
-         */
+        
         generateContent() {
             if (!this.topic) {
                 alert('Please enter a topic.');
                 return;
             }
-
             this.isGenerating = true;
             this.generatedCalendar = null;
-
+            
             const payload = {
                 topic: this.topic,
                 generator: this.generator,
-                type: this.generator === 'post' ? this.type : this.generator,
+                type: this.type, // Use current type which is updated via watcher
                 count: this.count,
                 tone: this.tone,
                 length: this.length,
@@ -209,55 +183,48 @@ export function createContentCreatorComponent(config) {
                 brand_id: this.selectedBrandId
             };
 
-            fetch(config.routes.generate, {
+            fetch('/content-creator/generate', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                     'Accept': 'application/json',
-                    'X-CSRF-TOKEN': config.csrfToken
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
                 },
                 body: JSON.stringify(payload)
             })
-                .then(async response => {
-                    const contentType = response.headers.get('content-type');
-                    if (!contentType || !contentType.includes('application/json')) {
-                        const text = await response.text();
-                        console.error('Server Error (HTML):', text);
-                        throw new Error('Server returned HTML instead of JSON. Check console.');
+            .then(async response => {
+                const contentType = response.headers.get('content-type');
+                if (!contentType || !contentType.includes('application/json')) {
+                    const text = await response.text();
+                    console.error('Server Error (HTML):', text);
+                    throw new Error('Server returned HTML instead of JSON. Check console.');
+                }
+                const data = await response.json();
+                if (!response.ok || !data.success) {
+                    throw new Error(data.message || 'Generation failed.');
+                }
+                return data;
+            })
+            .then(data => {
+                if (this.generator === 'framework') {
+                    try {
+                        const rawContent = data.content.content;
+                        this.generatedCalendar = typeof rawContent === 'string' ? JSON.parse(rawContent) : rawContent;
+                    } catch (e) {
+                        console.error('JSON Parse Error', e);
+                        alert('Calendar generated but format was invalid.');
                     }
-                    const data = await response.json();
-                    if (!response.ok || !data.success) {
-                        throw new Error(data.message || 'Generation failed.');
-                    }
-                    return data;
-                })
-                .then(data => {
-                    if (this.generator === 'framework') {
-                        try {
-                            const rawContent = data.content.content;
-                            this.generatedCalendar = typeof rawContent === 'string' ? JSON.parse(rawContent) : rawContent;
-                        } catch (e) {
-                            console.error('JSON Parse Error', e);
-                            alert('Calendar generated but format was invalid.');
-                        }
-                    } else {
-                        this.createdContentId = data.content.id;
-                        this.showSuccessModal = true;
-                    }
-                    this.isGenerating = false;
-                })
-                .catch(error => {
-                    console.error(error);
-                    alert(error.message);
-                    this.isGenerating = false;
-                });
+                } else {
+                    this.createdContentId = data.content.id;
+                    this.showSuccessModal = true;
+                }
+                this.isGenerating = false;
+            })
+            .catch(error => {
+                console.error(error);
+                alert(error.message);
+                this.isGenerating = false;
+            });
         }
-    };
-}
-
-// Auto-register with Alpine if available globally
-if (typeof window !== 'undefined' && window.Alpine) {
-    document.addEventListener('alpine:init', () => {
-        // Component will be registered by inline script with config
-    });
-}
+    }));
+});

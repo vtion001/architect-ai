@@ -21,8 +21,6 @@ class SampleContentProvider
     {
         return match ($template) {
             ReportTemplate::EXECUTIVE_SUMMARY => $this->getExecutiveSummarySample(),
-            ReportTemplate::TECHNICAL_AUDIT => $this->getTechnicalAuditSample(),
-            ReportTemplate::FINANCIAL_ANALYSIS => $this->getFinancialAnalysisSample(),
             ReportTemplate::MARKET_ANALYSIS => $this->getMarketAnalysisSample(),
             ReportTemplate::FINANCIAL_OVERVIEW => $this->getFinancialOverviewSample(),
             ReportTemplate::COMPETITIVE_INTELLIGENCE => $this->getCompetitiveIntelligenceSample(),

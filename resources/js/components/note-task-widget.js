@@ -1,100 +1,142 @@
 /**
  * Note/Task Widget Alpine.js Component
  * 
- * Handles multi-tab widget functionality:
- * - Tasks management (add, toggle, delete, breakdown)
- * - Notes management
- * - Voice recording and transcription
- * - Ghost Studio recording
- * - History/archive management
+ * ISOLATED: This file contains ONLY the widget's business logic.
+ * The UI layout and positioning are defined in Blade partials.
+ * 
+ * Changes to this file will NOT affect:
+ * - Floating button position (fixed at bottom: 96px, right: 24px)
+ * - Popup container position (fixed at bottom: 24px, right: 94px)
+ * - Widget sizing (fixed at 380px x 580px)
+ * - Tab navigation layout
+ * 
+ * Architecture:
+ * ┌─────────────────────────────────────────────────────────────┐
+ * │                    UI LAYER (Blade)                         │
+ * │  ┌─────────────────┐  ┌─────────────────┐                  │
+ * │  │floating-button  │  │popup-container  │                  │
+ * │  │(position: fixed)│  │(position: fixed)│                  │
+ * │  └─────────────────┘  └─────────────────┘                  │
+ * │                              │                              │
+ * │  ┌──────────────────────────┴───────────────────────────┐  │
+ * │  │ popup-header │ tab-navigation │ *-tab.blade.php       │  │
+ * │  └──────────────────────────────────────────────────────┘  │
+ * └─────────────────────────────────────────────────────────────┘
+ *                              │
+ *                              ▼
+ * ┌─────────────────────────────────────────────────────────────┐
+ * │                   LOGIC LAYER (This File)                   │
+ * │                                                             │
+ * │  - State management (tasks, notes, recordings)              │
+ * │  - API calls (fetch, save, delete)                          │
+ * │  - Audio recording                                          │
+ * │  - Ghost recording (rrweb)                                  │
+ * │  - AI breakdown generation                                  │
+ * └─────────────────────────────────────────────────────────────┘
  */
 
-// Global Audio Context Handler
+// =============================================================================
+// Global Audio Context (Singleton)
+// =============================================================================
 if (typeof window.taskAudioContext === 'undefined') {
     window.taskAudioContext = null;
+
+    window.initTaskAudio = function () {
+        if (!window.taskAudioContext) {
+            window.taskAudioContext = new (window.AudioContext || window.webkitAudioContext)();
+        }
+        if (window.taskAudioContext.state === 'suspended') {
+            window.taskAudioContext.resume();
+        }
+    };
+
+    window.playTaskSound = function (type) {
+        window.initTaskAudio();
+        const ctx = window.taskAudioContext;
+        if (!ctx) return;
+        if (ctx.state === 'suspended') ctx.resume();
+
+        try {
+            const osc = ctx.createOscillator();
+            const gn = ctx.createGain();
+            osc.connect(gn);
+            gn.connect(ctx.destination);
+            const now = ctx.currentTime;
+
+            if (type === 'add') {
+                osc.type = 'square';
+                osc.frequency.setValueAtTime(600, now);
+                osc.frequency.exponentialRampToValueAtTime(100, now + 0.1);
+                gn.gain.setValueAtTime(0.1, now);
+                gn.gain.exponentialRampToValueAtTime(0.001, now + 0.1);
+                osc.start(now);
+                osc.stop(now + 0.1);
+            } else if (type === 'success') {
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(1200, now);
+                gn.gain.setValueAtTime(0.2, now);
+                gn.gain.exponentialRampToValueAtTime(0.001, now + 0.5);
+                osc.start(now);
+                osc.stop(now + 0.5);
+            } else if (type === 'alarm') {
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(800, now);
+                gn.gain.setValueAtTime(0.2, now);
+                gn.gain.setValueAtTime(0.2, now + 0.1);
+                gn.gain.linearRampToValueAtTime(0, now + 0.4);
+                osc.start(now);
+                osc.stop(now + 0.4);
+            }
+        } catch (e) {
+            console.warn('Audio playback failed:', e);
+        }
+    };
+
+    // Initialize on user interaction
+    document.addEventListener('click', window.initTaskAudio);
+    document.addEventListener('keydown', window.initTaskAudio);
 }
 
-window.initTaskAudio = function () {
-    if (!window.taskAudioContext) {
-        window.taskAudioContext = new (window.AudioContext || window.webkitAudioContext)();
-    }
-    if (window.taskAudioContext.state === 'suspended') {
-        window.taskAudioContext.resume();
-    }
-};
-
-window.playTaskSound = function (type) {
-    window.initTaskAudio();
-    const ctx = window.taskAudioContext;
-    if (!ctx) return;
-    if (ctx.state === 'suspended') ctx.resume();
-
-    try {
-        const oscillator = ctx.createOscillator();
-        const gainNode = ctx.createGain();
-        oscillator.connect(gainNode);
-        gainNode.connect(ctx.destination);
-        const now = ctx.currentTime;
-
-        if (type === 'add') {
-            oscillator.type = 'square';
-            oscillator.frequency.setValueAtTime(600, now);
-            oscillator.frequency.exponentialRampToValueAtTime(100, now + 0.1);
-            gainNode.gain.setValueAtTime(0.1, now);
-            gainNode.gain.exponentialRampToValueAtTime(0.001, now + 0.1);
-            oscillator.start(now);
-            oscillator.stop(now + 0.1);
-        } else if (type === 'success') {
-            oscillator.type = 'sine';
-            oscillator.frequency.setValueAtTime(1200, now);
-            gainNode.gain.setValueAtTime(0.2, now);
-            gainNode.gain.exponentialRampToValueAtTime(0.001, now + 0.5);
-            oscillator.start(now);
-            oscillator.stop(now + 0.5);
-        } else if (type === 'alarm') {
-            oscillator.type = 'sawtooth';
-            oscillator.frequency.setValueAtTime(800, now);
-            gainNode.gain.setValueAtTime(0.2, now);
-            gainNode.gain.setValueAtTime(0.2, now + 0.1);
-            gainNode.gain.linearRampToValueAtTime(0, now + 0.4);
-            oscillator.start(now);
-            oscillator.stop(now + 0.4);
-        }
-    } catch (e) {
-        console.error("Sound error:", e);
-    }
-};
-
-// Initialize audio on first user interaction
-document.addEventListener('click', window.initTaskAudio);
-document.addEventListener('keydown', window.initTaskAudio);
-
-/**
- * Creates the Note/Task Widget Alpine.js component
- * @returns {Object} - Alpine.js component data object
- */
-export function createNoteTaskWidgetComponent() {
-    return {
+// =============================================================================
+// Alpine Component Registration
+// =============================================================================
+document.addEventListener('alpine:init', () => {
+    Alpine.data('noteTaskWidget', () => ({
+        // =====================================================================
+        // State
+        // =====================================================================
         isOpen: false,
         activeTab: 'tasks',
+        showSearch: false,
+        searchQuery: '',
+
+        // Data
         tasks: [],
         notes: [],
         history: [],
         categories: [],
+
+        // Task Form
         newTaskTitle: '',
         newTaskDate: '',
         selectedCategory: null,
         alarmEnabled: false,
+
+        // Category Form
         newCategoryName: '',
         newCategoryColor: '#3b82f6',
+
+        // AI Breakdown
         openBreakdownModal: false,
         breakdownPrompt: '',
         breakdownSteps: [],
         generatedTitle: '',
         isGenerating: false,
+
+        // Task Details
         viewingTask: null,
-        showSearch: false,
-        searchQuery: '',
+
+        // Voice Recording
         isRecording: false,
         recordingTime: 0,
         audioBlob: null,
@@ -108,11 +150,16 @@ export function createNoteTaskWidgetComponent() {
         audioPlayer: null,
         availableMicrophones: [],
         selectedMicrophoneId: 'default',
+
+        // Ghost Studio
         isGhostRecording: false,
         ghostEvents: [],
         ghostDemos: [],
         stopFn: null,
 
+        // =====================================================================
+        // Computed Properties
+        // =====================================================================
         get pendingCount() {
             return this.tasks.filter(t => t.status !== 'completed').length;
         },
@@ -126,168 +173,215 @@ export function createNoteTaskWidgetComponent() {
         get filteredNotes() {
             if (!this.searchQuery.trim()) return this.notes;
             const q = this.searchQuery.toLowerCase();
-            return this.notes.filter(n => n.title.toLowerCase().includes(q) || (n.description && n.description.toLowerCase().includes(q)));
+            return this.notes.filter(n =>
+                n.title.toLowerCase().includes(q) ||
+                (n.description && n.description.toLowerCase().includes(q))
+            );
         },
 
+        // =====================================================================
+        // Lifecycle
+        // =====================================================================
         init() {
             this.fetchData();
             this.getMicrophones();
+
+            // Refresh icons when opened
             if (window.lucide) window.lucide.createIcons();
-            this.$watch('isOpen', value => {
-                if (value && window.lucide) setTimeout(() => lucide.createIcons(), 100);
+
+            this.$watch('isOpen', v => {
+                if (v && window.lucide) {
+                    setTimeout(() => lucide.createIcons(), 100);
+                }
             });
-            this.$watch('activeTab', value => {
-                if (value === 'history') this.fetchHistory();
-                if (value === 'voice') this.getMicrophones();
+
+            this.$watch('activeTab', v => {
+                if (v === 'history') this.fetchHistory();
+                if (v === 'voice') this.getMicrophones();
                 if (window.lucide) setTimeout(() => lucide.createIcons(), 50);
             });
-            setInterval(() => { this.checkAlarms(); }, 30000);
+
+            // Check alarms every 30 seconds
+            setInterval(() => this.checkAlarms(), 30000);
         },
 
+        // =====================================================================
+        // Alarm System
+        // =====================================================================
         checkAlarms() {
             const now = new Date();
-            this.tasks.forEach(task => {
-                if (task.alarm_enabled && task.due_date && task.status !== 'completed') {
-                    const dueDate = new Date(task.due_date);
-                    if (now - dueDate >= 0 && now - dueDate < 60000) this.triggerAlarm(task);
+            this.tasks.forEach(t => {
+                if (t.alarm_enabled && t.due_date && t.status !== 'completed') {
+                    const d = new Date(t.due_date);
+                    if (now - d >= 0 && now - d < 60000) {
+                        this.triggerAlarm(t);
+                    }
                 }
             });
         },
 
-        triggerAlarm(task) {
+        triggerAlarm(t) {
             window.playTaskSound('alarm');
             if (Notification.permission === "granted") {
-                new Notification("Task Due: " + task.title);
+                new Notification("Task Due: " + t.title);
             }
         },
 
+        // =====================================================================
+        // Data Fetching
+        // =====================================================================
         async fetchData() {
             try {
-                const res = await fetch('/tasks');
-                const data = await res.json();
-                if (data.categories) this.categories = data.categories;
-                if (data.tasks) {
-                    this.tasks = data.tasks.filter(t => t.type === 'task');
-                    this.notes = data.tasks.filter(t => t.type === 'note');
+                const r = await fetch('/tasks');
+                const d = await r.json();
+                if (d.categories) this.categories = d.categories;
+                if (d.tasks) {
+                    this.tasks = d.tasks.filter(t => t.type === 'task');
+                    this.notes = d.tasks.filter(t => t.type === 'note');
                 }
             } catch (e) {
-                console.error('Failed to fetch data', e);
+                console.error('Failed to fetch tasks:', e);
             }
         },
 
         async fetchHistory() {
             try {
-                const res = await fetch('/tasks?trashed=1');
-                const data = await res.json();
-                if (data.tasks) this.history = data.tasks;
+                const r = await fetch('/tasks?trashed=1');
+                const d = await r.json();
+                if (d.tasks) this.history = d.tasks;
             } catch (e) {
-                console.error(e);
+                console.error('Failed to fetch history:', e);
             }
         },
 
-        async restoreItem(id) {
-            try {
-                await fetch(`/tasks/${id}/restore`, {
-                    method: 'POST',
-                    headers: { 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content }
-                });
-                this.fetchHistory();
-                this.fetchData();
-            } catch (e) {
-                console.error(e);
-            }
-        },
-
-        async forceDeleteItem(id) {
-            if (!confirm('Permanently delete?')) return;
-            try {
-                await fetch(`/tasks/${id}/force`, {
-                    method: 'DELETE',
-                    headers: { 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content }
-                });
-                this.fetchHistory();
-            } catch (e) {
-                console.error(e);
-            }
-        },
-
+        // =====================================================================
+        // Task Operations
+        // =====================================================================
         async addTask(title = null, parentId = null, skipRefresh = false) {
-            const taskTitle = title || this.newTaskTitle;
-            if (!taskTitle || !taskTitle.trim()) return;
-            const payload = {
-                title: taskTitle.trim(),
+            const t = title || this.newTaskTitle;
+            if (!t?.trim()) return;
+
+            const p = {
+                title: t.trim(),
                 type: 'task',
                 parent_id: parentId,
-                category_id: this.selectedCategory ? this.selectedCategory.id : null,
+                category_id: this.selectedCategory?.id,
                 due_date: this.newTaskDate || null,
                 alarm_enabled: this.alarmEnabled
             };
+
             try {
-                const res = await fetch('/tasks', {
+                const r = await fetch('/tasks', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
                         'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
                     },
-                    body: JSON.stringify(payload)
+                    body: JSON.stringify(p)
                 });
-                const data = await res.json();
-                if (data.success) {
+                const d = await r.json();
+
+                if (d.success) {
                     window.playTaskSound('add');
                     if (!parentId) {
-                        this.tasks.unshift(data.task);
+                        this.tasks.unshift(d.task);
                         this.newTaskTitle = '';
                         this.alarmEnabled = false;
                     } else if (!skipRefresh) {
                         await this.fetchData();
-                        if (this.viewingTask && this.viewingTask.id === parentId) {
-                            this.viewingTask = this.tasks.find(t => t.id === parentId);
+                        if (this.viewingTask?.id === parentId) {
+                            this.viewingTask = this.tasks.find(x => x.id === parentId);
                         }
                     }
                 }
             } catch (e) {
-                console.error(e);
+                console.error('Failed to add task:', e);
             }
         },
 
-        openTaskDetails(task) {
-            this.viewingTask = task;
+        async toggleTask(t) {
+            const s = t.status === 'completed' ? 'pending' : 'completed';
+            t.status = s;
+            if (s === 'completed') window.playTaskSound('success');
+
+            try {
+                await fetch(`/tasks/${t.id}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+                    },
+                    body: JSON.stringify({ status: s })
+                });
+            } catch (e) {
+                // Revert on failure
+                t.status = t.status === 'completed' ? 'pending' : 'completed';
+            }
+        },
+
+        async deleteTask(id) {
+            if (!confirm('Move to history?')) return;
+
+            try {
+                await fetch(`/tasks/${id}`, {
+                    method: 'DELETE',
+                    headers: {
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+                    }
+                });
+                this.fetchData();
+                if (this.viewingTask?.id === id) this.closeTaskDetails();
+            } catch (e) {
+                console.error('Failed to delete task:', e);
+            }
+        },
+
+        async updateTaskTitle(t, n) {
+            if (!n.trim()) return;
+
+            try {
+                await fetch(`/tasks/${t.id}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+                    },
+                    body: JSON.stringify({ title: n })
+                });
+            } catch (e) {
+                console.error('Failed to update task title:', e);
+            }
+        },
+
+        async updateTaskField(t, f, v) {
+            try {
+                await fetch(`/tasks/${t.id}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+                    },
+                    body: JSON.stringify({ [f]: v })
+                });
+            } catch (e) {
+                console.error('Failed to update task field:', e);
+            }
+        },
+
+        openTaskDetails(t) {
+            this.viewingTask = t;
         },
 
         closeTaskDetails() {
             this.viewingTask = null;
         },
 
-        async updateTaskTitle(task, newTitle) {
-            if (!newTitle.trim()) return;
-            try {
-                await fetch(`/tasks/${task.id}`, {
-                    method: 'PUT',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
-                    },
-                    body: JSON.stringify({ title: newTitle })
-                });
-            } catch (e) { }
-        },
-
-        async updateTaskField(task, field, value) {
-            try {
-                await fetch(`/tasks/${task.id}`, {
-                    method: 'PUT',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
-                    },
-                    body: JSON.stringify({ [field]: value })
-                });
-            } catch (e) { }
-        },
-
+        // =====================================================================
+        // Note Operations
+        // =====================================================================
         async addNote() {
             try {
-                const res = await fetch('/tasks', {
+                const r = await fetch('/tasks', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -295,121 +389,155 @@ export function createNoteTaskWidgetComponent() {
                     },
                     body: JSON.stringify({ title: 'Untitled Note', type: 'note' })
                 });
-                const data = await res.json();
-                if (data.success) this.notes.unshift(data.task);
-            } catch (e) { }
+                const d = await r.json();
+                if (d.success) this.notes.unshift(d.task);
+            } catch (e) {
+                console.error('Failed to add note:', e);
+            }
         },
 
+        async updateNote(n) {
+            try {
+                await fetch(`/tasks/${n.id}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+                    },
+                    body: JSON.stringify({ title: n.title, description: n.description })
+                });
+            } catch (e) {
+                console.error('Failed to update note:', e);
+            }
+        },
+
+        // =====================================================================
+        // Category Operations
+        // =====================================================================
         async addCategory() {
             if (!this.newCategoryName.trim()) return;
+
             try {
-                const res = await fetch('/task-categories', {
+                const r = await fetch('/task-categories', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
                         'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
                     },
-                    body: JSON.stringify({ name: this.newCategoryName, color: this.newCategoryColor })
+                    body: JSON.stringify({
+                        name: this.newCategoryName,
+                        color: this.newCategoryColor
+                    })
                 });
-                const data = await res.json();
-                if (data.success) {
-                    this.categories.push(data.category);
+                const d = await r.json();
+                if (d.success) {
+                    this.categories.push(d.category);
                     this.newCategoryName = '';
-                    this.selectedCategory = data.category;
+                    this.selectedCategory = d.category;
                 }
-            } catch (e) { }
+            } catch (e) {
+                console.error('Failed to add category:', e);
+            }
         },
 
         async deleteCategory(id) {
             try {
                 await fetch(`/task-categories/${id}`, {
                     method: 'DELETE',
-                    headers: { 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content }
+                    headers: {
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+                    }
                 });
                 this.categories = this.categories.filter(c => c.id !== id);
                 this.fetchData();
-            } catch (e) { }
-        },
-
-        async updateNote(note) {
-            try {
-                await fetch(`/tasks/${note.id}`, {
-                    method: 'PUT',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
-                    },
-                    body: JSON.stringify({ title: note.title, description: note.description })
-                });
-            } catch (e) { }
-        },
-
-        async toggleTask(task) {
-            const newStatus = task.status === 'completed' ? 'pending' : 'completed';
-            task.status = newStatus;
-            if (newStatus === 'completed') window.playTaskSound('success');
-            try {
-                await fetch(`/tasks/${task.id}`, {
-                    method: 'PUT',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
-                    },
-                    body: JSON.stringify({ status: newStatus })
-                });
             } catch (e) {
-                task.status = task.status === 'completed' ? 'pending' : 'completed';
+                console.error('Failed to delete category:', e);
             }
         },
 
-        async deleteTask(id) {
-            if (!confirm('Move to history?')) return;
+        // =====================================================================
+        // History Operations
+        // =====================================================================
+        async restoreItem(id) {
             try {
-                await fetch(`/tasks/${id}`, {
-                    method: 'DELETE',
-                    headers: { 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content }
+                await fetch(`/tasks/${id}/restore`, {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+                    }
                 });
+                this.fetchHistory();
                 this.fetchData();
-                if (this.viewingTask && this.viewingTask.id === id) this.closeTaskDetails();
-            } catch (e) { }
+            } catch (e) {
+                console.error('Failed to restore item:', e);
+            }
         },
 
+        async forceDeleteItem(id) {
+            if (!confirm('Permanently delete?')) return;
+
+            try {
+                await fetch(`/tasks/${id}/force`, {
+                    method: 'DELETE',
+                    headers: {
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+                    }
+                });
+                this.fetchHistory();
+            } catch (e) {
+                console.error('Failed to force delete:', e);
+            }
+        },
+
+        // =====================================================================
+        // AI Breakdown
+        // =====================================================================
         async generateBreakdown() {
             if (this.breakdownSteps.length > 0) {
-                const parentTitle = this.generatedTitle || (this.breakdownPrompt.length > 50 ? this.breakdownPrompt.substring(0, 47) + '...' : this.breakdownPrompt);
+                // Save the breakdown
+                const pt = this.generatedTitle ||
+                    (this.breakdownPrompt.length > 50
+                        ? this.breakdownPrompt.substring(0, 47) + '...'
+                        : this.breakdownPrompt);
+
                 try {
-                    const res = await fetch('/tasks', {
+                    const r = await fetch('/tasks', {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json',
                             'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
                         },
                         body: JSON.stringify({
-                            title: parentTitle,
+                            title: pt,
                             description: this.breakdownPrompt,
                             type: 'task',
-                            category_id: this.selectedCategory ? this.selectedCategory.id : null,
+                            category_id: this.selectedCategory?.id,
                             due_date: this.newTaskDate || null,
                             alarm_enabled: this.alarmEnabled
                         })
                     });
-                    const data = await res.json();
-                    if (data.success) {
+                    const d = await r.json();
+
+                    if (d.success) {
                         window.playTaskSound('add');
-                        for (const step of this.breakdownSteps) {
-                            await this.addTask(step, data.task.id, true);
+                        for (const s of this.breakdownSteps) {
+                            await this.addTask(s, d.task.id, true);
                         }
                         this.breakdownSteps = [];
                         this.breakdownPrompt = '';
                         this.openBreakdownModal = false;
                         this.fetchData();
                     }
-                } catch (e) { }
+                } catch (e) {
+                    console.error('Failed to save breakdown:', e);
+                }
                 return;
             }
+
+            // Generate breakdown via AI
             this.isGenerating = true;
             try {
-                const res = await fetch('/tasks/breakdown', {
+                const r = await fetch('/tasks/breakdown', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -417,51 +545,69 @@ export function createNoteTaskWidgetComponent() {
                     },
                     body: JSON.stringify({ content: this.breakdownPrompt })
                 });
-                const data = await res.json();
-                if (data.success) {
-                    this.breakdownSteps = data.steps;
-                    this.generatedTitle = data.title;
+                const d = await r.json();
+                if (d.success) {
+                    this.breakdownSteps = d.steps;
+                    this.generatedTitle = d.title;
                 }
-            } catch (e) { } finally {
+            } catch (e) {
+                console.error('Failed to generate breakdown:', e);
+            } finally {
                 this.isGenerating = false;
             }
         },
 
+        // =====================================================================
+        // Voice Recording
+        // =====================================================================
         async getMicrophones() {
             if (!navigator.mediaDevices) return;
+
             try {
-                let devices = await navigator.mediaDevices.enumerateDevices();
-                this.availableMicrophones = devices.filter(device => device.kind === 'audioinput');
-            } catch (err) { }
+                let d = await navigator.mediaDevices.enumerateDevices();
+                this.availableMicrophones = d.filter(x => x.kind === 'audioinput');
+            } catch (e) {
+                console.error('Failed to get microphones:', e);
+            }
         },
 
         async startRecording() {
             try {
-                const stream = await navigator.mediaDevices.getUserMedia({
+                const s = await navigator.mediaDevices.getUserMedia({
                     audio: {
-                        deviceId: this.selectedMicrophoneId !== 'default' ? { exact: this.selectedMicrophoneId } : undefined
+                        deviceId: this.selectedMicrophoneId !== 'default'
+                            ? { exact: this.selectedMicrophoneId }
+                            : undefined
                     }
                 });
-                this.mediaRecorder = new MediaRecorder(stream);
+
+                this.mediaRecorder = new MediaRecorder(s);
                 this.audioChunks = [];
+
                 this.mediaRecorder.ondataavailable = (e) => {
                     if (e.data.size > 0) this.audioChunks.push(e.data);
                 };
+
                 this.mediaRecorder.onstop = () => {
                     this.audioBlob = new Blob(this.audioChunks, { type: 'audio/webm' });
                     this.isRecording = false;
                     clearInterval(this.timerInterval);
-                    stream.getTracks().forEach(t => t.stop());
+                    s.getTracks().forEach(t => t.stop());
                 };
+
                 this.mediaRecorder.start();
                 this.isRecording = true;
                 this.recordingTime = 0;
-                this.timerInterval = setInterval(() => { this.recordingTime++; }, 1000);
-            } catch (err) { }
+                this.timerInterval = setInterval(() => this.recordingTime++, 1000);
+            } catch (e) {
+                console.error('Failed to start recording:', e);
+            }
         },
 
         stopRecording() {
-            if (this.mediaRecorder && this.mediaRecorder.state !== 'inactive') this.mediaRecorder.stop();
+            if (this.mediaRecorder?.state !== 'inactive') {
+                this.mediaRecorder.stop();
+            }
         },
 
         discardRecording() {
@@ -476,10 +622,12 @@ export function createNoteTaskWidgetComponent() {
                 this.isPlayingAudio = false;
                 return;
             }
+
             if (!this.audioPlayer && this.audioBlob) {
                 this.audioPlayer = new Audio(URL.createObjectURL(this.audioBlob));
-                this.audioPlayer.onended = () => { this.isPlayingAudio = false; };
+                this.audioPlayer.onended = () => this.isPlayingAudio = false;
             }
+
             if (this.audioPlayer) {
                 this.audioPlayer.play();
                 this.isPlayingAudio = true;
@@ -494,55 +642,70 @@ export function createNoteTaskWidgetComponent() {
 
         async processAudio(type) {
             if (!this.audioBlob) return;
+
             this.isProcessing = true;
-            const formData = new FormData();
-            formData.append('audio', this.audioBlob, 'recording.webm');
-            formData.append('type', type);
+            const fd = new FormData();
+            fd.append('audio', this.audioBlob, 'recording.webm');
+            fd.append('type', type);
+
             try {
-                const res = await fetch('/tasks/voice-to-intelligence', {
+                const r = await fetch('/tasks/voice-to-intelligence', {
                     method: 'POST',
-                    headers: { 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content },
-                    body: formData
+                    headers: {
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+                    },
+                    body: fd
                 });
-                const data = await res.json();
-                if (data.success) {
+                const d = await r.json();
+                if (d.success) {
                     window.playTaskSound('success');
                     this.discardRecording();
                     this.fetchData();
                 }
-            } catch (e) { } finally {
+            } catch (e) {
+                console.error('Failed to process audio:', e);
+            } finally {
                 this.isProcessing = false;
             }
         },
 
         async saveAudio() {
             if (!this.audioBlob) return;
+
             this.isProcessing = true;
-            const formData = new FormData();
-            formData.append('audio', this.audioBlob, 'recording.webm');
-            formData.append('title', 'Voice Note');
+            const fd = new FormData();
+            fd.append('audio', this.audioBlob, 'recording.webm');
+            fd.append('title', 'Voice Note');
+
             try {
-                const res = await fetch('/tasks/voice-save', {
+                const r = await fetch('/tasks/voice-save', {
                     method: 'POST',
-                    headers: { 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content },
-                    body: formData
+                    headers: {
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+                    },
+                    body: fd
                 });
-                const data = await res.json();
-                if (data.success) {
+                const d = await r.json();
+                if (d.success) {
                     window.playTaskSound('success');
                     this.discardRecording();
                 }
-            } catch (e) { } finally {
+            } catch (e) {
+                console.error('Failed to save audio:', e);
+            } finally {
                 this.isProcessing = false;
             }
         },
 
+        // =====================================================================
+        // Ghost Studio
+        // =====================================================================
         startGhostRecording() {
             this.ghostEvents = [];
             this.isGhostRecording = true;
             this.isOpen = false;
             this.stopFn = rrweb.record({
-                emit: (e) => { this.ghostEvents.push(e); },
+                emit: (e) => this.ghostEvents.push(e),
                 recordCanvas: true
             });
         },
@@ -556,8 +719,9 @@ export function createNoteTaskWidgetComponent() {
 
         async saveGhostRecording() {
             if (this.ghostEvents.length < 2) return;
+
             try {
-                const res = await fetch('/tasks/ghost-demo', {
+                const r = await fetch('/tasks/ghost-demo', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -565,18 +729,23 @@ export function createNoteTaskWidgetComponent() {
                     },
                     body: JSON.stringify({ title: 'Demo', events: this.ghostEvents })
                 });
-                const data = await res.json();
-                if (data.success) {
-                    this.ghostDemos.unshift(data.demo);
+                const d = await r.json();
+                if (d.success) {
+                    this.ghostDemos.unshift(d.demo);
                     window.playTaskSound('success');
                 }
-            } catch (e) { }
+            } catch (e) {
+                console.error('Failed to save ghost recording:', e);
+            }
         },
 
         playDemo(id) {
             window.open('/tasks/ghost-demo/' + id, '_blank');
         },
 
+        // =====================================================================
+        // Utilities
+        // =====================================================================
         formatDate(d) {
             if (!d) return '';
             return new Date(d).toLocaleDateString();
@@ -584,19 +753,17 @@ export function createNoteTaskWidgetComponent() {
 
         formatDateTimeShort(d) {
             if (!d) return '';
-            return new Date(d).toLocaleString([], { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+            return new Date(d).toLocaleString([], {
+                month: 'numeric',
+                day: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+            });
         },
 
         isOverdue(d) {
             if (!d) return false;
             return new Date(d) < new Date();
         }
-    };
-}
-
-// Global registration for Alpine.js
-if (typeof window !== 'undefined') {
-    document.addEventListener('alpine:init', () => {
-        Alpine.data('noteTaskWidget', () => createNoteTaskWidgetComponent());
-    });
-}
+    }));
+});

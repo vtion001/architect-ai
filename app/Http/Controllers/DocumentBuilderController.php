@@ -9,6 +9,7 @@ use App\Enums\ReportTemplate;
 use App\Http\Requests\GenerateReportRequest;
 use App\Http\Requests\PreviewReportRequest;
 use App\Services\ReportService;
+use App\Services\Report\TemplatePreviewService;
 use App\Services\ResumeParserService;
 use App\Services\CoverLetterDraftService;
 use App\Services\TokenService;
@@ -25,17 +26,22 @@ use Illuminate\Support\Facades\Log;
 /**
  * Document Builder Controller
  * 
- * Handles document generation, preview, and related file operations.
+ * Handles document generation and related file operations.
  * 
- * Refactored to delegate business logic to services:
+ * ARCHITECTURE NOTE: Preview rendering is DECOUPLED via TemplatePreviewService.
+ * This ensures changes to this controller do NOT affect preview rendering.
+ * 
+ * Service delegation:
+ * - TemplatePreviewService: ISOLATED preview rendering (decoupled)
  * - ResumeParserService: Resume parsing and AI extraction
  * - CoverLetterDraftService: AI-powered cover letter drafting
- * - ReportService: Document generation and preview
+ * - ReportService: AI document generation
  */
 class DocumentBuilderController extends Controller
 {
     public function __construct(
         protected ReportService $reportService,
+        protected TemplatePreviewService $previewService,
         protected TokenService $tokenService,
         protected ResumeParserService $resumeParser,
         protected CoverLetterDraftService $coverLetterDraft
@@ -151,6 +157,9 @@ class DocumentBuilderController extends Controller
 
     /**
      * Generate preview HTML for a template.
+     * 
+     * DECOUPLED: Uses TemplatePreviewService which is completely
+     * isolated from document generation logic.
      */
     public function preview(PreviewReportRequest $request): JsonResponse
     {
@@ -161,7 +170,9 @@ class DocumentBuilderController extends Controller
         
         try {
             $overrides = $this->buildPreviewOverrides($validated);
-            $html = $this->reportService->generatePreviewHtml($template, $variant, $brandId, $overrides);
+            
+            // Use isolated preview service (decoupled from generation)
+            $html = $this->previewService->render($template, $variant, $brandId, $overrides);
             
             return response()->json(['html' => $html, 'success' => true]);
         } catch (\Throwable $e) {
