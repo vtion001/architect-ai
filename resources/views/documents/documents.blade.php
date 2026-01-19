@@ -13,9 +13,12 @@
         }
     }
 }">
-    <div class="mb-8">
-        <h1 class="text-3xl font-bold mb-2">Documents</h1>
-        <p class="text-muted-foreground">Manage and organize your generated reports and business documents</p>
+    <div class="mb-8 flex items-start justify-between">
+        <div>
+            <h1 class="text-3xl font-bold mb-2">Documents</h1>
+            <p class="text-muted-foreground">Manage and organize your generated reports and business documents</p>
+        </div>
+        <x-token-balance />
     </div>
 
     <!-- Search and Actions -->

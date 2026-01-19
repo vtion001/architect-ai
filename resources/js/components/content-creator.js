@@ -55,6 +55,14 @@ document.addEventListener('alpine:init', () => {
         showSuccessModal: false,
         createdContentId: null,
         generatedCalendar: null,
+        frameworkId: null, // Track framework ID for bulk operations
+        isBulkGeneratingImages: false,
+        isBulkScheduling: false,
+        
+        // Bulk Schedule Modal State
+        showBulkScheduleModal: false,
+        bulkStartDate: new Date().toISOString().slice(0, 10),
+        bulkPlatforms: ['facebook'], // Default
 
         init() {
             // Initialize brands from global variable if available
@@ -154,6 +162,7 @@ document.addEventListener('alpine:init', () => {
             }
             this.isGenerating = true;
             this.generatedCalendar = null;
+            this.frameworkId = null;
             
             const payload = {
                 topic: this.topic,
@@ -183,7 +192,7 @@ document.addEventListener('alpine:init', () => {
                 brand_id: this.selectedBrandId
             };
 
-            fetch('/content-creator/generate', {
+            fetch('/content/generate', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -210,6 +219,7 @@ document.addEventListener('alpine:init', () => {
                     try {
                         const rawContent = data.content.content;
                         this.generatedCalendar = typeof rawContent === 'string' ? JSON.parse(rawContent) : rawContent;
+                        this.frameworkId = data.content.id; // Store framework ID for bulk actions
                     } catch (e) {
                         console.error('JSON Parse Error', e);
                         alert('Calendar generated but format was invalid.');
@@ -224,6 +234,84 @@ document.addEventListener('alpine:init', () => {
                 console.error(error);
                 alert(error.message);
                 this.isGenerating = false;
+            });
+        },
+
+        generateBulkImages() {
+            if (!this.frameworkId) return;
+            this.isBulkGeneratingImages = true;
+
+            fetch('/content/generate-bulk-images', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json',
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+                },
+                body: JSON.stringify({ 
+                    framework_id: this.frameworkId,
+                    style: 'poster' // Default to poster style for calendar content
+                })
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    alert('Image generation initiated for ' + data.count + ' posts. Check the media registry shortly.');
+                } else {
+                    alert('Failed: ' + data.message);
+                }
+            })
+            .catch(err => {
+                console.error(err);
+                alert('Error initiating bulk generation.');
+            })
+            .finally(() => {
+                this.isBulkGeneratingImages = false;
+            });
+        },
+
+        openBulkScheduleModal() {
+            if (!this.frameworkId) return;
+            this.showBulkScheduleModal = true;
+        },
+
+        confirmBulkSchedule() {
+            if (!this.frameworkId) return;
+            if (this.bulkPlatforms.length === 0) {
+                alert('Please select at least one platform.');
+                return;
+            }
+
+            this.isBulkScheduling = true;
+
+            fetch('/content/bulk-schedule', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json',
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+                },
+                body: JSON.stringify({ 
+                    framework_id: this.frameworkId,
+                    start_date: this.bulkStartDate,
+                    platforms: this.bulkPlatforms
+                })
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    alert(data.message);
+                    this.showBulkScheduleModal = false;
+                } else {
+                    alert('Failed: ' + data.message);
+                }
+            })
+            .catch(err => {
+                console.error(err);
+                alert('Error initiating bulk scheduling.');
+            })
+            .finally(() => {
+                this.isBulkScheduling = false;
             });
         }
     }));

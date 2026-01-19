@@ -4,10 +4,23 @@ declare(strict_types=1);
 
 namespace App\Services\ContentGenerators;
 
+use App\Services\TokenService;
+
 /**
  * Social Media Post Generator Strategy.
  * 
  * Generates engaging social media posts with viral patterns.
+ * 
+ * TOKEN CONSUMPTION:
+ * - Tokens are consumed at the CONTROLLER level (ContentCreatorController)
+ * - Single post: TokenService::COSTS['social_post'] = 10 tokens
+ * - Batch generation: TokenService::COSTS['content_batch'] = 25 tokens
+ * 
+ * TENANT ISOLATION:
+ * - This service is stateless and doesn't access tenant data directly
+ * - All tenant scoping is handled by the calling controller
+ * 
+ * @see \App\Http\Controllers\ContentCreatorController::store()
  */
 class SocialPostGenerator extends BaseContentGenerator
 {

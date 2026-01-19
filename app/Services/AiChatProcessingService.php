@@ -9,27 +9,31 @@ use App\Models\AiAgent;
 use App\Models\AgentConversation;
 use App\Models\Brand;
 use App\Models\User;
-use Illuminate\Support\Facades\Http;
+use App\Services\AI\OpenAIClient;
+use App\Services\AI\PromptBuilder;
 use Illuminate\Support\Facades\Log;
 
 /**
  * AI Chat Processing Service
  * 
- * ISOLATED service for processing AI chat messages.
+ * Processes AI chat messages for agent conversations.
  * 
- * This service is DECOUPLED from:
+ * ARCHITECTURE:
+ * - Uses OpenAIClient for API calls
+ * - Uses PromptBuilder for prompt construction
+ * - Uses TokenService for token management
+ * - Uses ResearchService for RAG context
+ * 
+ * DECOUPLED FROM:
  * - UI components (ai-chat-widget.blade.php)
  * - Job dispatching (ProcessAiChatMessage job)
- * - Chat head positioning and UI layout
- * 
- * Changes to this service will NOT affect:
- * - Chat widget appearance
- * - Chat head positions
- * - UI animations or transitions
  */
 class AiChatProcessingService
 {
     public function __construct(
+        protected OpenAIClient $aiClient,
+        protected PromptBuilder $promptBuilder,
+        protected TokenService $tokenService,
         protected ResearchService $researchService
     ) {}
 
@@ -46,127 +50,94 @@ class AiChatProcessingService
         ?string $imageUrl = null
     ): ChatProcessingResult {
         try {
-            // Build system prompt with context
-            $systemPrompt = $this->buildSystemPrompt($agent, $brandId, $userMessage);
-            
-            // Format messages for API
-            $messages = $this->formatMessagesForApi($systemPrompt, $conversation, $userMessage, $imageUrl);
-            
-            // Select model based on mode and requirements
-            $model = $this->selectModel($agent, $mode, $imageUrl);
-            
-            // Call OpenAI API
-            $response = $this->callOpenAI($messages, $agent, $model);
-            
-            if ($response['success']) {
-                $sanitizedMessage = $this->sanitizeResponse($response['message']);
-                $conversation->addMessage('assistant', $sanitizedMessage);
-                
-                return ChatProcessingResult::success($sanitizedMessage);
+            // 1. Consume tokens first
+            if (!$this->consumeTokens($user, $agent->id, $mode)) {
+                return $this->insufficientTokensResponse($conversation);
             }
+
+            // 2. Build prompt and messages
+            $systemPrompt = $this->buildSystemPrompt($agent, $brandId, $userMessage);
+            $messages = $this->formatMessages($systemPrompt, $conversation, $userMessage, $imageUrl);
             
-            $errorMessage = 'Sorry, I encountered an error processing your request.';
-            $conversation->addMessage('assistant', $errorMessage);
-            
-            return ChatProcessingResult::failure($errorMessage, $response['error'] ?? 'Unknown error');
-            
-        } catch (\Throwable $e) {
-            Log::error('AI Chat processing error', [
-                'agent_id' => $agent->id,
-                'error' => $e->getMessage(),
+            // 3. Call AI
+            $response = $this->aiClient->chat($messages, [
+                'model' => $this->selectModel($agent, $mode, $imageUrl),
+                'temperature' => $agent->temperature ?? 0.7,
+                'max_tokens' => $agent->max_tokens ?? 2000,
             ]);
-            
-            $errorMessage = 'An error occurred while processing your request.';
-            $conversation->addMessage('assistant', $errorMessage);
-            
-            return ChatProcessingResult::failure($errorMessage, $e->getMessage());
+
+            // 4. Handle response
+            if ($response['success']) {
+                $sanitized = $this->promptBuilder->sanitize($response['message']);
+                $conversation->addMessage('assistant', $sanitized);
+                return ChatProcessingResult::success($sanitized);
+            }
+
+            // Refund on failure
+            $this->refundTokens($user);
+            return $this->errorResponse($conversation, $response['error']);
+
+        } catch (\Throwable $e) {
+            Log::error('AI Chat error', ['agent' => $agent->id, 'error' => $e->getMessage()]);
+            return $this->errorResponse($conversation, $e->getMessage());
         }
     }
 
     /**
-     * Build the complete system prompt with all context.
+     * Consume tokens for the chat message.
+     */
+    protected function consumeTokens(User $user, string $agentId, string $mode): bool
+    {
+        $cost = $this->tokenService->getCost('ai_chat_message');
+        return $this->tokenService->consume($user, $cost, 'ai_chat_message', [
+            'agent_id' => $agentId,
+            'mode' => $mode,
+        ]);
+    }
+
+    /**
+     * Refund tokens after failure.
+     */
+    protected function refundTokens(User $user): void
+    {
+        $cost = $this->tokenService->getCost('ai_chat_message');
+        $this->tokenService->refund($user->tenant, $cost, 'ai_chat_api_failure');
+    }
+
+    /**
+     * Build the complete system prompt.
      */
     protected function buildSystemPrompt(AiAgent $agent, ?string $brandId, string $userMessage): string
     {
-        $systemPrompt = $agent->getFullSystemPrompt();
+        $brand = $brandId ? Brand::find($brandId) : null;
         
-        // Add brand context
-        $systemPrompt .= $this->buildBrandContext($brandId);
-        
-        // Add pinned knowledge
-        $pinnedContext = $agent->getKnowledgeContext();
-        if ($pinnedContext) {
-            $systemPrompt .= "\n\n--- PINNED KNOWLEDGE ---\n" . $pinnedContext;
-        }
-        
-        // Add RAG context
-        $systemPrompt .= $this->buildRagContext($userMessage);
-        
-        // Add output formatting instructions
-        $systemPrompt .= "\n\nCRITICAL: DO NOT use markdown symbols like '*' or '#' for formatting. Use plain text and clear spacing. For lists, use simple bullet points like '-' or '•'";
-        
-        return $systemPrompt;
+        return $this->promptBuilder->build([
+            $agent->getFullSystemPrompt(),
+            $this->promptBuilder->brandContext($brand),
+            $this->promptBuilder->knowledgeContext($agent->getKnowledgeContext()),
+            $this->getRagContext($userMessage),
+            $this->promptBuilder->formattingInstructions('plain'),
+        ]);
     }
 
     /**
-     * Build brand context for the prompt.
+     * Get RAG context from knowledge base.
      */
-    protected function buildBrandContext(?string $brandId): string
-    {
-        if (empty($brandId)) {
-            return '';
-        }
-        
-        $brand = Brand::find($brandId);
-        if (!$brand) {
-            return '';
-        }
-        
-        $context = "\n\n[STRICT BRAND IDENTITY ACTIVE]\n";
-        $context .= "You are representing the brand: {$brand->name}\n";
-        
-        if ($brand->voice_profile) {
-            $voice = $brand->voice_profile;
-            $context .= "Tone: " . ($voice['tone'] ?? 'Standard') . "\n";
-            $context .= "Style: " . ($voice['writing_style'] ?? 'Standard') . "\n";
-            if (!empty($voice['keywords'])) {
-                $context .= "Key Phrases: {$voice['keywords']}\n";
-            }
-            if (!empty($voice['avoid_words'])) {
-                $context .= "Avoid Words: {$voice['avoid_words']}\n";
-            }
-        }
-        
-        if ($brand->description) {
-            $context .= "Context: {$brand->description}\n";
-        }
-        
-        $context .= "[END BRAND IDENTITY]\n";
-        
-        return $context;
-    }
-
-    /**
-     * Build RAG context from knowledge base.
-     */
-    protected function buildRagContext(string $userMessage): string
+    protected function getRagContext(string $userMessage): string
     {
         try {
-            $ragContext = $this->researchService->getKnowledgeBaseContext($userMessage);
-            if ($ragContext) {
-                return "\n\n--- RELEVANT KNOWLEDGE (SEARCH) ---\n" . $ragContext;
-            }
+            $context = $this->researchService->getKnowledgeBaseContext($userMessage);
+            return $context ? $this->promptBuilder->knowledgeContext($context, 'RELEVANT KNOWLEDGE') : '';
         } catch (\Exception $e) {
-            Log::warning("Agent RAG failed: " . $e->getMessage());
+            Log::warning("RAG failed: {$e->getMessage()}");
+            return '';
         }
-        
-        return '';
     }
 
     /**
-     * Format messages for OpenAI API.
+     * Format messages for API call.
      */
-    protected function formatMessagesForApi(
+    protected function formatMessages(
         string $systemPrompt,
         AgentConversation $conversation,
         string $userMessage,
@@ -176,9 +147,8 @@ class AiChatProcessingService
             ['role' => 'system', 'content' => $systemPrompt],
             ...$conversation->getMessagesForApi(),
         ];
-        
-        // Handle vision content
-        if ($imageUrl) {
+
+        if ($imageUrl && !empty($messages)) {
             $lastIdx = count($messages) - 1;
             if ($messages[$lastIdx]['role'] === 'user') {
                 $messages[$lastIdx]['content'] = [
@@ -187,72 +157,39 @@ class AiChatProcessingService
                 ];
             }
         }
-        
+
         return $messages;
     }
 
     /**
-     * Select the appropriate model based on mode and requirements.
+     * Select the appropriate model.
      */
     protected function selectModel(AiAgent $agent, string $mode, ?string $imageUrl): string
     {
-        $model = $agent->model ?? config('services.openai.model', 'gpt-4o-mini');
-        
-        // Upgrade for deep thinking or vision
         if ($mode === 'thinking' || $imageUrl) {
-            $model = 'gpt-4o';
+            return 'gpt-4o';
         }
-        
-        return $model;
+        return $agent->model ?? config('services.openai.model', 'gpt-4o-mini');
     }
 
     /**
-     * Call OpenAI API.
+     * Create insufficient tokens response.
      */
-    protected function callOpenAI(array $messages, AiAgent $agent, string $model): array
+    protected function insufficientTokensResponse(AgentConversation $conversation): ChatProcessingResult
     {
-        $apiKey = config('services.openai.key');
-        
-        if (!$apiKey) {
-            Log::error('AI service not configured');
-            return ['success' => false, 'error' => 'AI service not configured'];
-        }
-        
-        $response = Http::withToken($apiKey)
-            ->timeout(90)
-            ->post('https://api.openai.com/v1/chat/completions', [
-                'model' => $model,
-                'messages' => $messages,
-                'temperature' => $agent->temperature ?? 0.7,
-                'max_tokens' => $agent->max_tokens ?? 2000,
-            ]);
-        
-        if ($response->successful()) {
-            return [
-                'success' => true,
-                'message' => $response->json('choices.0.message.content'),
-            ];
-        }
-        
-        Log::error('AI Agent chat error', ['error' => $response->body()]);
-        
-        return [
-            'success' => false,
-            'error' => $response->body(),
-        ];
+        $cost = $this->tokenService->getCost('ai_chat_message');
+        $message = "Insufficient tokens. AI chat requires {$cost} tokens per message.";
+        $conversation->addMessage('assistant', $message);
+        return ChatProcessingResult::failure($message, 'insufficient_tokens');
     }
 
     /**
-     * Sanitize AI response to remove markdown formatting.
+     * Create error response.
      */
-    protected function sanitizeResponse(string $text): string
+    protected function errorResponse(AgentConversation $conversation, string $error): ChatProcessingResult
     {
-        // Remove markdown bold/italic/header symbols
-        $text = str_replace(['**', '##', '#'], '', $text);
-        
-        // Remove any single * that might be lingering
-        $text = str_replace('*', '', $text);
-        
-        return trim($text);
+        $message = 'Sorry, I encountered an error processing your request.';
+        $conversation->addMessage('assistant', $message);
+        return ChatProcessingResult::failure($message, $error);
     }
 }

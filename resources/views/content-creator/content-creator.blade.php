@@ -59,6 +59,9 @@
         </div>
     </div>
 
+    {{-- Bulk Schedule Modal --}}
+    @include('content-creator.partials.modals.bulk-schedule-modal')
+
     {{-- Success Modal --}}
     @include('content-creator.partials.success-modal')
 

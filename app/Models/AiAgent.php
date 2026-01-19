@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Models;
 
 use App\Models\Traits\BelongsToTenant;
@@ -9,6 +11,30 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
+/**
+ * AI Agent Model
+ * 
+ * Represents a customizable AI assistant for a tenant.
+ * 
+ * TENANT ISOLATION:
+ * - Uses BelongsToTenant trait for automatic global scoping
+ * - getKnowledgeContext() explicitly validates tenant_id for RAG data
+ * - Conversations are scoped via AgentConversation model
+ * 
+ * TOKEN CONSUMPTION:
+ * - AI chat messages consume tokens via ProcessAiChatMessage job
+ * - Cost: TokenService::COSTS['ai_chat_message'] = 5 tokens per message
+ * 
+ * @property string $id
+ * @property string $tenant_id
+ * @property string $user_id
+ * @property string $name
+ * @property string $role
+ * @property string|null $goal
+ * @property string|null $backstory
+ * @property array|null $knowledge_sources
+ * @property bool $is_active
+ */
 class AiAgent extends Model
 {
     use HasFactory, HasUuids, BelongsToTenant;
