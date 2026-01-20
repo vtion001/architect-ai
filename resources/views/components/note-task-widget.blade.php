@@ -109,61 +109,12 @@ if (typeof window._noteTaskWidgetLoaded === 'undefined') {
                 formatTime(s) { const m = Math.floor(s / 60); const ss = s % 60; return `${m.toString().padStart(2, '0')}:${ss.toString().padStart(2, '0')}`; },
                 async processAudio(type) { if (!this.audioBlob) return; this.isProcessing = true; const fd = new FormData(); fd.append('audio', this.audioBlob, 'recording.webm'); fd.append('type', type); try { const r = await fetch('/tasks/voice-to-intelligence', { method: 'POST', headers: { 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content, 'Accept': 'application/json' }, body: fd }); const d = await r.json(); if (d.success) { window.playTaskSound('success'); this.discardRecording(); this.fetchData(); } } catch (e) { console.error('Voice processing error:', e); } finally { this.isProcessing = false; } },
                 async saveAudio() { if (!this.audioBlob) return; this.isProcessing = true; const fd = new FormData(); fd.append('audio', this.audioBlob, 'recording.webm'); fd.append('title', 'Voice Note'); try { const r = await fetch('/tasks/voice-save', { method: 'POST', headers: { 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content }, body: fd }); const d = await r.json(); if (d.success) { window.playTaskSound('success'); this.discardRecording(); } } catch (e) {} finally { this.isProcessing = false; } },
-                startGhostRecording() { 
-                    if (typeof rrweb === 'undefined') { 
-                        alert('rrweb library not loaded. Please refresh.'); 
-                        return; 
-                    } 
-                    
-                    this.ghostEvents = []; 
-                    this.isGhostRecording = true; 
-                    
-                    // Wait for Alpine.js to fully render
-                    setTimeout(() => {
-                        try { 
-                            this.stopFn = rrweb.record({ 
-                                emit: (e) => {
-                                    this.ghostEvents.push(e);
-                                },
-                                
-                                // FORCE TEXT CAPTURE
-                                maskTextFn: (text) => text,
-                                maskAllInputs: false,
-                                maskInputOptions: { password: false },
-                                
-                                // Standard Capture Settings
-                                recordCanvas: false, // Disable for stability
-                                recordCrossOriginIframes: false,
-                                inlineStylesheet: true,
-                                inlineImages: true,
-                                collectFonts: true,
-                                
-                                // Disable Slim DOM to ensure full text nodes
-                                slimDOMOptions: false,
-                                
-                                // Optimization
-                                mousemoveWait: 50,
-                                sampling: {
-                                    mousemove: true,
-                                    mouseInteraction: true,
-                                    scroll: 150,
-                                    input: 'last',
-                                },
-                                
-                                errorHandler: (err) => console.error('rrweb error:', err)
-                            }); 
-                            
-                            console.log('Recording started - Text capture forced'); 
-                        } catch (e) { 
-                            console.error('Start failed:', e); 
-                            alert('Recording failed: ' + e.message); 
-                            this.isGhostRecording = false; 
-                        }
-                    }, 500); 
-                },
-                stopGhostRecording() { if (this.stopFn) { this.stopFn(); this.stopFn = null; } this.isGhostRecording = false; this.isOpen = true; console.log('Captured events:', this.ghostEvents.length); this.saveGhostRecording(); },
-                async saveGhostRecording() { if (this.ghostEvents.length < 2) { alert('Recording too short. Record some interactions first.'); return; } try { const r = await fetch('/tasks/ghost-demo', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Accept': 'application/json', 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content }, body: JSON.stringify({ title: `Demo - ${new Date().toLocaleString()}`, events: this.ghostEvents }) }); if (!r.ok) throw new Error(`HTTP ${r.status}`); const d = await r.json(); if(d.success) { this.ghostDemos.unshift(d.demo); window.playTaskSound('success'); alert(`Saved! ${this.ghostEvents.length} events captured.`); } else { throw new Error(d.message || 'Save failed'); } } catch(e) { console.error('Save error:', e); alert('Failed to save: ' + e.message); } },
-                playDemo(id) { window.open('/tasks/ghost-demo/' + id, '_blank'); },
+                // Ghost Studio - Feature Disabled (Coming Soon)
+                startGhostRecording() { console.log('Ghost Studio: Feature coming soon'); },
+                _initRecorder() {},
+                stopGhostRecording() {},
+                saveGhostRecording() {},
+                playDemo(id) {},
                 formatDate(d) { if (!d) return ''; return new Date(d).toLocaleDateString(); },
                 formatDateTimeShort(d) { if (!d) return ''; return new Date(d).toLocaleString([], { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' }); },
                 isOverdue(d) { if (!d) return false; return new Date(d) < new Date(); }

@@ -26,12 +26,40 @@ class ResumeParserService
      */
     public function extractText(UploadedFile $file): string
     {
-        if ($file->getClientOriginalExtension() === 'pdf') {
+        $extension = strtolower($file->getClientOriginalExtension());
+
+        if ($extension === 'pdf') {
             return $this->pdfToTextService->extract($file->getPathname());
+        }
+        
+        if ($extension === 'docx') {
+            return $this->extractDocxText($file->getPathname());
         }
         
         // Fallback for text-based files
         return file_get_contents($file->getPathname());
+    }
+
+    /**
+     * Extract text from DOCX file.
+     */
+    protected function extractDocxText(string $path): string
+    {
+        $content = '';
+        $zip = new \ZipArchive;
+
+        if ($zip->open($path) === true) {
+            // Check for document.xml
+            if (($index = $zip->locateName('word/document.xml')) !== false) {
+                $xmlData = $zip->getFromIndex($index);
+                $dom = new \DOMDocument;
+                $dom->loadXML($xmlData, LIBXML_NOENT | LIBXML_XINCLUDE | LIBXML_NOERROR | LIBXML_NOWARNING);
+                $content = strip_tags($dom->saveXML());
+            }
+            $zip->close();
+        }
+
+        return $content;
     }
 
     /**

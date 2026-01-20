@@ -16,8 +16,13 @@ class PdfToTextService
         }
 
         try {
-            // Check if pdftotext exists
-            $binaryPath = '/usr/bin/pdftotext';
+            // Attempt to find pdftotext
+            $binaryPath = $this->findBinaryPath();
+            
+            if (!$binaryPath) {
+                Log::error("PdfToText: Binary not found. Please install poppler-utils or xpdf.");
+                return '';
+            }
             
             // Execute pdftotext -layout <file> -
             // -layout maintains layout somewhat
@@ -37,8 +42,34 @@ class PdfToTextService
     }
 
     /**
+     * Find the path to the pdftotext binary.
+     */
+    private function findBinaryPath(): ?string
+    {
+        $paths = [
+            '/usr/bin/pdftotext',
+            '/usr/local/bin/pdftotext',
+            '/opt/homebrew/bin/pdftotext',
+            '/opt/local/bin/pdftotext',
+        ];
+
+        foreach ($paths as $path) {
+            if (file_exists($path) && is_executable($path)) {
+                return $path;
+            }
+        }
+
+        // Try `which` command as fallback
+        $process = Process::run('which pdftotext');
+        if ($process->successful()) {
+            return trim($process->output());
+        }
+
+        return null;
+    }
+
+    /**
      * Sanitize text to ensure valid UTF-8 encoding.
-     * Removes or replaces malformed UTF-8 characters that would cause json_encode to fail.
      */
     private function sanitizeUtf8(string $text): string
     {

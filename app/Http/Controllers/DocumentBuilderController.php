@@ -68,17 +68,55 @@ class DocumentBuilderController extends Controller
      */
     public function parseResume(Request $request): JsonResponse
     {
-        $request->validate([
-            'resume' => 'required|file|mimes:pdf,txt,md,docx|max:5120',
+        Log::info('Parse Resume Request Initiated', [
+            'has_file' => $request->hasFile('resume'),
+            'all_files' => $request->allFiles(),
+            'content_length' => $request->header('Content-Length'),
         ]);
 
-        $result = $this->resumeParser->parse($request->file('resume'));
-
-        if (!$result['success']) {
-            return response()->json($result, 422);
+        if ($request->hasFile('resume')) {
+            $file = $request->file('resume');
+            Log::info('Resume File Details', [
+                'original_name' => $file->getClientOriginalName(),
+                'mime_type' => $file->getMimeType(),
+                'client_mime_type' => $file->getClientMimeType(),
+                'size' => $file->getSize(),
+                'error' => $file->getError(),
+                'valid' => $file->isValid(),
+            ]);
         }
 
-        return response()->json($result);
+        $validator = \Illuminate\Support\Facades\Validator::make($request->all(), [
+            'resume' => 'required|file|mimes:pdf,txt,md,docx,doc,rtf|max:5120',
+        ]);
+
+        if ($validator->fails()) {
+            Log::error('Resume Validation Failed', ['errors' => $validator->errors()->toArray()]);
+            return response()->json([
+                'message' => 'Validation failed',
+                'errors' => $validator->errors(),
+            ], 422);
+        }
+
+        try {
+            $result = $this->resumeParser->parse($request->file('resume'));
+
+            if (!$result['success']) {
+                Log::error('Resume Parsing Logic Failed', ['result' => $result]);
+                return response()->json($result, 422);
+            }
+
+            return response()->json($result);
+        } catch (\Exception $e) {
+            Log::error('Resume Parsing Exception', [
+                'message' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            return response()->json([
+                'success' => false, 
+                'message' => 'An unexpected error occurred parsing the resume.'
+            ], 500);
+        }
     }
 
     /**

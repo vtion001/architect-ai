@@ -10,97 +10,38 @@
             <div>
                 <h1 class="font-bold text-lg text-foreground flex items-center gap-2">
                     <i data-lucide="ghost" class="w-5 h-5 text-indigo-500"></i>
-                    {{ $document->name }}
+                    Ghost Studio
                 </h1>
-                <span class="text-xs text-muted-foreground">Recorded on {{ $document->created_at->format('M d, Y \a\t H:i') }}</span>
+                <span class="text-xs text-muted-foreground">Feature Temporarily Disabled</span>
             </div>
-        </div>
-        <div class="flex gap-2">
-            <button class="px-4 py-2 bg-primary text-primary-foreground rounded-lg text-sm font-bold shadow-lg hover:opacity-100" disabled title="Coming Phase 3">
-                Edit Studio
-            </button>
         </div>
     </div>
     
-    <div class="flex-1 bg-slate-950 flex items-center justify-center p-8 relative overflow-hidden">
-        <div id="player-container" class="shadow-2xl border border-slate-800 rounded-lg overflow-hidden bg-white"></div>
+    <div class="flex-1 bg-slate-950 flex items-center justify-center p-8">
+        <div class="text-center space-y-6 max-w-md">
+            <div class="w-24 h-24 mx-auto rounded-3xl bg-amber-500/10 flex items-center justify-center border border-amber-500/20">
+                <i data-lucide="construction" class="w-12 h-12 text-amber-500"></i>
+            </div>
+            
+            <div class="space-y-2">
+                <h2 class="text-2xl font-black text-white uppercase tracking-tight">Coming Soon</h2>
+                <p class="text-slate-400 text-sm">
+                    Ghost Studio is being rebuilt with advanced screen recording capabilities. 
+                    This feature will be available in a future update.
+                </p>
+            </div>
+            
+            <a href="/dashboard" class="inline-flex items-center gap-2 px-6 py-3 bg-indigo-600 text-white rounded-xl font-bold hover:bg-indigo-700 transition-all">
+                <i data-lucide="home" class="w-4 h-4"></i>
+                Back to Dashboard
+            </a>
+        </div>
     </div>
 </div>
 
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/rrweb-player@1.0.0-alpha.10/dist/style.css" />
-<script src="https://cdn.jsdelivr.net/npm/rrweb-player@1.0.0-alpha.10/dist/index.js"></script>
-
 <script>
-    // Hack to allow scripts in rrweb iframe
-    const originalSetAttribute = Element.prototype.setAttribute;
-    Element.prototype.setAttribute = function(name, value) {
-        if (this.tagName === 'IFRAME' && name === 'sandbox') {
-            if (!value.includes('allow-scripts')) {
-                value += ' allow-scripts';
-            }
-            if (!value.includes('allow-same-origin')) {
-                value += ' allow-same-origin';
-            }
-        }
-        originalSetAttribute.call(this, name, value);
-    };
-
     document.addEventListener('DOMContentLoaded', function() {
         if (window.lucide) window.lucide.createIcons();
-
-        const events = @json($events);
-        
-        console.log('=== RRWEB PLAYER DEBUG ===');
-        console.log('Total events:', events.length);
-        console.log('First event (full snapshot):', events[0]);
-        console.log('Event types:', events.map(e => e.type).slice(0, 20));
-        
-        if (!events || events.length === 0) {
-            alert('No recording data found!');
-            return;
-        }
-        
-        // Check if first event has proper data
-        if (events[0] && events[0].data && events[0].data.node) {
-            console.log('First snapshot node:', events[0].data.node);
-            console.log('Has childNodes:', events[0].data.node.childNodes?.length);
-        }
-        
-        try {
-            const player = new rrwebPlayer({
-                target: document.getElementById('player-container'),
-                props: {
-                    events,
-                    width: 1024,
-                    height: 576,
-                    autoPlay: false,  // Don't autoplay to inspect first frame
-                    showController: true,
-                    skipInactive: false,
-                    speed: 1,
-                    // Canvas replay
-                    UNSAFE_replayCanvas: true,
-                    // Mouse trail
-                    mouseTail: {
-                        duration: 500,
-                        lineCap: 'round',
-                        lineWidth: 3,
-                        strokeStyle: 'red',
-                    },
-                    // Insert CSS rules
-                    insertStyleRules: [
-                        'iframe { background: white !important; }',
-                        '* { font-family: inherit !important; }',
-                    ],
-                },
-            });
-            
-            console.log('Player initialized successfully');
-            console.log('Player instance:', player);
-        } catch (e) {
-            console.error('Player Init Failed:', e);
-            console.error('Error stack:', e.stack);
-            alert('Failed to initialize player: ' + e.message + '. Check console for details.');
-        }
     });
 </script>
 @endsection

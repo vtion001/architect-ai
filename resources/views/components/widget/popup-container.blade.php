@@ -49,9 +49,7 @@
         <div x-show="activeTab === 'voice'" class="h-full">
             @include('components.widget.voice-tab')
         </div>
-        <div x-show="activeTab === 'studio'">
-            @include('components.widget.studio-tab')
-        </div>
+        
         <div x-show="activeTab === 'history'">
             @include('components.widget.history-tab')
         </div>

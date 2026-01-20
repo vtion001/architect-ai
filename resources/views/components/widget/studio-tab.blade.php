@@ -1,12 +1,12 @@
-<!-- Studio Tab (Ghost Recorder) -->
+<!-- Studio Tab (Ghost Recorder) - Coming Soon -->
 <div x-show="activeTab === 'studio'" class="space-y-4">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/rrweb@1.1.3/dist/rrweb.min.css"/>
-    <script src="https://cdn.jsdelivr.net/npm/rrweb@1.1.3/dist/rrweb.min.js"></script>
-
-    <div x-show="!isGhostRecording" class="space-y-6 text-center py-4">
+    <div class="space-y-6 text-center py-4">
         <div class="space-y-2">
-            <div class="w-20 h-20 mx-auto rounded-3xl bg-indigo-500/10 flex items-center justify-center border border-indigo-500/20 shadow-inner">
+            <div class="w-20 h-20 mx-auto rounded-3xl bg-indigo-500/10 flex items-center justify-center border border-indigo-500/20 shadow-inner relative">
                 <i data-lucide="ghost" class="w-10 h-10 text-indigo-600"></i>
+                <div class="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-amber-500 flex items-center justify-center">
+                    <i data-lucide="clock" class="w-3 h-3 text-white"></i>
+                </div>
             </div>
             <h3 class="text-lg font-black text-foreground uppercase tracking-tight">Ghost Studio</h3>
             <p class="text-xs text-muted-foreground max-w-[240px] mx-auto leading-relaxed italic">
@@ -14,9 +14,19 @@
             </p>
         </div>
 
-        <button @click="startGhostRecording()" 
-                class="w-full py-4 bg-indigo-600 text-white rounded-2xl text-xs font-black uppercase tracking-[0.2em] hover:bg-indigo-700 transition-all shadow-xl shadow-indigo-500/30 flex items-center justify-center gap-3 active:scale-[0.98]">
-            <div class="w-2 h-2 rounded-full bg-red-500 animate-pulse shadow-[0_0_8px_rgba(239,68,68,0.8)]"></div>
+        <div class="py-4 px-6 bg-amber-500/10 border border-amber-500/20 rounded-2xl">
+            <div class="flex items-center justify-center gap-2 mb-2">
+                <i data-lucide="sparkles" class="w-4 h-4 text-amber-500"></i>
+                <span class="text-xs font-black text-amber-600 uppercase tracking-widest">Coming Soon</span>
+            </div>
+            <p class="text-[10px] text-muted-foreground">
+                Advanced screen recording with AI-powered editing is under development.
+            </p>
+        </div>
+
+        <button disabled 
+                class="w-full py-4 bg-indigo-600/50 text-white/70 rounded-2xl text-xs font-black uppercase tracking-[0.2em] cursor-not-allowed flex items-center justify-center gap-3 opacity-60">
+            <div class="w-2 h-2 rounded-full bg-red-400"></div>
             Start Neural Recording
         </button>
 
@@ -26,41 +36,10 @@
                 Saved Demo Archives
             </h4>
             <div class="space-y-2.5">
-                <template x-for="demo in ghostDemos" :key="demo.id">
-                    <div class="flex items-center justify-between p-3 bg-card border border-border rounded-xl hover:border-indigo-500/40 transition-all group cursor-pointer hover:shadow-md" @click="playDemo(demo.id)">
-                        <div class="flex items-center gap-3">
-                            <div class="w-8 h-8 rounded-lg bg-indigo-50 flex items-center justify-center group-hover:bg-indigo-600 transition-colors">
-                                <i data-lucide="play" class="w-4 h-4 text-indigo-600 group-hover:text-white transition-colors fill-current"></i>
-                            </div>
-                            <span x-text="demo.title" class="text-xs font-bold text-foreground truncate max-w-[180px]"></span>
-                        </div>
-                        <span x-text="formatDate(demo.created_at)" class="text-[9px] font-mono text-muted-foreground"></span>
-                    </div>
-                </template>
-                <div x-show="ghostDemos.length === 0" class="text-center py-8 text-muted-foreground/50 text-[10px] italic border-2 border-dashed border-border rounded-xl bg-muted/5">
-                    No sequences captured in archive.
+                <div class="text-center py-8 text-muted-foreground/50 text-[10px] italic border-2 border-dashed border-border rounded-xl bg-muted/5">
+                    Feature coming in a future update.
                 </div>
             </div>
         </div>
-    </div>
-
-    <!-- Recording State Overlay (Minimal) -->
-    <div x-show="isGhostRecording" class="flex flex-col items-center justify-center py-12 space-y-6">
-        <div class="relative">
-            <div class="w-16 h-16 rounded-full border-4 border-red-500/20 flex items-center justify-center">
-                <div class="w-8 h-8 rounded-full bg-red-500 animate-pulse"></div>
-            </div>
-            <div class="absolute -inset-2 rounded-full border border-red-500/30 animate-ping"></div>
-        </div>
-        
-        <div class="text-center space-y-1">
-            <span class="text-sm font-black uppercase tracking-[0.2em] text-red-600">Recording Data...</span>
-            <p class="text-[10px] text-muted-foreground italic">Neural capture in progress. Perform interactions.</p>
-        </div>
-
-        <button @click="stopGhostRecording()" 
-                class="px-10 py-3 bg-slate-900 text-white rounded-xl text-xs font-black uppercase tracking-widest hover:bg-black transition-all shadow-2xl active:scale-95 border border-white/10">
-            End & Finalize
-        </button>
     </div>
 </div>

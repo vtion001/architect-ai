@@ -163,9 +163,19 @@ export function createDocumentBuilderComponent(config) {
             formData.append('resume', file);
             fetch(config.routes.parseResume, {
                 method: 'POST',
-                headers: { 'X-CSRF-TOKEN': config.csrfToken },
+                headers: { 'X-CSRF-TOKEN': config.csrfToken, 'Accept': 'application/json' },
                 body: formData
-            }).then(res => res.json()).then(data => {
+            }).then(async res => {
+                const data = await res.json();
+                if (!res.ok) {
+                    if (res.status === 422 && data.errors) {
+                        const errorMessages = Object.values(data.errors).flat().join('\n');
+                        throw new Error(errorMessages || data.message || 'Validation failed');
+                    }
+                    throw new Error(data.message || `Server error: ${res.status}`);
+                }
+                return data;
+            }).then(data => {
                 if (data.success) {
                     this.sourceContent = data.text;
                     if (data.extracted_data) {
@@ -185,10 +195,12 @@ export function createDocumentBuilderComponent(config) {
                         }
                         alert('Resume parsed and candidate identity autofilled!');
                     }
-                } else alert(data.message || 'Failed to parse resume.');
+                } else {
+                    throw new Error(data.message || 'Failed to parse resume.');
+                }
             }).catch(err => {
                 console.error(err);
-                alert('Error parsing document.');
+                alert('Error: ' + err.message);
             }).finally(() => {
                 this.isParsing = false;
                 event.target.value = '';

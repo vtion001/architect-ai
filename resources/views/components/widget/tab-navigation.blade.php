@@ -8,7 +8,6 @@
     - tasks (Check Square icon)
     - notes (Sticky Note icon)
     - voice (Mic icon) 
-    - studio (Clapperboard icon)
     - history (History icon)
 --}}
 
@@ -37,13 +36,7 @@
         <i data-lucide="mic" class="w-4 h-4"></i>
     </button>
     
-    {{-- Ghost Studio Tab --}}
-    <button @click="activeTab = 'studio'" 
-            :class="activeTab === 'studio' ? 'bg-card text-indigo-600 shadow-sm' : 'text-muted-foreground hover:text-foreground'"
-            class="flex-1 flex items-center justify-center py-2 rounded-lg transition-all" 
-            title="Ghost Studio">
-        <i data-lucide="clapperboard" class="w-4 h-4"></i>
-    </button>
+    
     
     {{-- History/Archive Tab --}}
     <button @click="activeTab = 'history'" 
