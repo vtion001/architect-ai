@@ -5,8 +5,10 @@ namespace App\Providers;
 use App\Models\AiAgent;
 use App\Models\Brand;
 use App\Models\Content;
+use App\Models\Tenant;
 use App\Observers\AiAgentObserver;
 use App\Observers\ContentObserver;
+use App\Observers\TenantObserver;
 use App\Policies\AiAgentPolicy;
 use App\Policies\BrandPolicy;
 use App\View\Composers\ContentViewerComposer;
@@ -34,6 +36,7 @@ class AppServiceProvider extends ServiceProvider
     protected $observers = [
         Content::class => ContentObserver::class,
         AiAgent::class => AiAgentObserver::class,
+        Tenant::class => TenantObserver::class,
     ];
 
     /**

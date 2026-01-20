@@ -35,14 +35,11 @@ class RenderVideo implements ShouldQueue
             // 2. Poll for Completion (Simplified for synchronous Job runner, ideally distinct scheduled job)
             // For MVP/Simulation, we'll wait a bit or just assume simulation is instant.
             
-            // In a real high-scale app, we'd dispatch a "CheckVideoStatus" job with a delay.
-            // Here we'll sleep-loop for a max duration if it's a simulation.
-            
             $status = ['status' => 'processing'];
             $attempts = 0;
             
             while ($status['status'] !== 'completed' && $status['status'] !== 'failed' && $attempts < 20) {
-                sleep(5); 
+                sleep(2); // Short sleep for simulation
                 $status = $videoService->checkStatus($taskId);
                 $attempts++;
             }
@@ -52,10 +49,11 @@ class RenderVideo implements ShouldQueue
                 
                 // 3. Update Content
                 $options = $this->content->options ?? [];
-                $options['visuals'][0] = $videoUrl; // Assign to first slot
+                $options['visuals'] = [$videoUrl]; // Assign to first slot
                 
                 $this->content->update([
                     'status' => 'published', // Ready for viewing
+                    'result' => "Video Generated Successfully based on prompt: " . $this->prompt,
                     'options' => $options
                 ]);
 

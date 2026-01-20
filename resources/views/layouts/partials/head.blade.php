@@ -63,15 +63,11 @@
 
     {{-- ================================================================
          Main App Styles & Scripts (Vite)
-         Lucide is bundled here - no CDN needed
+         Lucide and Alpine.js bundled via Vite - no CDN needed
     ================================================================ --}}
     @vite(['resources/css/app.css', 'resources/js/app.js'])
-
-    {{-- ================================================================
-         Alpine.js (CDN with defer - non-blocking)
-    ================================================================ --}}
-    <script src="https://unpkg.com/alpinejs@3.14.3/dist/cdn.min.js" defer></script>
 
     {{-- Page-specific head content --}}
     @stack('head')
 </head>
+

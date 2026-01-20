@@ -39,7 +39,7 @@
     </div>
 
     {{-- Content Area - ISOLATED (Tab content loaded via partials) --}}
-    <div class="flex-1 overflow-y-auto p-4 custom-scrollbar bg-background/30">
+    <div class="flex-1 overflow-y-auto p-4 custom-scrollbar bg-background">
         <div x-show="activeTab === 'tasks'">
             @include('components.widget.tasks-tab')
         </div>
@@ -75,11 +75,16 @@
     height: 580px;
     max-height: calc(100vh - 48px);
     
-    /* Appearance */
+    /* Appearance - Solid overlay with glassmorphism */
     background-color: hsl(var(--card));
+    backdrop-filter: blur(16px) saturate(180%);
+    -webkit-backdrop-filter: blur(16px) saturate(180%);
     border: 1px solid hsl(var(--border));
     border-radius: 1rem;
-    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+    box-shadow: 
+        0 25px 50px -12px rgba(0, 0, 0, 0.35),
+        0 0 0 1px rgba(0, 0, 0, 0.05),
+        0 10px 25px -5px rgba(0, 0, 0, 0.1);
     
     /* Layout */
     display: flex;

@@ -33,6 +33,7 @@
     29 => 'PragmaRX\\Google2FALaravel\\ServiceProvider',
     30 => 'Spatie\\LaravelIgnition\\IgnitionServiceProvider',
     31 => 'App\\Providers\\AppServiceProvider',
+    32 => 'App\\Providers\\AIServiceProvider',
   ),
   'eager' => 
   array (
@@ -53,6 +54,7 @@
     14 => 'PragmaRX\\Google2FALaravel\\ServiceProvider',
     15 => 'Spatie\\LaravelIgnition\\IgnitionServiceProvider',
     16 => 'App\\Providers\\AppServiceProvider',
+    17 => 'App\\Providers\\AIServiceProvider',
   ),
   'deferred' => 
   array (

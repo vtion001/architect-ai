@@ -6,8 +6,10 @@ namespace App\Services;
 
 use App\Models\TokenAllocation;
 use App\Models\TokenTransaction;
+use App\Models\TokenLimit;
 use App\Models\Tenant;
 use App\Models\User;
+use App\Exceptions\UserTokenLimitExceededException;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -50,6 +52,23 @@ class TokenService
     }
 
     /**
+     * Get or create the token limit for a user.
+     */
+    public function getUserLimit(User $user): TokenLimit
+    {
+        return TokenLimit::withoutGlobalScope('tenant')
+            ->firstOrCreate(
+                ['user_id' => $user->id, 'tenant_id' => $user->tenant_id],
+                [
+                    'type' => 'monthly',
+                    'amount' => config('tokens.defaults.user_monthly_limit', 10000),
+                    'used' => 0,
+                    'reset_at' => now()->addMonth()->startOfMonth(),
+                ]
+            );
+    }
+
+    /**
      * Consume tokens for a specific action.
      * 
      * SECURITY: 
@@ -62,6 +81,7 @@ class TokenService
      * @param string $reason Reason for consumption (audit trail)
      * @param array $metadata Additional metadata for the transaction
      * @return bool True if tokens were successfully consumed
+     * @throws UserTokenLimitExceededException
      */
     public function consume(User $user, int $amount, string $reason, array $metadata = []): bool
     {
@@ -82,6 +102,14 @@ class TokenService
         }
 
         return DB::transaction(function () use ($user, $tenant, $amount, $reason, $metadata) {
+            // 1. Check Individual User Limit
+            $limit = $this->getUserLimit($user);
+            
+            if ($limit->hasReachedLimit($amount)) {
+                throw new UserTokenLimitExceededException($limit->amount, $limit->used);
+            }
+
+            // 2. Check Tenant Balance
             $allocation = TokenAllocation::withoutGlobalScope('tenant')
                 ->where('tenant_id', $tenant->id)
                 ->where(function ($q) {
@@ -100,7 +128,9 @@ class TokenService
                 return false;
             }
 
+            // 3. Execute Consumption
             $allocation->decrement('balance', $amount);
+            $limit->increment('used', $amount);
 
             TokenTransaction::create([
                 'tenant_id' => $tenant->id,

@@ -2,15 +2,30 @@
  * Main Application Entry Point
  * 
  * Performance optimizations:
+ * - Alpine.js bundled (no CDN)
  * - Lucide icons bundled (no CDN)
- * - Chart.js lazy loaded on demand
+ * - Chart.js available globally
  * - rrweb loaded only for Ghost Studio
  * - Utility functions for debounce/throttle
  */
 
 import './bootstrap';
+import Alpine from 'alpinejs';
 import { createIcons, icons } from 'lucide';
 import Chart from 'chart.js/auto';
+
+// =========================================================================
+// Alpine.js
+// =========================================================================
+window.Alpine = Alpine;
+
+// Start Alpine after DOM is ready to ensure all components are registered
+document.addEventListener('DOMContentLoaded', () => {
+    // Small delay to ensure all Alpine.data() calls have been made
+    setTimeout(() => {
+        Alpine.start();
+    }, 10);
+});
 
 // =========================================================================
 // Lucide Icons
@@ -23,6 +38,7 @@ document.addEventListener('DOMContentLoaded', () => {
 window.refreshIcons = () => createIcons({ icons });
 window.createIcons = createIcons;
 window.icons = icons;
+
 
 // =========================================================================
 // Chart.js - Available globally

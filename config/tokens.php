@@ -38,7 +38,7 @@ return [
     |
     */
 
-    'initial_grant' => env('TOKEN_INITIAL_GRANT', 1000),
+    'initial_grant' => env('TOKEN_INITIAL_GRANT', 5000),
 
     /*
     |--------------------------------------------------------------------------
@@ -51,4 +51,17 @@ return [
     */
 
     'expiration_days' => env('TOKEN_EXPIRATION_DAYS', null),
+
+    /*
+    |--------------------------------------------------------------------------
+    | Default Quotas
+    |--------------------------------------------------------------------------
+    |
+    | Default limits for users and tenants.
+    |
+    */
+
+    'defaults' => [
+        'user_monthly_limit' => env('TOKEN_USER_MONTHLY_LIMIT', 10000),
+    ],
 ];

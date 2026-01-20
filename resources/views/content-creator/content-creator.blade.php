@@ -13,7 +13,7 @@
     window.__contentCreatorBrands = @json($brands ?? []);
 </script>
 
-<div class="p-8 max-w-7xl mx-auto" x-data="contentCreator()">
+<div class="p-8 max-w-7xl mx-auto" x-data="contentCreator">
 
     {{-- Header Info & Generator Toggles --}}
     @include('content-creator.partials.header-info')
