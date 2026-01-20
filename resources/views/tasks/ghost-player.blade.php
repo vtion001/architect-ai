@@ -16,7 +16,7 @@
             </div>
         </div>
         <div class="flex gap-2">
-            <button class="px-4 py-2 bg-primary text-primary-foreground rounded-lg text-sm font-bold shadow-lg hover:opacity-90" disabled title="Coming Phase 3">
+            <button class="px-4 py-2 bg-primary text-primary-foreground rounded-lg text-sm font-bold shadow-lg hover:opacity-100" disabled title="Coming Phase 3">
                 Edit Studio
             </button>
         </div>
@@ -27,8 +27,8 @@
     </div>
 </div>
 
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/rrweb-player@latest/dist/style.css" />
-<script src="https://cdn.jsdelivr.net/npm/rrweb-player@latest/dist/index.js"></script>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/rrweb-player@1.0.0-alpha.10/dist/style.css" />
+<script src="https://cdn.jsdelivr.net/npm/rrweb-player@1.0.0-alpha.10/dist/index.js"></script>
 
 <script>
     // Hack to allow scripts in rrweb iframe
@@ -37,6 +37,9 @@
         if (this.tagName === 'IFRAME' && name === 'sandbox') {
             if (!value.includes('allow-scripts')) {
                 value += ' allow-scripts';
+            }
+            if (!value.includes('allow-same-origin')) {
+                value += ' allow-same-origin';
             }
         }
         originalSetAttribute.call(this, name, value);
@@ -47,20 +50,56 @@
 
         const events = @json($events);
         
+        console.log('=== RRWEB PLAYER DEBUG ===');
+        console.log('Total events:', events.length);
+        console.log('First event (full snapshot):', events[0]);
+        console.log('Event types:', events.map(e => e.type).slice(0, 20));
+        
+        if (!events || events.length === 0) {
+            alert('No recording data found!');
+            return;
+        }
+        
+        // Check if first event has proper data
+        if (events[0] && events[0].data && events[0].data.node) {
+            console.log('First snapshot node:', events[0].data.node);
+            console.log('Has childNodes:', events[0].data.node.childNodes?.length);
+        }
+        
         try {
-            new rrwebPlayer({
+            const player = new rrwebPlayer({
                 target: document.getElementById('player-container'),
                 props: {
                     events,
                     width: 1024,
                     height: 576,
-                    autoPlay: true,
+                    autoPlay: false,  // Don't autoplay to inspect first frame
                     showController: true,
+                    skipInactive: false,
+                    speed: 1,
+                    // Canvas replay
+                    UNSAFE_replayCanvas: true,
+                    // Mouse trail
+                    mouseTail: {
+                        duration: 500,
+                        lineCap: 'round',
+                        lineWidth: 3,
+                        strokeStyle: 'red',
+                    },
+                    // Insert CSS rules
+                    insertStyleRules: [
+                        'iframe { background: white !important; }',
+                        '* { font-family: inherit !important; }',
+                    ],
                 },
             });
+            
+            console.log('Player initialized successfully');
+            console.log('Player instance:', player);
         } catch (e) {
             console.error('Player Init Failed:', e);
-            alert('Failed to initialize player. See console.');
+            console.error('Error stack:', e.stack);
+            alert('Failed to initialize player: ' + e.message + '. Check console for details.');
         }
     });
 </script>

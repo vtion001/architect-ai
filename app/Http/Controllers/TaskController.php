@@ -213,7 +213,7 @@ class TaskController extends Controller
     public function voiceToIntelligence(Request $request): JsonResponse
     {
         $request->validate([
-            'audio' => 'required|file|mimes:webm,mp3,mp4,wav,m4a|max:25600', // 25MB max
+            'audio' => 'required|file|mimetypes:audio/webm,audio/ogg,audio/mpeg,audio/mp4,video/webm,video/ogg,audio/wav,audio/x-wav|max:25600', // 25MB max
             'type' => 'required|in:note,tasks',
         ]);
 

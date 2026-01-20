@@ -1,7 +1,7 @@
 <!-- Studio Tab (Ghost Recorder) -->
 <div x-show="activeTab === 'studio'" class="space-y-4">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/rrweb@latest/dist/rrweb.min.css"/>
-    <script src="https://cdn.jsdelivr.net/npm/rrweb@latest/dist/rrweb.min.js"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/rrweb@1.1.3/dist/rrweb.min.css"/>
+    <script src="https://cdn.jsdelivr.net/npm/rrweb@1.1.3/dist/rrweb.min.js"></script>
 
     <div x-show="!isGhostRecording" class="space-y-6 text-center py-4">
         <div class="space-y-2">
