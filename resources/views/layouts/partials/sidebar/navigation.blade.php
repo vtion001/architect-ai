@@ -80,10 +80,10 @@
 
     <div class="mt-8 space-y-1">
         <p class="text-xs font-semibold text-sidebar-foreground/50 px-3 mb-3">HELP & SUPPORT</p>
-        <button class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-accent-foreground transition-colors">
+        <a href="{{ route('help-center.index') }}" class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors {{ request()->is('help-center*') ? 'bg-sidebar-accent text-sidebar-accent-foreground' : 'text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-accent-foreground' }}">
             <i data-lucide="help-circle" class="w-4 h-4"></i>
             Help & Center
-        </button>
+        </a>
         <a href="{{ route('settings.index') }}" class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors {{ request()->is('settings') ? 'bg-sidebar-accent text-sidebar-accent-foreground' : 'text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-accent-foreground' }}">
             <i data-lucide="settings" class="w-4 h-4"></i>
             Settings

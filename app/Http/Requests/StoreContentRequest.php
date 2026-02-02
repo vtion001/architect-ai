@@ -32,7 +32,7 @@ class StoreContentRequest extends FormRequest
             'cta' => ['nullable', 'string', 'max:255'],
             'addLineBreaks' => ['nullable', 'boolean'],
             'includeHashtags' => ['nullable', 'boolean'],
-            'generator' => ['nullable', 'string', 'in:post,video,blog'],
+            'generator' => ['nullable', 'string', 'in:post,video,blog,framework'],
             'brand_id' => ['nullable', 'uuid', 'exists:brands,id'],
             
             // Video parameters

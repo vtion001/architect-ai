@@ -89,7 +89,7 @@ class PromptBuilder
 - Write like a real person sharing valuable insights, not an AI following a prompt.
 - Use natural sentence variety (mix short and long sentences).
 - Use contractions (e.g., 'don't', 'it's', 'we're') to sound conversational.
-- Avoid AI 'tells' and clichés: Do NOT use words like 'delve', 'unlock', 'embark', 'comprehensive', 'in today's digital landscape', or 'tapestry'.
+- Avoid AI 'tells' and clichés: Do NOT use words like 'delve', 'unlock', 'embark', 'comprehensive', 'in today's digital landscape', 'step into', 'step into the world', or 'tapestry'.
 - Use active voice and focus on a direct connection with the reader.
 - Inject a bit of personality and warmth while maintaining the '{$tone}' tone.";
     }

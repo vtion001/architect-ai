@@ -36,8 +36,7 @@ Route::middleware(['auth:sanctum', 'tenant', 'session_security'])->group(functio
 
     // Content & Intelligence
     Route::post('/content/generate', [ContentCreatorController::class, 'store']);
-    Route::post('/content/generate-bulk-images', [ContentCreatorController::class, 'generateBulkImages']);
-    Route::post('/content/bulk-schedule', [ContentCreatorController::class, 'bulkSchedule']); // Added route
+    // Bulk operations moved to web.php for session auth support
     Route::post('/research/start', [ResearchEngineController::class, 'store']);
     
     // Global Grid Search (for Command Palette)

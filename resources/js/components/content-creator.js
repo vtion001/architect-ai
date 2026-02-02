@@ -216,19 +216,18 @@ document.addEventListener('alpine:init', () => {
                 })
                 .then(data => {
                     if (this.generator === 'framework') {
-                        try {
-                            const rawContent = data.content.content;
-                            this.generatedCalendar = typeof rawContent === 'string' ? JSON.parse(rawContent) : rawContent;
-                            this.frameworkId = data.content.id; // Store framework ID for bulk actions
-                        } catch (e) {
-                            console.error('JSON Parse Error', e);
-                            alert('Calendar generated but format was invalid.');
+                        if (data.content.status === 'generating') {
+                            this.pollForFramework(data.content.id);
+                        } else {
+                            this.generatedCalendar = data.content.content;
+                            this.frameworkId = data.content.id;
+                            this.isGenerating = false;
                         }
                     } else {
                         this.createdContentId = data.content.id;
                         this.showSuccessModal = true;
+                        this.isGenerating = false;
                     }
-                    this.isGenerating = false;
                 })
                 .catch(error => {
                     console.error(error);
@@ -237,11 +236,44 @@ document.addEventListener('alpine:init', () => {
                 });
         },
 
+        pollForFramework(id) {
+            const interval = setInterval(() => {
+                fetch(`/content-creator/${id}`, {
+                    headers: { 'Accept': 'application/json' }
+                })
+                .then(res => res.json())
+                .then(data => {
+                    const status = data.content.status;
+                    if (status === 'draft') {
+                        clearInterval(interval);
+                        
+                        let result = data.content.result;
+                        if (typeof result === 'string') {
+                            try { result = JSON.parse(result); } catch(e) { console.error('Parse error', e); }
+                        }
+                        
+                        this.generatedCalendar = result;
+                        this.frameworkId = data.content.id;
+                        this.isGenerating = false;
+                    } else if (status === 'failed') {
+                        clearInterval(interval);
+                        this.isGenerating = false;
+                        alert('Generation failed. Please try again.');
+                    }
+                })
+                .catch(e => {
+                    console.error(e);
+                    clearInterval(interval);
+                    this.isGenerating = false;
+                });
+            }, 2000);
+        },
+
         generateBulkImages() {
             if (!this.frameworkId) return;
             this.isBulkGeneratingImages = true;
 
-            fetch('/api/content/generate-bulk-images', {
+            fetch('/content-creator/generate-bulk-images', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -275,16 +307,11 @@ document.addEventListener('alpine:init', () => {
             this.showBulkScheduleModal = true;
         },
 
-        confirmBulkSchedule() {
+        bulkSchedule() {
             if (!this.frameworkId) return;
-            if (this.bulkPlatforms.length === 0) {
-                alert('Please select at least one platform.');
-                return;
-            }
-
             this.isBulkScheduling = true;
 
-            fetch('/api/content/bulk-schedule', {
+            fetch('/content-creator/bulk-schedule', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -293,8 +320,8 @@ document.addEventListener('alpine:init', () => {
                 },
                 body: JSON.stringify({
                     framework_id: this.frameworkId,
-                    start_date: this.bulkStartDate,
-                    platforms: this.bulkPlatforms
+                    platforms: this.selectedPlatforms,
+                    start_date: this.scheduleStartDate
                 })
             })
                 .then(res => res.json())

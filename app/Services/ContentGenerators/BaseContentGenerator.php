@@ -53,12 +53,49 @@ abstract class BaseContentGenerator implements ContentGeneratorInterface
             'temperature' => $options['temperature'] ?? 0.8,
             'max_tokens' => $options['max_tokens'] ?? 4000,
             'timeout' => $options['timeout'] ?? 120,
+            'response_format' => $options['response_format'] ?? null,
         ]);
 
         if (!$response['success']) {
             throw new \Exception("AI Generation failed: " . ($response['error'] ?? 'Unknown error'));
         }
 
-        return $response['message'];
+        $message = $response['message'];
+
+        // If the generator expects JSON (inferred from type or explicit option)
+        if (($options['response_format'] ?? null) === ['type' => 'json_object'] || $this->getType() === 'framework_calendar') {
+            return $this->cleanJsonResponse($message);
+        }
+
+        return $message;
+    }
+
+    /**
+     * Clean and extract JSON from AI response.
+     */
+    protected function cleanJsonResponse(string $text): string
+    {
+        // Remove markdown code blocks if present
+        if (preg_match('/```(?:json)?\s*(\{.*?\})\s*```/s', $text, $matches)) {
+            $text = $matches[1];
+        } else {
+            // Find the first { and last }
+            $start = strpos($text, '{');
+            $end = strrpos($text, '}');
+
+            if ($start !== false && $end !== false && $end > $start) {
+                $text = substr($text, $start, $end - $start + 1);
+            }
+        }
+
+        // Validate
+        json_decode($text);
+        if (json_last_error() !== JSON_ERROR_NONE) {
+            // Remove bad control characters but keep structure
+            // Remove control chars (0-31, 127) except tab (9), newline (10), carriage return (13)
+            $text = preg_replace('/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/', '', $text);
+        }
+
+        return $text;
     }
 }

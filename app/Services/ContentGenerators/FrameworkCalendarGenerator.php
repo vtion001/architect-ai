@@ -10,11 +10,23 @@ namespace App\Services\ContentGenerators;
  * Generates a complete weekly content plan based on the 4-Pillar Framework:
  * - Educational (3x)
  * - Showcase (2x)
- * - Conversational (1-2x)
+ * - Conversational (2x)
  * - Promotional (1x)
  */
 class FrameworkCalendarGenerator extends BaseContentGenerator
 {
+    /**
+     * Override generate to force JSON mode and stricter temperature.
+     */
+    public function generate(string $topic, ?string $context = null, array $options = []): string
+    {
+        $options['response_format'] = ['type' => 'json_object'];
+        $options['temperature'] = 0.4; // Lower temperature for stricter adherence
+        $options['max_tokens'] = 4000; // Ensure enough space for 8 full posts
+        $options['model'] = 'gpt-4o'; // Force higher intelligence model for complex JSON structure
+        return parent::generate($topic, $context, $options);
+    }
+
     public function getType(): string
     {
         return 'framework_calendar';
@@ -32,38 +44,42 @@ class FrameworkCalendarGenerator extends BaseContentGenerator
             
             $brandInstruction
 
-            FRAMEWORK PILLARS:
-            1. Educational (3 posts): How-to guides, insights, tutorials. Goal: Build Authority.
-            2. Showcase (2 posts): Case studies, before/after, portfolio. Goal: Demonstrate Expertise.
-            3. Conversational (2 posts): Polls, questions, discussions. Goal: Build Community.
-            4. Promotional (1 post): Offers, services. Goal: Drive Conversions.
+            FRAMEWORK PILLARS (STRICT COUNT ENFORCEMENT):
+            1. Educational: EXACTLY 3 posts. NO MORE, NO LESS.
+            2. Showcase: EXACTLY 2 posts. NO MORE, NO LESS.
+            3. Conversational: EXACTLY 2 posts. NO MORE, NO LESS.
+            4. Promotional: EXACTLY 1 post. NO MORE, NO LESS.
+            
+            TOTAL POSTS: 8
 
             $humanize
 
             OUTPUT FORMAT:
             You must return a strictly valid JSON object. 
-            Do NOT include markdown formatting (like ```json or ```). 
+            Do NOT include markdown formatting. 
             Do NOT include any text before or after the JSON.
             
-            Structure:
+            Structure (MUST FILL ALL OBJECTS):
             {
                 \"educational\": [
-                    { \"hook\": \"Attention-grabbing headline\", \"caption\": \"Full caption text...\", \"visual_idea\": \"Description for a poster/image\" },
-                    ... (3 items)
+                    { \"hook\": \"Educational Hook 1...\", \"caption\": \"Full caption...\", \"visual_idea\": \"...\" },
+                    { \"hook\": \"Educational Hook 2...\", \"caption\": \"Full caption...\", \"visual_idea\": \"...\" },
+                    { \"hook\": \"Educational Hook 3...\", \"caption\": \"Full caption...\", \"visual_idea\": \"...\" }
                 ],
                 \"showcase\": [
-                    { \"hook\": \"...\", \"caption\": \"...\", \"visual_idea\": \"...\" },
-                    ... (2 items)
+                    { \"hook\": \"Showcase Hook 1...\", \"caption\": \"Full caption...\", \"visual_idea\": \"...\" },
+                    { \"hook\": \"Showcase Hook 2...\", \"caption\": \"Full caption...\", \"visual_idea\": \"...\" }
                 ],
                 \"conversational\": [
-                    { \"hook\": \"...\", \"caption\": \"...\", \"visual_idea\": \"...\" },
-                    ... (2 items)
+                    { \"hook\": \"Conversational Hook 1...\", \"caption\": \"Full caption...\", \"visual_idea\": \"...\" },
+                    { \"hook\": \"Conversational Hook 2...\", \"caption\": \"Full caption...\", \"visual_idea\": \"...\" }
                 ],
                 \"promotional\": [
-                    { \"hook\": \"...\", \"caption\": \"...\", \"visual_idea\": \"...\" }
-                    ... (1 item)
+                    { \"hook\": \"Promotional Hook 1...\", \"caption\": \"Full caption...\", \"visual_idea\": \"...\" }
                 ]
-            }";
+            }
+            
+            CRITICAL INSTRUCTION: You MUST generate exactly 8 distinct items in total across these categories. Do not group them. Do not summarize. Fill every single slot in the JSON structure above. Each pillar must have EXACTLY the specified number of items.";
     }
 
     public function getUserPrompt(string $topic, ?string $context = null, array $options = []): string

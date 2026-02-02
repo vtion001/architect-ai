@@ -120,6 +120,10 @@ Route::middleware(['auth', 'tenant', 'mfa', 'session_security'])->group(function
 
     Route::get('/content-creator', [ContentCreatorController::class, 'index'])->name('content-creator.index');
     Route::post('/content-creator/generate', [ContentCreatorController::class, 'store'])->middleware('throttle:10,1')->name('content-creator.generate');
+    // Bulk Operations (Moved from API for session auth)
+    Route::post('/content-creator/generate-bulk-images', [ContentCreatorController::class, 'generateBulkImages'])->name('content-creator.generate-bulk-images');
+    Route::post('/content-creator/bulk-schedule', [ContentCreatorController::class, 'bulkSchedule'])->name('content-creator.bulk-schedule');
+    
     Route::post('/content-creator/suggestions', [ContentCreatorController::class, 'getSuggestions'])->name('content-creator.suggestions');
     Route::post('/content-creator/refine', [ContentCreatorController::class, 'refineContext'])->name('content-creator.refine');
     Route::post('/content-creator/upload-media', [ContentCreatorController::class, 'uploadMedia'])->name('content-creator.upload-media');
@@ -165,6 +169,10 @@ Route::middleware(['auth', 'tenant', 'mfa', 'session_security'])->group(function
     Route::get('/media-assets', [\App\Http\Controllers\MediaRegistryController::class, 'getAssets'])->name('media-assets.json');
 
     Route::get('/analytics', [AnalyticsController::class, 'index'])->name('analytics.index');
+
+    // Help Center
+    Route::get('/help-center', [\App\Http\Controllers\HelpCenterController::class, 'index'])->name('help-center.index');
+    Route::get('/help-center/{section}/{article}', [\App\Http\Controllers\HelpCenterController::class, 'show'])->name('help-center.show');
 
     Route::get('/research-engine', [ResearchEngineController::class, 'index'])->name('research-engine.index');
     Route::post('/research-engine/start', [ResearchEngineController::class, 'store'])->middleware('throttle:5,1')->name('research-engine.start');

@@ -51,6 +51,12 @@ class ContentCreatorController extends Controller
 
     public function store(StoreContentRequest $request)
     {
+        Log::info("Content Generation Request", [
+            'generator' => $request->input('generator'),
+            'topic' => $request->input('topic'),
+            'count' => $request->input('count')
+        ]);
+
         $tokenCost = $this->calculateTokenCost($request);
 
         if (!$this->tokenService->consume(auth()->user(), $tokenCost, 'content_generation', ['topic' => $request->topic])) {
@@ -76,40 +82,23 @@ class ContentCreatorController extends Controller
         }
 
         if ($request->input('generator') === 'framework') {
-            try {
-                $generatedJson = $this->contentService->generateText(
-                    $request->input('topic'),
-                    'framework_calendar',
-                    $context,
-                    $options
-                );
+            $content = Content::create([
+                'title' => 'Weekly Calendar: ' . Str::limit($request->input('topic'), 30),
+                'topic' => $request->input('topic'),
+                'type' => 'framework_calendar',
+                'context' => $context,
+                'status' => 'generating', // Async status
+                'options' => $options,
+            ]);
 
-                $content = Content::create([
-                    'title' => 'Weekly Calendar: ' . Str::limit($request->input('topic'), 30),
-                    'topic' => $request->input('topic'),
-                    'type' => 'framework_calendar',
-                    'context' => $context,
-                    'status' => 'draft',
-                    'result' => $generatedJson,
-                    'options' => $options,
-                ]);
+            // Dispatch to Queue
+            \App\Jobs\GenerateCalendarFramework::dispatch($content, auth()->user(), $tokenCost);
 
-                $this->createCalendarDrafts($content, $generatedJson);
-
-                return response()->json([
-                    'success' => true,
-                    'content' => [
-                        'id' => $content->id,
-                        'content' => $generatedJson
-                    ],
-                    'message' => 'Calendar framework generated successfully.'
-                ]);
-
-            } catch (\Exception $e) {
-                Log::error("Framework Generation Failed: " . $e->getMessage());
-                $this->tokenService->grant(auth()->user()->tenant, $tokenCost, 'refund_failed_generation');
-                return response()->json(['success' => false, 'message' => 'Generation failed. Tokens refunded.'], 500);
-            }
+            return response()->json([
+                'success' => true,
+                'content' => $content, // Status is generating
+                'message' => 'Calendar generation initiated. Processing in background.'
+            ]);
         }
 
         // Video Generation Case
@@ -332,6 +321,10 @@ class ContentCreatorController extends Controller
     
     public function show(Content $content)
     {
+        if (request()->wantsJson()) {
+            return response()->json(['content' => $content]);
+        }
+
         $path = storage_path('app/social_tokens.json');
         $isFacebookConnected = false;
         if (file_exists($path)) {
