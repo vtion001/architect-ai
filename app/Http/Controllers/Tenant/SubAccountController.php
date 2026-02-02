@@ -8,6 +8,7 @@ use App\Models\User;
 use App\Models\Role;
 use App\Services\TokenService;
 use App\Services\AuthorizationService;
+use App\Services\FeatureCreditService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Hash;
@@ -17,7 +18,8 @@ class SubAccountController extends Controller
 {
     public function __construct(
         protected TokenService $tokenService,
-        protected AuthorizationService $authService
+        protected AuthorizationService $authService,
+        protected FeatureCreditService $featureCreditService
     ) {}
 
     /**
@@ -38,11 +40,11 @@ class SubAccountController extends Controller
             return $sub;
         });
 
-        $plan = $agency->plan ?? 'standard';
         $capacity = [
             'current' => $subAccounts->count(),
-            'max' => config("grid.tiers.{$plan}.max_sub_accounts", 3),
-            'label' => strtoupper($plan) . ' NODE',
+            'max' => $agency->getMaxSubAccounts(),
+            'label' => strtoupper($agency->plan ?? 'starter') . ' NODE',
+            'can_create' => $agency->canCreateSubAccounts(),
         ];
 
         return view('tenant.sub-accounts.index', compact('subAccounts', 'capacity'));
@@ -55,9 +57,26 @@ class SubAccountController extends Controller
     {
         $agency = app(Tenant::class);
 
-        // 1. Quota Enforcement Protocol
-        $plan = $agency->plan ?? 'standard';
-        $maxNodes = config("grid.tiers.{$plan}.max_sub_accounts", 3);
+        // 1. Plan Access Check - Only Agency plan can create sub-accounts
+        if (!$agency->canCreateSubAccounts()) {
+            $this->authService->audit(
+                auth()->user(),
+                'security.feature_access_denied',
+                null,
+                'denied',
+                "Attempted to create sub-account without Agency plan."
+            );
+
+            return response()->json([
+                'success' => false,
+                'error' => 'feature_locked',
+                'message' => 'Sub-accounts require the Agency plan. Please upgrade to continue.',
+                'upgrade_url' => route('billing.upgrade'),
+            ], 403);
+        }
+
+        // 2. Quota Enforcement Protocol
+        $maxNodes = $agency->getMaxSubAccounts();
         $currentNodes = $agency->subAccounts()->count();
 
         if ($currentNodes >= $maxNodes) {
@@ -71,7 +90,7 @@ class SubAccountController extends Controller
 
             return response()->json([
                 'success' => false,
-                'message' => "Grid Capacity reached. Your {$plan} node is limited to {$maxNodes} nested workspaces. Please scale your grid."
+                'message' => "Grid Capacity reached. Your Agency node is limited to {$maxNodes} nested workspaces. Please contact support to scale."
             ], 403);
         }
 
@@ -82,10 +101,11 @@ class SubAccountController extends Controller
         ]);
 
         return DB::transaction(function () use ($request, $agency) {
-            // 1. Create Sub-Account
+            // 1. Create Sub-Account (inherit plan from parent agency)
             $subAccount = Tenant::create([
                 'type' => 'sub_account',
                 'parent_id' => $agency->id,
+                'plan' => $agency->plan, // Inherit plan from parent
                 'name' => $request->name,
                 'slug' => Str::slug($request->slug),
                 'status' => 'active',
@@ -107,6 +127,9 @@ class SubAccountController extends Controller
 
             // 4. Provision Initial Resources (500 tokens)
             $this->tokenService->grant($subAccount, 500, 'initial_provisioning');
+
+            // 5. Provision Feature Credits for new user
+            $this->featureCreditService->provisionCreditsForUser($user);
 
             $this->authService->audit(
                 auth()->user(),

@@ -24,6 +24,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'permission' => \App\Http\Middleware\CheckPermission::class,
             'mfa' => \App\Http\Middleware\MfaMiddleware::class,
             'session_security' => \App\Http\Middleware\SessionSecurityMiddleware::class,
+            'feature' => \App\Http\Middleware\CheckFeatureAccess::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {

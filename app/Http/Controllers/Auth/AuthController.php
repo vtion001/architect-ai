@@ -90,9 +90,10 @@ class AuthController extends Controller
         ]);
 
         return \Illuminate\Support\Facades\DB::transaction(function () use ($request) {
-            // 1. Create Tenant
+            // 1. Create Tenant (default to starter plan)
             $tenant = Tenant::create([
                 'type' => 'agency',
+                'plan' => 'starter', // New users start on Starter plan
                 'name' => $request->company_name,
                 'slug' => Str::slug($request->slug),
                 'status' => 'active',
@@ -115,6 +116,9 @@ class AuthController extends Controller
 
             // 4. Initial Token Grant (Provisioning)
             app(\App\Services\TokenService::class)->grant($tenant, 1000, 'initial_provisioning');
+
+            // 5. Provision Feature Credits based on plan
+            app(\App\Services\FeatureCreditService::class)->provisionCreditsForUser($user);
 
             \Illuminate\Support\Facades\Log::info("NEW AGENCY PROVISIONED: {$tenant->name} ({$tenant->slug}) by {$user->email}");
 

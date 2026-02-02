@@ -6,27 +6,32 @@ return [
     | Grid Infrastructure Limits
     |--------------------------------------------------------------------------
     |
-    | Defines the operational boundaries for each tier.
+    | Defines the operational boundaries for each subscription tier.
+    | These values are referenced throughout the application for:
+    | - Sub-account quotas
+    | - Monthly token allocations
+    | - Feature availability
     |
     */
     'tiers' => [
-        'standard' => [
-            'name' => 'Standard Node',
-            'max_sub_accounts' => 3,
+        'starter' => [
+            'name' => 'Starter Node',
+            'max_sub_accounts' => 0,
             'monthly_tokens' => 5000,
-            'features' => ['Basic RAG', 'Social Scheduling'],
+            'features' => ['Basic Content Generation', 'Social Scheduling'],
         ],
-        'enterprise' => [
-            'name' => 'Enterprise Node',
-            'max_sub_accounts' => 15,
+        'pro' => [
+            'name' => 'Pro Node',
+            'max_sub_accounts' => 0,
             'monthly_tokens' => 25000,
-            'features' => ['Industrial RAG', 'White-labeling', 'API Access'],
+            'features' => ['AI Agents', 'Knowledge Base', 'Brand Kits', 'Unlimited Generation'],
         ],
-        'master' => [
-            'name' => 'Master Node',
-            'max_sub_accounts' => 999, // Practically unlimited
-            'monthly_tokens' => 1000000,
-            'features' => ['Global RAG Sync', 'SSO Protocol', 'Dedicated Hardware'],
+        'agency' => [
+            'name' => 'Agency Node',
+            'max_sub_accounts' => 10,
+            'monthly_tokens' => 100000,
+            'features' => ['All Pro Features', 'Sub-Account Management', 'White-labeling', 'API Access'],
         ],
     ],
 ];
+

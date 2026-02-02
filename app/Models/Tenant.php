@@ -2,6 +2,8 @@
 
 namespace App\Models;
 
+use App\Enums\FeatureType;
+use App\Enums\PlanType;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
@@ -85,5 +87,91 @@ class Tenant extends Model
     public function parent(): BelongsTo
     {
         return $this->belongsTo(Tenant::class, 'parent_id');
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | Plan Helper Methods
+    |--------------------------------------------------------------------------
+    */
+
+    /**
+     * Get the plan type as an enum.
+     */
+    public function getPlanType(): PlanType
+    {
+        return PlanType::tryFrom($this->plan) ?? PlanType::STARTER;
+    }
+
+    /**
+     * Check if tenant is on Starter plan.
+     */
+    public function isStarterPlan(): bool
+    {
+        return $this->getPlanType() === PlanType::STARTER;
+    }
+
+    /**
+     * Check if tenant is on Pro plan.
+     */
+    public function isProPlan(): bool
+    {
+        return $this->getPlanType() === PlanType::PRO;
+    }
+
+    /**
+     * Check if tenant is on Agency plan.
+     */
+    public function isAgencyPlan(): bool
+    {
+        return $this->getPlanType() === PlanType::AGENCY;
+    }
+
+    /**
+     * Check if tenant has Pro-level features (Pro or Agency).
+     */
+    public function hasProFeatures(): bool
+    {
+        return $this->getPlanType()->hasProFeatures();
+    }
+
+    /**
+     * Check if tenant has unlimited feature credits.
+     */
+    public function hasUnlimitedCredits(): bool
+    {
+        return $this->getPlanType()->hasUnlimitedCredits();
+    }
+
+    /**
+     * Check if tenant can create sub-accounts.
+     */
+    public function canCreateSubAccounts(): bool
+    {
+        return $this->getPlanType()->canCreateSubAccounts();
+    }
+
+    /**
+     * Check if tenant can access a specific feature.
+     */
+    public function canAccessFeature(FeatureType $feature): bool
+    {
+        return (bool) config("features.plans.{$this->plan}.access.{$feature->value}", false);
+    }
+
+    /**
+     * Get the credit limit for a specific feature.
+     */
+    public function getFeatureCreditLimit(FeatureType $feature): int
+    {
+        return (int) config("features.plans.{$this->plan}.credits.{$feature->value}", 0);
+    }
+
+    /**
+     * Get the maximum number of sub-accounts allowed.
+     */
+    public function getMaxSubAccounts(): int
+    {
+        return (int) config("features.plans.{$this->plan}.max_sub_accounts", 0);
     }
 }

@@ -79,6 +79,14 @@ Route::middleware(['auth', 'tenant', 'mfa', 'session_security'])->group(function
     Route::post('/agency/impersonate', [\App\Http\Controllers\Auth\AgencyImpersonationController::class, 'impersonate'])->name('agency.impersonate');
     Route::get('/agency/impersonate/stop', [\App\Http\Controllers\Auth\AgencyImpersonationController::class, 'stop'])->name('agency.impersonate.stop');
 
+    // Billing & Subscription Management
+    Route::prefix('billing')->group(function () {
+        Route::get('/', [\App\Http\Controllers\BillingController::class, 'index'])->name('billing.index');
+        Route::get('/upgrade', [\App\Http\Controllers\BillingController::class, 'upgrade'])->name('billing.upgrade');
+        Route::get('/credits', [\App\Http\Controllers\BillingController::class, 'credits'])->name('billing.credits');
+        Route::get('/check/{feature}', [\App\Http\Controllers\BillingController::class, 'checkFeature'])->name('billing.check-feature');
+    });
+
     // Tenant/Agency Management
     Route::prefix('settings')->group(function () {
         Route::get('/', [\App\Http\Controllers\Tenant\SettingsController::class, 'index'])->name('settings.index');
@@ -86,17 +94,22 @@ Route::middleware(['auth', 'tenant', 'mfa', 'session_security'])->group(function
         Route::post('/profile', [\App\Http\Controllers\Tenant\SettingsController::class, 'updateProfile'])->name('settings.profile');
         Route::post('/mfa/disable', [\App\Http\Controllers\Tenant\SettingsController::class, 'disableMfa'])->name('settings.mfa.disable');
 
-        // Brand Kits
-        Route::post('/brands/scrape', [\App\Http\Controllers\BrandController::class, 'scrape'])->name('brands.scrape');
-        Route::post('/brands/analyze-blueprint', [\App\Http\Controllers\BrandController::class, 'analyzeBlueprint'])->name('brands.analyze-blueprint');
-        Route::get('/brands', [\App\Http\Controllers\BrandController::class, 'index'])->name('brands.index');
-        Route::post('/brands', [\App\Http\Controllers\BrandController::class, 'store'])->name('brands.store');
-        Route::put('/brands/{brand}', [\App\Http\Controllers\BrandController::class, 'update'])->name('brands.update');
-        Route::delete('/brands/{brand}', [\App\Http\Controllers\BrandController::class, 'destroy'])->name('brands.destroy');
-        Route::post('/brands/{brand}/default', [\App\Http\Controllers\BrandController::class, 'setDefault'])->name('brands.set-default');
+        // Brand Kits (Pro+ Feature)
+        Route::middleware('feature:brand_kits')->group(function () {
+            Route::post('/brands/scrape', [\App\Http\Controllers\BrandController::class, 'scrape'])->name('brands.scrape');
+            Route::post('/brands/analyze-blueprint', [\App\Http\Controllers\BrandController::class, 'analyzeBlueprint'])->name('brands.analyze-blueprint');
+            Route::get('/brands', [\App\Http\Controllers\BrandController::class, 'index'])->name('brands.index');
+            Route::post('/brands', [\App\Http\Controllers\BrandController::class, 'store'])->name('brands.store');
+            Route::put('/brands/{brand}', [\App\Http\Controllers\BrandController::class, 'update'])->name('brands.update');
+            Route::delete('/brands/{brand}', [\App\Http\Controllers\BrandController::class, 'destroy'])->name('brands.destroy');
+            Route::post('/brands/{brand}/default', [\App\Http\Controllers\BrandController::class, 'setDefault'])->name('brands.set-default');
+        });
 
-        Route::get('/sub-accounts', [\App\Http\Controllers\Tenant\SubAccountController::class, 'index'])->name('sub-accounts.index');
-        Route::post('/sub-accounts', [\App\Http\Controllers\Tenant\SubAccountController::class, 'store'])->name('sub-accounts.store');
+        // Sub-Accounts (Agency Only Feature)
+        Route::middleware('feature:sub_accounts')->group(function () {
+            Route::get('/sub-accounts', [\App\Http\Controllers\Tenant\SubAccountController::class, 'index'])->name('sub-accounts.index');
+            Route::post('/sub-accounts', [\App\Http\Controllers\Tenant\SubAccountController::class, 'store'])->name('sub-accounts.store');
+        });
         
         Route::get('/users', [\App\Http\Controllers\Tenant\UserManagementController::class, 'index'])->name('users.index');
         Route::post('/users', [\App\Http\Controllers\Tenant\UserManagementController::class, 'store'])->name('users.store');
@@ -142,21 +155,27 @@ Route::middleware(['auth', 'tenant', 'mfa', 'session_security'])->group(function
     Route::get('/social-planner/facebook-pages', [SocialPlannerController::class, 'getFacebookPages'])->name('social-planner.facebook-pages');
     Route::get('/social/callback/{platform}', [SocialPlannerController::class, 'handleCallback'])->name('social.callback');
 
-    Route::get('/knowledge-base', [KnowledgeBaseController::class, 'index'])->name('knowledge-base.index');
-    Route::post('/knowledge-base', [KnowledgeBaseController::class, 'store'])->name('knowledge-base.store');
-    Route::delete('/knowledge-base/{asset}', [KnowledgeBaseController::class, 'destroy'])->name('knowledge-base.destroy');
+    // Knowledge Base (Pro+ Feature)
+    Route::middleware('feature:knowledge_base')->group(function () {
+        Route::get('/knowledge-base', [KnowledgeBaseController::class, 'index'])->name('knowledge-base.index');
+        Route::post('/knowledge-base', [KnowledgeBaseController::class, 'store'])->name('knowledge-base.store');
+        Route::delete('/knowledge-base/{asset}', [KnowledgeBaseController::class, 'destroy'])->name('knowledge-base.destroy');
+    });
 
-    Route::get('/ai-agents', [\App\Http\Controllers\AiAgentController::class, 'index'])->name('ai-agents.index');
-    Route::post('/ai-agents', [\App\Http\Controllers\AiAgentController::class, 'store'])->name('ai-agents.store');
-    // Static routes MUST come before dynamic {agent} routes
-    Route::post('/ai-agents/chat', [\App\Http\Controllers\AiAgentController::class, 'chat'])->name('ai-agents.chat');
-    Route::get('/ai-agents/conversation', [\App\Http\Controllers\AiAgentController::class, 'getConversation'])->name('ai-agents.conversation');
-    Route::post('/ai-agents/conversation/clear', [\App\Http\Controllers\AiAgentController::class, 'clearConversation'])->name('ai-agents.conversation.clear');
-    Route::get('/ai-agents/list', [\App\Http\Controllers\AiAgentController::class, 'list'])->name('ai-agents.list');
-    // Dynamic routes with {agent} parameter
-    Route::get('/ai-agents/{agent}', [\App\Http\Controllers\AiAgentController::class, 'show'])->name('ai-agents.show');
-    Route::put('/ai-agents/{agent}', [\App\Http\Controllers\AiAgentController::class, 'update'])->name('ai-agents.update');
-    Route::delete('/ai-agents/{agent}', [\App\Http\Controllers\AiAgentController::class, 'destroy'])->name('ai-agents.destroy');
+    // AI Agents (Pro+ Feature)
+    Route::middleware('feature:ai_agents')->group(function () {
+        Route::get('/ai-agents', [\App\Http\Controllers\AiAgentController::class, 'index'])->name('ai-agents.index');
+        Route::post('/ai-agents', [\App\Http\Controllers\AiAgentController::class, 'store'])->name('ai-agents.store');
+        // Static routes MUST come before dynamic {agent} routes
+        Route::post('/ai-agents/chat', [\App\Http\Controllers\AiAgentController::class, 'chat'])->name('ai-agents.chat');
+        Route::get('/ai-agents/conversation', [\App\Http\Controllers\AiAgentController::class, 'getConversation'])->name('ai-agents.conversation');
+        Route::post('/ai-agents/conversation/clear', [\App\Http\Controllers\AiAgentController::class, 'clearConversation'])->name('ai-agents.conversation.clear');
+        Route::get('/ai-agents/list', [\App\Http\Controllers\AiAgentController::class, 'list'])->name('ai-agents.list');
+        // Dynamic routes with {agent} parameter
+        Route::get('/ai-agents/{agent}', [\App\Http\Controllers\AiAgentController::class, 'show'])->name('ai-agents.show');
+        Route::put('/ai-agents/{agent}', [\App\Http\Controllers\AiAgentController::class, 'update'])->name('ai-agents.update');
+        Route::delete('/ai-agents/{agent}', [\App\Http\Controllers\AiAgentController::class, 'destroy'])->name('ai-agents.destroy');
+    });
 
     Route::get('/documents', [DocumentsController::class, 'index'])->name('documents.index');
     Route::get('/documents/{document}', [DocumentsController::class, 'show'])->name('documents.show');
