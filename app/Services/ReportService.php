@@ -493,10 +493,17 @@ class ReportService
                 
                 MANDATORY CONTRACT STRUCTURE (Include ALL of the following articles):
 
-                1. **PARTIES SECTION** at the top with fields for BOTH parties:
-                   - Use <div class='parties-section'> with two <div class='party-block'>
-                   - Include fill-in fields: Name, Business Name, Address, City/State/Postal, Country, Email, Phone, Tax ID
-                   - Use <span class='fill-field'>_________</span> for blanks to fill in
+                1. **PARTIES SECTION** at the top using the new card-based layout:
+                   - Use <div class='parties-section'> containing two <div class='party-block'>
+                   - Each party-block should have:
+                     * <div class='party-header'> with <h3> and <span class='party-designation'>
+                     * <div class='party-fields'> containing multiple <div class='party-row'>
+                   - Each party-row should have:
+                     * <label class='party-label'>Field Name</label>
+                     * <div class='party-value'>Dynamic Value</div>
+                   - Include these fields: Full Legal Name, Business Name, Business Address, City/State/Postal, Email, Tax ID
+                   - Use actual data from the parties information above
+                   - Leave empty party-value divs for fields without data (NO underscores or placeholders)
 
                 2. **RECITALS** with WHEREAS clauses:
                    - Use <div class='recitals'> 

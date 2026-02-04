@@ -449,8 +449,12 @@ function documentBuilder() {
         // === INITIALIZATION ===
         
         init() { 
-            // Initial preview fetch (immediate, not debounced)
-            this._fetchPreviewImpl(); 
+            // Use requestIdleCallback for initial preview (non-critical)
+            if (window.requestIdleCallback) {
+                window.requestIdleCallback(() => this._fetchPreviewImpl());
+            } else {
+                setTimeout(() => this._fetchPreviewImpl(), 100);
+            }
             
             this.$nextTick(() => { 
                 if (window.lucide) window.lucide.createIcons(); 
@@ -479,7 +483,12 @@ function documentBuilder() {
             // Watch brand changes (debounced via fetchPreview)
             this.$watch('selectedBrandId', () => { 
                 this.fetchPreview(); 
-            }); 
+            });
+            
+            // Watch sender/recipient identity changes
+            this.$watch(['senderName', 'senderTitle', 'recipientName', 'recipientTitle'], () => {
+                this.fetchPreview();
+            });
             
             // Watch variant modal for icon refresh
             this.$watch('showVariantModal', (v) => { 

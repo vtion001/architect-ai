@@ -61,51 +61,81 @@
     font-size: 11pt;
 }
 
-/* Parties Section */
+/* Parties Section - Modern Card-Based Layout */
 .parties-section {
     display: grid;
     grid-template-columns: 1fr 1fr;
-    gap: 40px;
-    margin: 30px 0 40px;
-    padding: 25px;
-    background: #f8fafc;
-    border: 1px solid #e2e8f0;
-    border-radius: 4px;
+    gap: 30px;
+    margin: 40px 0;
+    page-break-inside: avoid;
 }
 
-.party-block h3 {
-    font-size: 0.85rem;
-    text-transform: uppercase;
-    letter-spacing: 0.1em;
-    color: {{ $brandColor }};
-    margin-bottom: 15px;
-    padding-bottom: 8px;
+.party-block {
+    background: white;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    padding: 24px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.party-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 20px;
+    padding-bottom: 12px;
     border-bottom: 2px solid {{ $brandColor }};
 }
 
-.party-block .party-field {
+.party-block h3 {
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: {{ $brandColor }};
+    margin: 0;
+}
+
+.party-designation {
+    font-size: 0.7rem;
+    color: #64748b;
+    font-style: italic;
+    font-weight: 400;
+}
+
+.party-fields {
     display: flex;
-    flex-wrap: nowrap;
-    align-items: baseline;
-    margin-bottom: 8px;
-    font-size: 0.9rem;
+    flex-direction: column;
+    gap: 12px;
 }
 
-.party-block .party-label {
+.party-row {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.party-label {
     font-family: 'Inter', sans-serif;
+    font-size: 0.7rem;
     font-weight: 600;
-    color: #475569;
-    min-width: 140px;
-    white-space: nowrap;
-    flex-shrink: 0;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: #64748b;
 }
 
-.party-block .party-value {
+.party-value {
+    font-size: 0.9rem;
     color: #0f172a;
-    flex: 1;
-    min-height: 1.2em;
-    white-space: pre-wrap;
-    padding-bottom: 2px;
+    min-height: 1.5em;
+    padding: 6px 0;
+    border-bottom: 1px solid #e2e8f0;
+    font-weight: 400;
+}
+
+.party-value:empty::before {
+    content: '—';
+    color: #cbd5e1;
 }
 
 /* Recitals / Whereas */

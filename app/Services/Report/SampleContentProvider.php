@@ -231,41 +231,94 @@ class SampleContentProvider
 
     protected function getContractSample(array $overrides = []): string
     {
-        $providerName = $overrides['providerName'] ?? '_________________________________________';
-        $providerBusiness = $overrides['providerBusiness'] ?? '_________________________________________';
-        $providerAddress = $overrides['providerAddress'] ?? '_________________________________________';
-        $providerEmail = $overrides['providerEmail'] ?? '_________________________________________';
-        $providerTaxId = $overrides['providerTaxId'] ?? '_________________________________________';
+        $providerName = $overrides['providerName'] ?? '';
+        $providerBusiness = $overrides['providerBusiness'] ?? '';
+        $providerAddress = $overrides['providerAddress'] ?? '';
+        $providerCity = $overrides['providerCity'] ?? '';
+        $providerEmail = $overrides['providerEmail'] ?? '';
+        $providerTaxId = $overrides['providerTaxId'] ?? '';
         
         $recipientName = $overrides['recipientName'] ?? 'Acme Corporation';
-        $recipientTitle = $overrides['recipientTitle'] ?? 'Manager';
-        $clientAddress = $overrides['clientAddress'] ?? '_________________________________________';
-        $clientCity = $overrides['clientCity'] ?? '_________________________________________';
+        $recipientTitle = $overrides['recipientTitle'] ?? 'Chief Operations Officer';
+        $clientAddress = $overrides['clientAddress'] ?? '';
+        $clientCity = $overrides['clientCity'] ?? '';
         $clientCountry = $overrides['clientCountry'] ?? 'United States';
-        $clientEmail = $overrides['clientEmail'] ?? '_________________________________________';
-        $clientTaxId = $overrides['clientTaxId'] ?? '_________________________________________';
+        $clientEmail = $overrides['clientEmail'] ?? '';
+        $clientTaxId = $overrides['clientTaxId'] ?? '';
 
         return <<<HTML
             <!-- PARTIES SECTION -->
             <div class='parties-section'>
                 <div class='party-block'>
-                    <h3>SERVICE PROVIDER ("Provider")</h3>
-                    <div class='party-field'><span class='party-label'>Name:</span><span class='party-value fill-field'>{$providerName}</span></div>
-                    <div class='party-field'><span class='party-label'>Business Name:</span><span class='party-value fill-field'>{$providerBusiness}</span></div>
-                    <div class='party-field'><span class='party-label'>Address:</span><span class='party-value fill-field'>{$providerAddress}</span></div>
-                    <div class='party-field'><span class='party-label'>City, State, Zip:</span><span class='party-value fill-field'>_________________________________________</span></div>
-                    <div class='party-field'><span class='party-label'>Email:</span><span class='party-value fill-field'>{$providerEmail}</span></div>
-                    <div class='party-field'><span class='party-label'>Tax ID:</span><span class='party-value fill-field'>{$providerTaxId}</span></div>
+                    <div class='party-header'>
+                        <h3>SERVICE PROVIDER</h3>
+                        <span class='party-designation'>("Provider")</span>
+                    </div>
+                    
+                    <div class='party-fields'>
+                        <div class='party-row'>
+                            <label class='party-label'>Full Legal Name</label>
+                            <div class='party-value'>{$providerName}</div>
+                        </div>
+                        <div class='party-row'>
+                            <label class='party-label'>Business Name</label>
+                            <div class='party-value'>{$providerBusiness}</div>
+                        </div>
+                        <div class='party-row'>
+                            <label class='party-label'>Business Address</label>
+                            <div class='party-value'>{$providerAddress}</div>
+                        </div>
+                        <div class='party-row'>
+                            <label class='party-label'>City, State, Postal Code</label>
+                            <div class='party-value'>{$providerCity}</div>
+                        </div>
+                        <div class='party-row'>
+                            <label class='party-label'>Email Address</label>
+                            <div class='party-value'>{$providerEmail}</div>
+                        </div>
+                        <div class='party-row'>
+                            <label class='party-label'>Tax ID / EIN</label>
+                            <div class='party-value'>{$providerTaxId}</div>
+                        </div>
+                    </div>
                 </div>
+                
                 <div class='party-block'>
-                    <h3>CLIENT ("Client")</h3>
-                    <div class='party-field'><span class='party-label'>Name:</span><span class='party-value'>{$recipientName}</span></div>
-                    <div class='party-field'><span class='party-label'>Title:</span><span class='party-value'>{$recipientTitle}</span></div>
-                    <div class='party-field'><span class='party-label'>Address:</span><span class='party-value fill-field'>{$clientAddress}</span></div>
-                    <div class='party-field'><span class='party-label'>City, State, Zip:</span><span class='party-value fill-field'>{$clientCity}</span></div>
-                    <div class='party-field'><span class='party-label'>Country:</span><span class='party-value'>{$clientCountry}</span></div>
-                    <div class='party-field'><span class='party-label'>Email:</span><span class='party-value fill-field'>{$clientEmail}</span></div>
-                    <div class='party-field'><span class='party-label'>Tax ID:</span><span class='party-value fill-field'>{$clientTaxId}</span></div>
+                    <div class='party-header'>
+                        <h3>CLIENT</h3>
+                        <span class='party-designation'>("Client")</span>
+                    </div>
+                    
+                    <div class='party-fields'>
+                        <div class='party-row'>
+                            <label class='party-label'>Full Legal Name</label>
+                            <div class='party-value'>{$recipientName}</div>
+                        </div>
+                        <div class='party-row'>
+                            <label class='party-label'>Title / Position</label>
+                            <div class='party-value'>{$recipientTitle}</div>
+                        </div>
+                        <div class='party-row'>
+                            <label class='party-label'>Business Address</label>
+                            <div class='party-value'>{$clientAddress}</div>
+                        </div>
+                        <div class='party-row'>
+                            <label class='party-label'>City, State, Postal Code</label>
+                            <div class='party-value'>{$clientCity}</div>
+                        </div>
+                        <div class='party-row'>
+                            <label class='party-label'>Country</label>
+                            <div class='party-value'>{$clientCountry}</div>
+                        </div>
+                        <div class='party-row'>
+                            <label class='party-label'>Email Address</label>
+                            <div class='party-value'>{$clientEmail}</div>
+                        </div>
+                        <div class='party-row'>
+                            <label class='party-label'>Tax ID / EIN</label>
+                            <div class='party-value'>{$clientTaxId}</div>
+                        </div>
+                    </div>
                 </div>
             </div>
 
