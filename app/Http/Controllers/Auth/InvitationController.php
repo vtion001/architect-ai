@@ -5,12 +5,17 @@ namespace App\Http\Controllers\Auth;
 use App\Http\Controllers\Controller;
 use App\Models\Invitation;
 use App\Models\User;
+use App\Services\FeatureCreditService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Auth;
 
 class InvitationController extends Controller
 {
+    public function __construct(
+        protected FeatureCreditService $featureCreditService
+    ) {}
+
     /**
      * Display the invitation acceptance page.
      */
@@ -55,10 +60,13 @@ class InvitationController extends Controller
         // 2. Assign the role
         $user->roles()->attach($invitation->role_id, ['scope_type' => 'tenant']);
 
-        // 3. Mark invitation as accepted
+        // 3. Provision feature credits based on tenant's plan
+        $this->featureCreditService->provisionUserCredits($user);
+
+        // 4. Mark invitation as accepted
         $invitation->update(['accepted_at' => now()]);
 
-        // 4. Log in the user
+        // 5. Log in the user
         Auth::login($user);
 
         return redirect()->route('dashboard')->with('success', 'Welcome to the grid!');

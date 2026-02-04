@@ -277,6 +277,8 @@ function documentBuilder() {
                     variant: this.templateVariant, 
                     brand_id: this.selectedBrandId, 
                     contractDetails: this.contractDetails, 
+                    senderName: this.senderName, 
+                    senderTitle: this.senderTitle, 
                     recipientName: this.recipientName, 
                     recipientTitle: this.recipientTitle 
                 }),

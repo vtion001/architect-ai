@@ -165,6 +165,9 @@ class TemplatePreviewService
             'senderName' => $overrides['senderName'] ?? 'Your Name',
             'senderTitle' => $overrides['senderTitle'] ?? 'Professional Title',
             'companyAddress' => $overrides['companyAddress'] ?? '123 Business Rd, Tech City',
+            // For contracts, map sender to provider
+            'providerName' => $overrides['senderName'] ?? 'Your Name',
+            'providerTitle' => $overrides['senderTitle'] ?? 'Professional Title',
         ];
     }
 

@@ -152,7 +152,6 @@ dd {
 }
 
 .signature-line {
-    border-top: 1px solid #0f172a;
     padding-top: 8px;
     margin-bottom: 20px;
 }
@@ -169,6 +168,8 @@ dd {
     font-weight: 500;
     margin-top: 4px;
     min-height: 1.2em;
+    border-bottom: 1px solid #cbd5e1;
+    padding-bottom: 4px;
 }
 
 /* Footer Branding */

@@ -102,10 +102,10 @@
 
 .party-block .party-value {
     color: #0f172a;
-    border-bottom: 1px dotted #cbd5e1;
     flex: 1;
     min-height: 1.2em;
     white-space: pre-wrap;
+    padding-bottom: 2px;
 }
 
 /* Recitals / Whereas */

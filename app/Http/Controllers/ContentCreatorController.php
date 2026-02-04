@@ -2,10 +2,12 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\FeatureType;
 use App\Models\Content;
 use App\Models\KnowledgeBaseAsset;
 use App\Models\MediaAsset;
 use App\Services\ContentService;
+use App\Services\FeatureCreditService;
 use App\Services\TokenService;
 use App\Services\SocialPublishingService;
 use App\Services\BrandResolverService;
@@ -24,7 +26,8 @@ class ContentCreatorController extends Controller
         protected \App\Services\ResearchService $researchService,
         protected TokenService $tokenService,
         protected SocialPublishingService $socialPublishingService,
-        protected BrandResolverService $brandResolverService
+        protected BrandResolverService $brandResolverService,
+        protected FeatureCreditService $featureCreditService
     ) {}
 
     // ... [index, store, calculateTokenCost, createCalendarDrafts remain unchanged] ...
@@ -56,6 +59,31 @@ class ContentCreatorController extends Controller
             'topic' => $request->input('topic'),
             'count' => $request->input('count')
         ]);
+
+        // Determine the feature type based on the generator
+        $generator = $request->input('generator');
+        $featureType = match($generator) {
+            'post' => FeatureType::POST_GENERATOR,
+            'video' => FeatureType::VIDEO_GENERATOR,
+            'blog' => FeatureType::BLOG_GENERATOR,
+            'framework' => FeatureType::CLICK_CALENDAR,
+            default => FeatureType::POST_GENERATOR,
+        };
+
+        // Check and consume feature credit
+        $user = auth()->user();
+        if (!$this->featureCreditService->canUseFeature($user, $featureType)) {
+            return response()->json([
+                'success' => false,
+                'error' => 'credit_exhausted',
+                'message' => "You've reached your monthly limit for {$featureType->label()}. Upgrade to Pro for unlimited access.",
+                'feature' => $featureType->value,
+                'upgrade_url' => route('billing.upgrade'),
+            ], 402);
+        }
+
+        // Consume the feature credit (only for credit-based features with limits)
+        $this->featureCreditService->consumeCredit($user, $featureType);
 
         $tokenCost = $this->calculateTokenCost($request);
 

@@ -5,9 +5,11 @@ declare(strict_types=1);
 namespace App\Http\Controllers;
 
 use App\DTOs\ReportRequestData;
+use App\Enums\FeatureType;
 use App\Enums\ReportTemplate;
 use App\Http\Requests\GenerateReportRequest;
 use App\Http\Requests\PreviewReportRequest;
+use App\Services\FeatureCreditService;
 use App\Services\ReportService;
 use App\Services\Report\TemplatePreviewService;
 use App\Services\ResumeParserService;
@@ -44,7 +46,8 @@ class DocumentBuilderController extends Controller
         protected TemplatePreviewService $previewService,
         protected TokenService $tokenService,
         protected ResumeParserService $resumeParser,
-        protected CoverLetterDraftService $coverLetterDraft
+        protected CoverLetterDraftService $coverLetterDraft,
+        protected FeatureCreditService $featureCreditService
     ) {}
 
     /**
@@ -148,11 +151,27 @@ class DocumentBuilderController extends Controller
     public function generate(GenerateReportRequest $request): JsonResponse
     {
         try {
+            $user = auth()->user();
+            
+            // Check and consume feature credit for Document Builder
+            if (!$this->featureCreditService->canUseFeature($user, FeatureType::DOCUMENT_BUILDER)) {
+                return response()->json([
+                    'success' => false,
+                    'error' => 'credit_exhausted',
+                    'message' => "You've reached your monthly limit for Document Builder. Upgrade to Pro for unlimited access.",
+                    'feature' => FeatureType::DOCUMENT_BUILDER->value,
+                    'upgrade_url' => route('billing.upgrade'),
+                ], 402);
+            }
+
+            // Consume the feature credit
+            $this->featureCreditService->consumeCredit($user, FeatureType::DOCUMENT_BUILDER);
+
             $tokenCost = 30;
 
             // Check & consume tokens
             if (!$this->tokenService->consume(
-                auth()->user(), 
+                $user, 
                 $tokenCost, 
                 'report_generation', 
                 ['topic' => $request->researchTopic ?? $request->analysisType ?? 'Report Generation']

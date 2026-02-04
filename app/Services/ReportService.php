@@ -44,6 +44,9 @@ class ReportService
             'senderName' => $data->recipientName,
             'senderTitle' => $data->recipientTitle,
             'companyAddress' => $data->companyAddress,
+            // For Contract, map sender to provider
+            'providerName' => $data->senderName ?? 'Service Provider',
+            'providerTitle' => $data->senderTitle ?? 'Professional Title',
         ])->render();
     }
 
