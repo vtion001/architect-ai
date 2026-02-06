@@ -26,10 +26,14 @@ class GenerateCalendarFramework implements ShouldQueue
         protected Content $content,
         protected User $user,
         protected int $tokenCost
-    ) {}
+    ) {
+        Log::info("GenerateCalendarFramework Job CREATED for Content ID: {$this->content->id}, User: {$this->user->id}");
+    }
 
     public function handle(ContentService $contentService, TokenService $tokenService): void
     {
+        Log::info("GenerateCalendarFramework Job STARTED for Content ID: {$this->content->id}");
+        
         // Re-fetch model to ensure we have the absolute latest state
         $this->content = $this->content->fresh();
 
@@ -42,6 +46,7 @@ class GenerateCalendarFramework implements ShouldQueue
         if ($this->user->tenant) {
             app()->instance(\App\Models\Tenant::class, $this->user->tenant);
             session(['current_tenant_id' => $this->user->tenant_id]);
+            Log::info("Tenant context set: {$this->user->tenant_id}");
         }
 
         try {

@@ -516,13 +516,12 @@ function documentBuilder() {
                 <h3 class="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] mb-10 px-1 italic">Protocol Configuration</h3>
 
                 <div class="space-y-8 relative z-10">
+                    {{-- Brand Selection (Always Visible) --}}
                     @include('document-builder.partials.config-panel.brand-select')
-                    @include('document-builder.partials.config-panel.research-grounding')
-                    @include('document-builder.partials.config-panel.analysis-type')
-                    @include('document-builder.partials.config-panel.financials')
-                    @include('document-builder.partials.config-panel.target-role')
-                    @include('document-builder.partials.config-panel.sender-identity')
-                    @include('document-builder.partials.config-panel.recipient-identity')
+                    
+                    {{-- Template-Specific Form Router --}}
+                    {{-- Dynamically loads the appropriate form based on selected template & variant --}}
+                    @include('document-builder.partials.template-form-router')
                 </div>
             </div>
 

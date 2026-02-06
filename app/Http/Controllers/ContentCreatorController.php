@@ -110,6 +110,12 @@ class ContentCreatorController extends Controller
         }
 
         if ($request->input('generator') === 'framework') {
+            Log::info("[ContentCreator] Framework generation requested", [
+                'user_id' => auth()->id(),
+                'topic' => $request->input('topic'),
+                'token_cost' => $tokenCost
+            ]);
+            
             $content = Content::create([
                 'title' => 'Weekly Calendar: ' . Str::limit($request->input('topic'), 30),
                 'topic' => $request->input('topic'),
@@ -119,30 +125,54 @@ class ContentCreatorController extends Controller
                 'options' => $options,
             ]);
 
+            Log::info("[ContentCreator] Content record created", [
+                'content_id' => $content->id,
+                'status' => $content->status
+            ]);
+
             // Dispatch to Queue
             \App\Jobs\GenerateCalendarFramework::dispatch($content, auth()->user(), $tokenCost);
+            
+            Log::info("[ContentCreator] Job dispatched to queue", [
+                'content_id' => $content->id,
+                'queue_connection' => config('queue.default')
+            ]);
 
             return response()->json([
                 'success' => true,
                 'content' => $content, // Status is generating
-                'message' => 'Calendar generation initiated. Processing in background.'
+                'message' => 'Calendar generation initiated. Processing in background.',
+                'queue_info' => [
+                    'connection' => config('queue.default'),
+                    'content_id' => $content->id
+                ]
             ]);
         }
 
         // Video Generation Case
         if ($request->input('generator') === 'video') {
+            // Step 1: Generate AI-enhanced cinematic prompt using VideoScriptGenerator
+            $enhancedPrompt = $this->contentService->generateText(
+                $request->input('topic'),
+                'video',
+                $context,
+                $options
+            );
+            
             $content = Content::create([
                 'title' => 'Video: ' . Str::limit($request->input('topic'), 30),
                 'topic' => $request->input('topic'),
                 'type' => 'video',
                 'context' => $context,
                 'status' => 'generating',
+                'result' => $enhancedPrompt, // Store the AI-enhanced prompt
                 'options' => $options,
             ]);
 
+            // Step 2: Send enhanced prompt to video rendering service
             \App\Jobs\RenderVideo::dispatch(
                 $content, 
-                $request->input('topic'), 
+                $enhancedPrompt, // Use AI-enhanced prompt instead of raw topic
                 [
                     'model' => $request->input('ai_model'),
                     'aspect_ratio' => $request->input('aspect_ratio'),

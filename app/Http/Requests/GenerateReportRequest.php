@@ -49,6 +49,11 @@ class GenerateReportRequest extends FormRequest
             'personalInfo.religion' => ['nullable', 'string', 'max:100'],
             'personalInfo.languages' => ['nullable', 'string', 'max:255'],
             'contractDetails' => ['nullable', 'array'],
+            'financials' => ['nullable', 'array'],
+            'financials.totalInvestment' => ['nullable', 'string', 'max:50'],
+            'financials.currency' => ['nullable', 'string', 'max:10'],
+            'financials.timeline' => ['nullable', 'string', 'max:100'],
+            'financials.paymentMilestones' => ['nullable', 'array'],
         ];
     }
 }

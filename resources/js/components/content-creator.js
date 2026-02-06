@@ -209,18 +209,33 @@ document.addEventListener('alpine:init', () => {
                         throw new Error('Server returned HTML instead of JSON. Check console.');
                     }
                     const data = await response.json();
+                    console.log('[Content Creator] Response:', data);
                     if (!response.ok || !data.success) {
-                        throw new Error(data.message || 'Generation failed.');
+                        throw new Error(data.message || data.error || 'Generation failed.');
                     }
                     return data;
                 })
                 .then(data => {
+                    console.log('[Content Creator] Generator:', this.generator);
+                    console.log('[Content Creator] Content Status:', data.content.status);
+                    console.log('[Content Creator] Content ID:', data.content.id);
+                    
                     if (this.generator === 'framework') {
                         if (data.content.status === 'generating') {
+                            console.log('[Content Creator] Starting polling for framework ID:', data.content.id);
                             this.pollForFramework(data.content.id);
-                        } else {
-                            this.generatedCalendar = data.content.content;
+                        } else if (data.content.status === 'draft') {
+                            // Already completed
+                            console.log('[Content Creator] Framework already completed');
+                            let result = data.content.result;
+                            if (typeof result === 'string') {
+                                try { result = JSON.parse(result); } catch(e) { console.error('Parse error', e); }
+                            }
+                            this.generatedCalendar = result;
                             this.frameworkId = data.content.id;
+                            this.isGenerating = false;
+                        } else {
+                            console.warn('[Content Creator] Unexpected status:', data.content.status);
                             this.isGenerating = false;
                         }
                     } else {
@@ -237,34 +252,63 @@ document.addEventListener('alpine:init', () => {
         },
 
         pollForFramework(id) {
+            console.log('[Content Creator] Poll started for ID:', id);
+            let pollCount = 0;
+            const maxPolls = 60; // 2 minutes max (60 * 2s)
+            
             const interval = setInterval(() => {
+                pollCount++;
+                console.log(`[Content Creator] Polling attempt ${pollCount}/${maxPolls} for ID: ${id}`);
+                
+                if (pollCount > maxPolls) {
+                    clearInterval(interval);
+                    this.isGenerating = false;
+                    console.error('[Content Creator] Polling timeout after 2 minutes');
+                    alert('Generation is taking longer than expected. Please check your recent content or try again.');
+                    return;
+                }
+                
                 fetch(`/content-creator/${id}`, {
                     headers: { 'Accept': 'application/json' }
                 })
                 .then(res => res.json())
                 .then(data => {
                     const status = data.content.status;
+                    console.log(`[Content Creator] Poll response - Status: ${status}`);
+                    
                     if (status === 'draft') {
                         clearInterval(interval);
+                        console.log('[Content Creator] Framework generation complete!');
                         
                         let result = data.content.result;
                         if (typeof result === 'string') {
-                            try { result = JSON.parse(result); } catch(e) { console.error('Parse error', e); }
+                            try { 
+                                result = JSON.parse(result); 
+                                console.log('[Content Creator] Parsed result:', result);
+                            } catch(e) { 
+                                console.error('[Content Creator] JSON parse error:', e);
+                            }
                         }
                         
                         this.generatedCalendar = result;
                         this.frameworkId = data.content.id;
                         this.isGenerating = false;
+                        
+                        // Count cards
+                        const cardCount = Object.values(result || {}).reduce((sum, arr) => sum + (arr?.length || 0), 0);
+                        console.log(`[Content Creator] Generated ${cardCount} cards`);
                     } else if (status === 'failed') {
                         clearInterval(interval);
                         this.isGenerating = false;
-                        alert('Generation failed. Please try again.');
+                        console.error('[Content Creator] Generation failed');
+                        alert('Generation failed. Please try again. Check your token balance and queue status.');
                     }
                 })
                 .catch(e => {
-                    console.error(e);
+                    console.error('[Content Creator] Polling error:', e);
                     clearInterval(interval);
                     this.isGenerating = false;
+                    alert('Network error while checking generation status.');
                 });
             }, 2000);
         },

@@ -126,17 +126,76 @@ class ResumeParserService
     protected function getExtractionPrompt(): string
     {
         return <<<'PROMPT'
-You are an HR Data Extraction Specialist.
-Extract the following candidate details from the resume text into a JSON object:
-- `full_name`: Candidate's full name.
-- `title`: Current or most recent job title.
-- `email`: Email address.
-- `phone`: Phone number.
-- `location`: City/Country.
-- `website`: Portfolio or LinkedIn URL.
-- `personal_info`: object containing `age`, `dob`, `gender`, `civil_status`, `nationality`, `height`, `weight`, `place_of_birth`, `religion`, `languages`.
+You are an HR Data Extraction Specialist with expertise in comprehensive resume parsing.
 
-If a field is not found, leave it as null or empty string.
+CRITICAL INSTRUCTION: Extract 100% of resume content with ZERO DATA LOSS. Every detail matters for job matching.
+
+Extract the following information from the resume text into a structured JSON object:
+
+**BASIC INFORMATION:**
+- `full_name`: Candidate's full name
+- `title`: Current or most recent job title
+- `email`: Email address
+- `phone`: Phone number
+- `location`: City/State/Country
+- `website`: Portfolio, LinkedIn, or GitHub URL
+- `professional_summary`: Complete professional summary/objective (verbatim)
+
+**PERSONAL DETAILS (if present):**
+- `personal_info`: object containing `age`, `dob`, `gender`, `civil_status`, `nationality`, `height`, `weight`, `place_of_birth`, `religion`, `languages`
+
+**WORK EXPERIENCE (COMPLETE & DETAILED):**
+- `work_experience`: array of objects, each with:
+  - `company`: Company/organization name
+  - `title`: Job title/position
+  - `dates`: Employment period (e.g., "Jan 2020 - Present")
+  - `location`: Company location (if mentioned)
+  - `achievements`: array of ALL bullet points/achievements with metrics
+  - `technologies`: array of technologies/tools used (if mentioned)
+
+**EDUCATION:**
+- `education`: array of objects with:
+  - `degree`: Degree/certification name
+  - `institution`: School/university name
+  - `year`: Graduation year or period
+  - `gpa`: GPA if mentioned
+  - `honors`: Any honors/achievements
+
+**SKILLS & COMPETENCIES:**
+- `technical_skills`: array of all technical skills (programming languages, tools, frameworks)
+- `soft_skills`: array of soft skills (leadership, communication, etc.)
+- `languages_spoken`: array of languages with proficiency levels
+
+**CERTIFICATIONS & LICENSES:**
+- `certifications`: array of objects with:
+  - `name`: Certification name
+  - `issuer`: Issuing organization
+  - `date`: Date obtained or expiry
+  - `credential_id`: ID if provided
+
+**PROJECTS & ACHIEVEMENTS:**
+- `projects`: array of personal/professional projects with:
+  - `name`: Project name
+  - `description`: What it does/achieved
+  - `technologies`: Tech stack used
+  - `impact`: Metrics/outcomes
+- `awards`: array of awards, publications, conferences, recognitions
+
+**ADDITIONAL SECTIONS (if present):**
+- `volunteer_experience`: Volunteer work
+- `professional_affiliations`: Memberships in professional organizations
+- `publications`: Research papers, articles, books
+- `patents`: Patent information
+
+IMPORTANT RULES:
+1. Extract EVERY detail, no matter how small
+2. Preserve ALL metrics, numbers, and quantifiable achievements
+3. Maintain exact phrasing for accomplishments (don't summarize)
+4. Include ALL technologies, tools, and skills mentioned
+5. If a section doesn't exist, return empty array/null, don't omit the field
+6. Maintain chronological order for work experience and education
+
+Return only valid JSON with NO additional commentary.
 PROMPT;
     }
 }

@@ -217,32 +217,83 @@ class ReportService
                 $taskDescription = "PROFESSIONAL ATS-FRIENDLY resume";
                 $documentType = "resume";
                 
-                $brandInstructions .= "\n\n[RESUME STRUCTURE MANDATE]\n";
-                $brandInstructions .= "You must strictly follow this structure for the resume HTML:\n";
-                $brandInstructions .= "1. PROFESSIONAL SUMMARY: <h2>Professional Summary</h2><p>...</p>\n";
-                $brandInstructions .= "2. EXPERIENCE: <h2>Work Experience</h2> (Use <h3>Job Title | Company</h3> and <div class='job-meta'>Date • Location</div> for each role. Use <ul> for bullets.)\n";
-                $brandInstructions .= "3. EDUCATION: <h2>Education</h2> (Use <h3>University/School</h3> and <div class='job-meta'>Degree • Year</div>)\n";
-                $brandInstructions .= "4. SKILLS: <h2>Skills</h2> (For 'Modern' variants, wrap individual skills in <span class='skill-tag'>Skill Name</span>. For 'Classic', use a simple comma-separated list or <p>.)\n";
-                $brandInstructions .= "CRITICAL: Ensure you extract EDUCATION details from the source content if available. If missing, leave the section blank or omit it.\n";
+                $brandInstructions .= "\n\n[RESUME STRUCTURE MANDATE - ZERO DATA LOSS]\n";
+                $brandInstructions .= "You must strictly follow this structure for the resume HTML:\n\n";
+                
+                $brandInstructions .= "PAGE 1 PRIORITY SECTIONS (Must appear on first page):\n";
+                $brandInstructions .= "1. PROFESSIONAL SUMMARY: <h2>Professional Summary</h2><p>3-4 impactful sentences tailored to target role</p>\n\n";
+                
+                $brandInstructions .= "2. CORE COMPETENCIES: <h2>Core Competencies</h2>\n";
+                $brandInstructions .= "   <div class='competencies-grid' style='display:grid;grid-template-columns:repeat(3,1fr);gap:0.5rem;margin:1rem 0;'>\n";
+                $brandInstructions .= "      <div class='competency-item' style='padding:0.5rem;background:#f8fafc;border-left:3px solid #3b82f6;'>Skill 1</div>\n";
+                $brandInstructions .= "      (Include 9-12 key competencies matching job requirements)\n";
+                $brandInstructions .= "   </div>\n\n";
+                
+                $brandInstructions .= "3. KEY SKILLS HIGHLIGHTS: <h2>Key Skills</h2>\n";
+                $brandInstructions .= "   - For 'Modern/Technical' variants: Use <span class='skill-tag' style='display:inline-block;padding:0.25rem 0.75rem;margin:0.25rem;background:#e0f2fe;color:#0369a1;border-radius:9999px;font-size:0.875rem;'>Skill Name</span>\n";
+                $brandInstructions .= "   - For 'Classic' variant: Use organized list with categories\n";
+                $brandInstructions .= "   - Prioritize skills from job description\n\n";
+                
+                $brandInstructions .= "SUBSEQUENT PAGE SECTIONS:\n";
+                $brandInstructions .= "4. WORK EXPERIENCE: <h2>Work Experience</h2>\n";
+                $brandInstructions .= "   - Use <h3>Job Title | Company</h3> and <div class='job-meta'>Date • Location</div> for each role\n";
+                $brandInstructions .= "   - Use <ul> with <li> for ALL achievement bullets\n";
+                $brandInstructions .= "   - PRESERVE every metric, percentage, and quantifiable achievement\n";
+                $brandInstructions .= "   - Start bullets with strong action verbs (Led, Architected, Implemented, Reduced, Increased)\n";
+                $brandInstructions .= "   - Include ALL projects and responsibilities from source content\n\n";
+                
+                $brandInstructions .= "5. EDUCATION: <h2>Education</h2>\n";
+                $brandInstructions .= "   - Use <h3>Degree | University/School</h3> and <div class='job-meta'>Year • GPA (if >3.5)</div>\n";
+                $brandInstructions .= "   - Include honors, relevant coursework, thesis if mentioned\n";
+                $brandInstructions .= "   - PRESERVE all education details from source\n\n";
+                
+                $brandInstructions .= "6. CERTIFICATIONS & LICENSES: <h2>Certifications</h2>\n";
+                $brandInstructions .= "   - List ALL certifications with issuing body and date\n";
+                $brandInstructions .= "   - Include credential IDs if provided\n\n";
+                
+                $brandInstructions .= "7. ADDITIONAL SECTIONS (if present in source):\n";
+                $brandInstructions .= "   - Projects, Awards, Publications, Volunteer Experience\n";
+                $brandInstructions .= "   - Only include if present in source content\n\n";
 
                 if ($data->targetRole) {
-                    $brandInstructions .= "\n\n[RESUME TAILORING ACTIVE]\n";
+                    $brandInstructions .= "\n\n[RESUME TAILORING ACTIVE - ENHANCEMENT ONLY]\n";
                     $brandInstructions .= "TARGET ROLE: {$data->targetRole}\n";
                     
                     if ($data->jobDescription) {
-                        $brandInstructions .= "JOB DESCRIPTION CONTEXT:\n{$data->jobDescription}\n";
-                        $brandInstructions .= "INSTRUCTION: Analyze the Job Description. Identify top 5 keywords/skills. Rewrite the CV to explicitly match these keywords. Prove fit for this specific description.\n";
+                        $brandInstructions .= "\nJOB DESCRIPTION CONTEXT:\n{$data->jobDescription}\n\n";
+                        $brandInstructions .= "KEYWORD MATCHING STRATEGY:\n";
+                        $brandInstructions .= "1. Extract top 10-15 keywords/skills from job description\n";
+                        $brandInstructions .= "2. Identify which keywords candidate already has in their experience\n";
+                        $brandInstructions .= "3. Add relevant keywords to Core Competencies section\n";
+                        $brandInstructions .= "4. Naturally weave job keywords into achievement bullets WHERE ACCURATE\n";
+                        $brandInstructions .= "5. Prioritize matching skills in Key Skills section\n\n";
                     }
 
-                    $brandInstructions .= "INSTRUCTION: \n";
-                    $brandInstructions .= "1. Rewrite the professional summary to specifically align with the Target Role.\n";
-                    $brandInstructions .= "2. Re-order or emphasize bullet points in Work Experience that demonstrate relevant skills.\n";
-                    $brandInstructions .= "3. OUTPUT FORMAT: You must wrap your response in these specific tags:\n";
+                    $brandInstructions .= "CRITICAL TAILORING RULES:\n";
+                    $brandInstructions .= "✓ DO: Rewrite professional summary for target role\n";
+                    $brandInstructions .= "✓ DO: Re-order experience bullets to highlight relevant achievements first\n";
+                    $brandInstructions .= "✓ DO: Add relevant keywords from job description to competencies\n";
+                    $brandInstructions .= "✓ DO: Enhance action verbs and quantify impact where possible\n";
+                    $brandInstructions .= "✓ DO: Add context that demonstrates fit for the role\n\n";
+                    
+                    $brandInstructions .= "✗ DON'T: Remove ANY dates, companies, or achievements from source\n";
+                    $brandInstructions .= "✗ DON'T: Delete ANY work experience, education, or certifications\n";
+                    $brandInstructions .= "✗ DON'T: Reduce the number of achievement bullets\n";
+                    $brandInstructions .= "✗ DON'T: Summarize or condense technical details\n";
+                    $brandInstructions .= "✗ DON'T: Fabricate experience or skills not in source content\n\n";
+
+                    $brandInstructions .= "OUTPUT FORMAT:\n";
                     $brandInstructions .= "   <tailoring_report>\n";
-                    $brandInstructions .= "      (Put the HTML for the AI Optimization Log here - the <ul> list of changes)\n";
+                    $brandInstructions .= "      <ul style='list-style:none;padding:0;'>\n";
+                    $brandInstructions .= "         <li>✓ Added X keywords from job description to Core Competencies</li>\n";
+                    $brandInstructions .= "         <li>✓ Tailored Professional Summary to emphasize [specific skills]</li>\n";
+                    $brandInstructions .= "         <li>✓ Re-ordered experience bullets to highlight relevant projects</li>\n";
+                    $brandInstructions .= "         <li>✓ Enhanced action verbs and quantified Y achievements</li>\n";
+                    $brandInstructions .= "         <li>✓ Preserved 100% of original content (zero data loss)</li>\n";
+                    $brandInstructions .= "      </ul>\n";
                     $brandInstructions .= "   </tailoring_report>\n";
                     $brandInstructions .= "   <document_content>\n";
-                    $brandInstructions .= "      (Put the main Resume HTML here - Summary, Experience, Education, Skills)\n";
+                    $brandInstructions .= "      (Complete Resume HTML with all sections)\n";
                     $brandInstructions .= "   </document_content>\n";
                 }
 

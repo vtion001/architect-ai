@@ -21,8 +21,10 @@ class BlogPostGenerator extends BaseContentGenerator
         $tone = $options['tone'] ?? 'Professional';
         $structure = $options['blog_structure'] ?? 'Standard';
         $cta = $options['cta'] ?? '';
+        $brandTone = $options['brand_tone'] ?? '';
         
         $humanize = $this->getHumanizeInstruction($tone);
+        $brandInstruction = $brandTone ? "Adopt this brand voice: $brandTone." : "";
 
         return "You are an expert content writer and SEO specialist. Write a comprehensive, high-ranking blog article.
             
@@ -30,6 +32,8 @@ class BlogPostGenerator extends BaseContentGenerator
             - Structure: $structure
             - Tone: $tone
             - Goal: High engagement and SEO ranking
+            
+            $brandInstruction
             
             $humanize
             
@@ -42,7 +46,7 @@ class BlogPostGenerator extends BaseContentGenerator
             - Mandatory Call-to-Action (CTA) at the end: $cta";
     }
 
-    public function getUserPrompt(string $topic, ?string $context = null, array $options = []):
+    public function getUserPrompt(string $topic, ?string $context = null, array $options = []): string
     {
         $keywords = $options['blog_keywords'] ?? '';
         
