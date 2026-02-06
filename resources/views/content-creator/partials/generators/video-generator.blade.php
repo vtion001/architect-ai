@@ -1,4 +1,4 @@
-{{-- Video Generator Interface Partial --}}
+{{-- Video Generator Interface Partial (REFACTORED) --}}
 <div x-show="generator === 'video'" 
      x-transition:enter="transition ease-out duration-300" 
      x-transition:enter-start="opacity-0 transform -translate-y-2" 
@@ -43,19 +43,42 @@
                   class="w-full bg-muted/20 border border-border rounded-xl px-5 py-4 text-sm font-medium focus:ring-1 focus:ring-primary"></textarea>
     </div>
 
-    {{-- Parameters Grid --}}
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div class="space-y-3">
-            <label class="text-[10px] font-black uppercase tracking-widest text-foreground italic">Visual Style</label>
-            <select x-model="videoStyle" 
-                    class="w-full h-12 bg-muted/20 border border-border rounded-xl px-4 text-sm font-medium">
-                <option value="UGC">UGC / Authentic</option>
-                <option value="Cinematic">Cinematic</option>
-                <option value="Animation">3D Animation</option>
-                <option value="Minimalist">Minimalist</option>
-            </select>
+    {{-- Video Style Selector --}}
+    <div class="space-y-3">
+        <label class="text-[10px] font-black uppercase tracking-widest text-foreground italic">Visual Style</label>
+        <div class="grid grid-cols-2 gap-3">
+            <button @click="videoStyle = 'UGC'" 
+                    :class="videoStyle === 'UGC' ? 'bg-orange-100 border-orange-400 text-orange-900' : 'bg-muted/20 border-border text-foreground'"
+                    class="h-20 border-2 rounded-xl flex flex-col items-center justify-center gap-1 hover:scale-105 transition-all">
+                <i data-lucide="smartphone" class="w-5 h-5"></i>
+                <span class="text-xs font-bold">UGC / Authentic</span>
+            </button>
+            <button @click="videoStyle = 'Cinematic'" 
+                    :class="videoStyle === 'Cinematic' ? 'bg-purple-100 border-purple-400 text-purple-900' : 'bg-muted/20 border-border text-foreground'"
+                    class="h-20 border-2 rounded-xl flex flex-col items-center justify-center gap-1 hover:scale-105 transition-all">
+                <i data-lucide="film" class="w-5 h-5"></i>
+                <span class="text-xs font-bold">Cinematic</span>
+            </button>
+            <button @click="videoStyle = 'Animation'" 
+                    :class="videoStyle === 'Animation' ? 'bg-cyan-100 border-cyan-400 text-cyan-900' : 'bg-muted/20 border-border text-foreground'"
+                    class="h-20 border-2 rounded-xl flex flex-col items-center justify-center gap-1 hover:scale-105 transition-all">
+                <i data-lucide="box" class="w-5 h-5"></i>
+                <span class="text-xs font-bold">3D Animation</span>
+            </button>
+            <button @click="videoStyle = 'Minimalist'" 
+                    :class="videoStyle === 'Minimalist' ? 'bg-slate-100 border-slate-400 text-slate-900' : 'bg-muted/20 border-border text-foreground'"
+                    class="h-20 border-2 rounded-xl flex flex-col items-center justify-center gap-1 hover:scale-105 transition-all">
+                <i data-lucide="minus-circle" class="w-5 h-5"></i>
+                <span class="text-xs font-bold">Minimalist</span>
+            </button>
         </div>
-        
+    </div>
+
+    {{-- Style-Specific Parameters (Dynamically Loaded) --}}
+    @include('content-creator.partials.generators.video-style-router')
+
+    {{-- Common Video Parameters --}}
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div class="space-y-3">
             <label class="text-[10px] font-black uppercase tracking-widest text-foreground italic">Duration</label>
             <select x-model="videoDuration" 
@@ -81,6 +104,16 @@
                     class="w-full h-12 bg-muted/20 border border-border rounded-xl px-4 text-sm font-medium">
                 <option>Sora 2 BEST</option>
                 <option>Sora 2 Fast</option>
+            </select>
+        </div>
+
+        <div class="space-y-3">
+            <label class="text-[10px] font-black uppercase tracking-widest text-foreground italic">Resolution</label>
+            <select x-model="resolution" 
+                    class="w-full h-12 bg-muted/20 border border-border rounded-xl px-4 text-sm font-medium">
+                <option value="1080p">1080p (Full HD)</option>
+                <option value="720p">720p (HD)</option>
+                <option value="4K">4K (Ultra HD)</option>
             </select>
         </div>
     </div>

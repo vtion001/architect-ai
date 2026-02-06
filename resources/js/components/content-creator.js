@@ -32,7 +32,7 @@ document.addEventListener('alpine:init', () => {
         isBatchMode: false,
         featuredImageType: 'ai',
 
-        // Video specific
+        // Video specific - Core
         videoStyle: 'UGC',
         videoDescription: '',
         sourceImage: '',
@@ -43,6 +43,50 @@ document.addEventListener('alpine:init', () => {
         platform: 'reels',
         hookStyle: 'Problem/Solution',
         duration: '60s',
+
+        // Video specific - UGC Style
+        ugcScenario: 'testimonial',
+        environment: 'indoor-natural',
+        cameraMovement: 'handheld',
+        addImperfections: true,
+        includeNoise: false,
+        casualFraming: true,
+
+        // Video specific - Cinematic Style
+        cinematicMood: 'epic',
+        lightingSetup: 'golden-hour',
+        colorGrading: 'teal-orange',
+        lensFlares: false,
+        filmGrain: true,
+        depthOfField: true,
+        motionBlur: false,
+        anamorphic: false,
+
+        // Video specific - 3D Animation Style
+        animationStyle: 'photorealistic',
+        sceneEnvironment: 'infinite-white',
+        cameraAnimation: 'orbit-360',
+        material: 'metallic-chrome',
+        rayTracing: true,
+        globalIllumination: true,
+        particleEffects: false,
+        physicsSimulation: false,
+        caustics: false,
+        animationSpeed: 1.0,
+        colorPalette: 'vibrant',
+
+        // Video specific - Minimalist Style
+        visualApproach: 'product-focused',
+        backgroundStyle: 'pure-white',
+        typographyFocus: 'headline-only',
+        animationType: 'fade-in',
+        colorScheme: 'black-white',
+        centeredComposition: true,
+        gridGuides: false,
+        whiteSpace: true,
+        sansSerifOnly: true,
+        elementCount: 3,
+        layout: 'centered',
 
         // Suggestions & AI
         suggestions: '',
