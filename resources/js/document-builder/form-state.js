@@ -36,7 +36,8 @@ export function createFormState(initialData) {
         personalInfo: {
             age: '', dob: '', gender: '', civil_status: '',
             nationality: '', height: '', weight: '',
-            place_of_birth: '', religion: '', languages: ''
+            place_of_birth: '', religion: '', languages: '',
+            city: '', alternate_phone: ''
         },
 
         // Financial/Proposal
@@ -101,7 +102,17 @@ export function createFormState(initialData) {
                 brand_id: this.selectedBrandId,
                 contractDetails: this.contractDetails,
                 recipientName: this.recipientName,
-                recipientTitle: this.recipientTitle
+                recipientTitle: this.recipientTitle,
+                senderName: this.senderName,
+                senderTitle: this.senderTitle,
+                companyAddress: this.companyAddress,
+                profilePhotoUrl: this.profilePhotoUrl,
+                targetRole: this.targetRole,
+                email: this.email,
+                phone: this.phone,
+                location: this.location,
+                website: this.website,
+                personalInfo: this.personalInfo
             };
         },
 

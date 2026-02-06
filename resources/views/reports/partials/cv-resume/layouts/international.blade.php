@@ -30,7 +30,7 @@
             </div>
             <div class="contact-item">
                 <span class="label">City</span>
-                <span class="value">{{ $personalInfo['city'] ?? 'City, State/Province, Country' }}</span>
+                <span class="value">{{ $personalInfo['city'] ?? $contactInfo['location'] ?? 'City, State/Province, Country' }}</span>
             </div>
             <div class="contact-item">
                 <span class="label">Phone</span>
@@ -38,7 +38,7 @@
             </div>
             <div class="contact-item">
                 <span class="label">Alt Phone</span>
-                <span class="value">{{ $personalInfo['alternate_phone'] ?? 'N/A' }}</span>
+                <span class="value">{{ $personalInfo['alternate_phone'] ?? $contactInfo['phone'] ?? 'N/A' }}</span>
             </div>
             <div class="contact-item" style="grid-column: span 2;">
                 <span class="label">Email</span>

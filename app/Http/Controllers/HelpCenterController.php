@@ -16,7 +16,7 @@ class HelpCenterController extends Controller
     {
         $sections = $this->getHelpSections();
         
-        return view('help-center.index', [
+        return view('help-center.help-center', [
             'sections' => $sections,
         ]);
     }

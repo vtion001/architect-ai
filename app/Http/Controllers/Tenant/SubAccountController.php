@@ -47,7 +47,7 @@ class SubAccountController extends Controller
             'can_create' => $agency->canCreateSubAccounts(),
         ];
 
-        return view('tenant.sub-accounts.index', compact('subAccounts', 'capacity'));
+        return view('tenant.sub-accounts.sub-accounts', compact('subAccounts', 'capacity'));
     }
 
     /**

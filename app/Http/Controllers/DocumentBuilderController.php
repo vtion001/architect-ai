@@ -390,6 +390,42 @@ class DocumentBuilderController extends Controller
         if (!empty($validated['recipientTitle'])) {
             $overrides['recipientTitle'] = $validated['recipientTitle'];
         }
+        if (!empty($validated['senderName'])) {
+            $overrides['senderName'] = $validated['senderName'];
+        }
+        if (!empty($validated['senderTitle'])) {
+            $overrides['senderTitle'] = $validated['senderTitle'];
+        }
+        if (!empty($validated['companyAddress'])) {
+            $overrides['companyAddress'] = $validated['companyAddress'];
+        }
+        if (!empty($validated['profilePhotoUrl'])) {
+            $overrides['profilePhotoUrl'] = $validated['profilePhotoUrl'];
+        }
+        if (!empty($validated['targetRole'])) {
+            $overrides['targetRole'] = $validated['targetRole'];
+        }
+
+        $contactInfo = [];
+        if (!empty($validated['email'])) {
+            $contactInfo['email'] = $validated['email'];
+        }
+        if (!empty($validated['phone'])) {
+            $contactInfo['phone'] = $validated['phone'];
+        }
+        if (!empty($validated['location'])) {
+            $contactInfo['location'] = $validated['location'];
+        }
+        if (!empty($validated['website'])) {
+            $contactInfo['website'] = $validated['website'];
+        }
+        if (!empty($contactInfo)) {
+            $overrides['contactInfo'] = $contactInfo;
+        }
+
+        if (!empty($validated['personalInfo']) && is_array($validated['personalInfo'])) {
+            $overrides['personalInfo'] = $validated['personalInfo'];
+        }
         
         return $overrides;
     }

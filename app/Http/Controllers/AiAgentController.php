@@ -34,7 +34,7 @@ class AiAgentController extends Controller
         
         $brands = auth()->user()->tenant->brands()->get();
 
-        return view('ai-agents.index', compact('agents', 'knowledgeAssets', 'brands'));
+        return view('ai-agents.ai-agents', compact('agents', 'knowledgeAssets', 'brands'));
     }
 
     public function store(Request $request): JsonResponse

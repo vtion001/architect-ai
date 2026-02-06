@@ -31,7 +31,7 @@ class SettingsController extends Controller
         $tokenBalance = $this->tokenService->getBalance($tenant);
         $apiTokens = $user->tokens;
 
-        return view('tenant.settings.index', compact('tenant', 'user', 'activeTab', 'auditLogs', 'tokenBalance', 'apiTokens'));
+        return view('tenant.settings.settings', compact('tenant', 'user', 'activeTab', 'auditLogs', 'tokenBalance', 'apiTokens'));
     }
 
     /**

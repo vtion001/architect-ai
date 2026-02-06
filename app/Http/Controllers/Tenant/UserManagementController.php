@@ -29,7 +29,7 @@ class UserManagementController extends Controller
                 : 100,
         ];
 
-        return view('tenant.users.index', compact('users', 'roles', 'invitations', 'stats'));
+        return view('tenant.users.users', compact('users', 'roles', 'invitations', 'stats'));
     }
 
     /**

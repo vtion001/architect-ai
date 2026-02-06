@@ -61,7 +61,7 @@ class BillingController extends Controller
             ],
         ];
 
-        return view('billing.index', [
+        return view('billing.billing', [
             'currentPlan' => $currentPlan->value,
             'credits' => $credits,
             'plans' => $plans,

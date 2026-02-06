@@ -26,6 +26,6 @@ class AuditController extends Controller
 
         $logs = $query->paginate(50);
 
-        return view('admin.audit.index', compact('logs'));
+        return view('admin.audit.audit', compact('logs'));
     }
 }

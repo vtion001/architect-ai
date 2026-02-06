@@ -23,7 +23,7 @@ class TenantExplorerController extends Controller
             return $t;
         });
 
-        return view('admin.tenants.index', compact('tenants'));
+        return view('admin.tenants.tenants', compact('tenants'));
     }
 
     public function show(Tenant $tenant)

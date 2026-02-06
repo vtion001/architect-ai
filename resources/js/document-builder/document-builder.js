@@ -132,27 +132,9 @@ export function documentBuilder(config) {
                 const data = await apiClient.uploadFile(routes.parseResume, formData);
 
                 if (data.success) {
-                    this.sourceContent = data.text;
-
-                    if (data.extracted_data) {
-                        const ex = data.extracted_data;
-                        if (ex.full_name) this.recipientName = ex.full_name;
-                        if (ex.title) this.recipientTitle = ex.title;
-                        if (ex.email) this.email = ex.email;
-                        if (ex.phone) this.phone = ex.phone;
-                        if (ex.location) this.location = ex.location;
-                        if (ex.website) this.website = ex.website;
-
-                        if (ex.personal_info) {
-                            const sanitized = {};
-                            for (const [k, v] of Object.entries(ex.personal_info)) {
-                                sanitized[k] = v == null ? '' : String(v);
-                            }
-                            this.personalInfo = { ...this.personalInfo, ...sanitized };
-                        }
-
-                        alert('Resume parsed and candidate identity autofilled!');
-                    }
+                    const parsed = this.normalizeResumeParse(data);
+                    this.applyResumeAutofill(parsed);
+                    alert('Resume parsed and candidate identity autofilled!');
                 } else {
                     alert(data.message || 'Failed to parse resume.');
                 }
@@ -162,6 +144,44 @@ export function documentBuilder(config) {
             } finally {
                 this.isParsing = false;
                 event.target.value = '';
+            }
+        },
+
+        normalizeResumeParse(data) {
+            const extracted = data?.extracted_data || {};
+            const personalInfo = extracted.personal_info || {};
+
+            const normalizedPersonalInfo = {};
+            for (const [k, v] of Object.entries(personalInfo)) {
+                normalizedPersonalInfo[k] = v == null ? '' : String(v);
+            }
+
+            return {
+                sourceContent: data?.text || '',
+                fullName: extracted.full_name || '',
+                title: extracted.title || '',
+                email: extracted.email || '',
+                phone: extracted.phone || '',
+                location: extracted.location || '',
+                website: extracted.website || '',
+                targetRole: extracted.target_role || '',
+                jobDescription: extracted.job_description || '',
+                personalInfo: normalizedPersonalInfo
+            };
+        },
+
+        applyResumeAutofill(parsed) {
+            if (parsed.sourceContent) this.sourceContent = parsed.sourceContent;
+            if (parsed.fullName) this.recipientName = parsed.fullName;
+            if (parsed.title) this.recipientTitle = parsed.title;
+            if (parsed.email) this.email = parsed.email;
+            if (parsed.phone) this.phone = parsed.phone;
+            if (parsed.location) this.location = parsed.location;
+            if (parsed.website) this.website = parsed.website;
+            if (parsed.targetRole) this.targetRole = parsed.targetRole;
+            if (parsed.jobDescription) this.jobDescription = parsed.jobDescription;
+            if (Object.keys(parsed.personalInfo || {}).length) {
+                this.personalInfo = { ...this.personalInfo, ...parsed.personalInfo };
             }
         },
 

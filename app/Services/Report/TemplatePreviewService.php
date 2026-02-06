@@ -145,8 +145,8 @@ class TemplatePreviewService
 
         // Add sender/recipient defaults
         $context = array_merge($context, $this->getDefaultRecipientData($overrides));
-        $context = array_merge($context, $this->getDefaultContactInfo());
-        $context = array_merge($context, $this->getDefaultPersonalInfo());
+        $context = array_merge($context, $this->getDefaultContactInfo($overrides));
+        $context = array_merge($context, $this->getDefaultPersonalInfo($overrides));
 
         // Template-specific context
         $context = $this->addTemplateSpecificContext($template, $context, $overrides);
@@ -174,14 +174,16 @@ class TemplatePreviewService
     /**
      * Get default contact info.
      */
-    protected function getDefaultContactInfo(): array
+    protected function getDefaultContactInfo(array $overrides = []): array
     {
+        $overrideContact = $overrides['contactInfo'] ?? [];
+
         return [
             'contactInfo' => [
-                'email' => 'hello@example.com',
-                'phone' => '+1 (555) 000-0000',
-                'location' => 'City, Country',
-                'website' => 'www.portfolio.com',
+                'email' => $overrideContact['email'] ?? 'hello@example.com',
+                'phone' => $overrideContact['phone'] ?? '+1 (555) 000-0000',
+                'location' => $overrideContact['location'] ?? 'City, Country',
+                'website' => $overrideContact['website'] ?? 'www.portfolio.com',
             ],
         ];
     }
@@ -189,10 +191,10 @@ class TemplatePreviewService
     /**
      * Get default personal info for CV/resume templates.
      */
-    protected function getDefaultPersonalInfo(): array
+    protected function getDefaultPersonalInfo(array $overrides = []): array
     {
         return [
-            'personalInfo' => [],
+            'personalInfo' => $overrides['personalInfo'] ?? [],
         ];
     }
 

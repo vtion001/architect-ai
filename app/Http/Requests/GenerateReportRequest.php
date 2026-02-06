@@ -48,6 +48,8 @@ class GenerateReportRequest extends FormRequest
             'personalInfo.place_of_birth' => ['nullable', 'string', 'max:255'],
             'personalInfo.religion' => ['nullable', 'string', 'max:100'],
             'personalInfo.languages' => ['nullable', 'string', 'max:255'],
+            'personalInfo.city' => ['nullable', 'string', 'max:255'],
+            'personalInfo.alternate_phone' => ['nullable', 'string', 'max:50'],
             'contractDetails' => ['nullable', 'array'],
             'financials' => ['nullable', 'array'],
             'financials.totalInvestment' => ['nullable', 'string', 'max:50'],

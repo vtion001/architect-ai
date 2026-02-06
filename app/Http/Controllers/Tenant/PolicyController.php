@@ -13,7 +13,7 @@ class PolicyController extends Controller
     public function index()
     {
         $policies = AccessPolicy::orderBy('priority', 'desc')->get();
-        return view('tenant.policies.index', compact('policies'));
+        return view('tenant.policies.policies', compact('policies'));
     }
 
     public function create()

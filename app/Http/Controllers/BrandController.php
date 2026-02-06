@@ -170,7 +170,7 @@ class BrandController extends Controller
     public function index()
     {
         $brands = Auth::user()->tenant->brands()->orderBy('is_default', 'desc')->get();
-        return view('brands.index', compact('brands'));
+        return view('brands.brands', compact('brands'));
     }
 
     public function store(Request $request)

@@ -28,7 +28,7 @@ class MediaRegistryController extends Controller
             'uploads' => MediaAsset::where('source', 'upload')->count(),
         ];
 
-        return view('media-registry.index', compact('assets', 'stats'));
+        return view('media-registry.media-registry', compact('assets', 'stats'));
     }
 
     /**

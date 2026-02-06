@@ -192,8 +192,22 @@ class CvResumeGenerator extends BaseGenerator
 
         $instructions = "\n[INTERNATIONAL CV FORMAT - HEALTHCARE/MLS STANDARD]\n";
         $instructions .= "You must strictly follow this structure for the international healthcare CV:\n\n";
+        $instructions .= "CRITICAL: ZERO DATA LOSS. You must include 100% of the extracted resume details.\n";
+        $instructions .= "Do NOT omit any roles, dates, employers, projects, certifications, skills, education, or achievements.\n";
+        $instructions .= "Tailor and enhance wording for the job description, but NEVER remove or condense details.\n\n";
 
-        $instructions .= "1. PROFILE SECTION:\n";
+        $instructions .= "0. PROFESSIONAL SUMMARY:\n";
+        $instructions .= "   <h2 class='section-title'>PROFESSIONAL SUMMARY</h2>\n";
+        $instructions .= "   <p>3-4 impactful sentences tailored to the target role</p>\n\n";
+
+        $instructions .= "1. CORE COMPETENCIES:\n";
+        $instructions .= "   <h2 class='section-title'>CORE COMPETENCIES</h2>\n";
+        $instructions .= "   <div class='competencies-grid' style='display:grid;grid-template-columns:repeat(3,1fr);gap:0.5rem;margin:1rem 0;'>\n";
+        $instructions .= "      <div class='competency-item' style='padding:0.5rem;background:#f8fafc;border-left:3px solid #3b82f6;'>Skill 1</div>\n";
+        $instructions .= "      (Include 9-12 key competencies matching job requirements)\n";
+        $instructions .= "   </div>\n\n";
+
+        $instructions .= "2. PROFILE SECTION:\n";
         $instructions .= "   <h2 class='section-title'>PROFILE</h2>\n";
         $instructions .= "   <ul class='profile-summary'>\n";
         $instructions .= "      <li>Registered Medical Lab Scientist with # years of laboratory experience\n";
@@ -201,7 +215,7 @@ class CvResumeGenerator extends BaseGenerator
         $instructions .= "      </li>\n";
         $instructions .= "   </ul>\n\n";
 
-        $instructions .= "2. EDUCATION SECTION:\n";
+        $instructions .= "3. EDUCATION SECTION:\n";
         $instructions .= "   <h2 class='section-title'>EDUCATION</h2>\n";
         $instructions .= "   <div class='education-block'>\n";
         $instructions .= "      <div class='dates'>Dates Attended University</div>\n";
@@ -209,7 +223,7 @@ class CvResumeGenerator extends BaseGenerator
         $instructions .= "      <div class='degree'>Degree earned</div>\n";
         $instructions .= "   </div>\n\n";
 
-        $instructions .= "3. WORK EXPERIENCE SECTION (for EACH facility, use this structure):\n";
+        $instructions .= "4. WORK EXPERIENCE SECTION (for EACH facility, use this structure):\n";
         $instructions .= "   <h2 class='section-title'>WORK EXPERIENCE</h2>\n";
         $instructions .= "   <div class='facility-block'>\n";
         $instructions .= "      <div class='facility-name'>Current Facility Name</div>\n";
@@ -231,7 +245,7 @@ class CvResumeGenerator extends BaseGenerator
         $instructions .= "   </div>\n\n";
         $instructions .= "   (Repeat facility-block for Previous Facilities)\n\n";
 
-        $instructions .= "4. LICENSES & CERTIFICATIONS SECTION:\n";
+        $instructions .= "5. LICENSES & CERTIFICATIONS SECTION:\n";
         $instructions .= "   <h2 class='section-title'>LICENSES & CERTIFICATIONS</h2>\n";
         $instructions .= "   <ul class='certifications-block'>\n";
         $instructions .= "      <li>List All Licenses, RMT PRC etc.</li>\n";

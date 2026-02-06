@@ -142,7 +142,7 @@ Extract the following information from the resume text into a structured JSON ob
 - `professional_summary`: Complete professional summary/objective (verbatim)
 
 **PERSONAL DETAILS (if present):**
-- `personal_info`: object containing `age`, `dob`, `gender`, `civil_status`, `nationality`, `height`, `weight`, `place_of_birth`, `religion`, `languages`
+- `personal_info`: object containing `age`, `dob`, `gender`, `civil_status`, `nationality`, `height`, `weight`, `place_of_birth`, `religion`, `languages`, `city`, `alternate_phone`
 
 **WORK EXPERIENCE (COMPLETE & DETAILED):**
 - `work_experience`: array of objects, each with:
