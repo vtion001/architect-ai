@@ -141,6 +141,9 @@ Extract the following information from the resume text into a structured JSON ob
 - `website`: Portfolio, LinkedIn, or GitHub URL
 - `professional_summary`: Complete professional summary/objective (verbatim)
 
+**CONTACT INFORMATION (if present):**
+- `contact_info`: object containing `email`, `phone`, `location`, `address`, `website`, `linkedin`
+
 **PERSONAL DETAILS (if present):**
 - `personal_info`: object containing `age`, `dob`, `gender`, `civil_status`, `nationality`, `height`, `weight`, `place_of_birth`, `religion`, `languages`, `city`, `alternate_phone`
 

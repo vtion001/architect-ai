@@ -150,23 +150,138 @@ export function documentBuilder(config) {
         normalizeResumeParse(data) {
             const extracted = data?.extracted_data || {};
             const personalInfo = extracted.personal_info || {};
+            const contactInfo = extracted.contact_info || extracted.contact || extracted.contacts || {};
+            const rawText = data?.text || '';
+
+            const pickValue = (...values) => {
+                for (const value of values) {
+                    if (value != null && String(value).trim() !== '') {
+                        return String(value).trim();
+                    }
+                }
+                return '';
+            };
+
+            const derived = this.deriveContactFromText(rawText);
+            const derivedPersonal = this.derivePersonalFromText(rawText);
 
             const normalizedPersonalInfo = {};
             for (const [k, v] of Object.entries(personalInfo)) {
-                normalizedPersonalInfo[k] = v == null ? '' : String(v);
+                normalizedPersonalInfo[k] = v == null ? '' : String(v).trim();
+            }
+
+            // Normalize age to numeric string
+            if (normalizedPersonalInfo.age) {
+                const ageMatch = normalizedPersonalInfo.age.match(/\d{1,3}/);
+                normalizedPersonalInfo.age = ageMatch ? ageMatch[0] : '';
+            }
+
+            // Normalize DOB to YYYY-MM-DD for date input compatibility
+            if (normalizedPersonalInfo.dob) {
+                const isoMatch = normalizedPersonalInfo.dob.match(/\d{4}-\d{2}-\d{2}/);
+                if (!isoMatch) {
+                    const parsedDate = new Date(normalizedPersonalInfo.dob);
+                    if (!Number.isNaN(parsedDate.getTime())) {
+                        const yyyy = parsedDate.getFullYear();
+                        const mm = String(parsedDate.getMonth() + 1).padStart(2, '0');
+                        const dd = String(parsedDate.getDate()).padStart(2, '0');
+                        normalizedPersonalInfo.dob = `${yyyy}-${mm}-${dd}`;
+                    } else {
+                        normalizedPersonalInfo.dob = '';
+                    }
+                }
+            }
+
+            const rawPhone = String(extracted.phone || '').trim();
+            if (!normalizedPersonalInfo.alternate_phone && rawPhone) {
+                const splitMatch = rawPhone.split(/\s*[\/;,]\s*/).filter(Boolean);
+                if (splitMatch.length > 1) {
+                    normalizedPersonalInfo.alternate_phone = splitMatch[1];
+                }
+            }
+
+            if (!normalizedPersonalInfo.city && extracted.location) {
+                const cityGuess = String(extracted.location).split(',')[0]?.trim();
+                normalizedPersonalInfo.city = cityGuess || '';
+            }
+
+            const mergedPersonalInfo = { ...derivedPersonal, ...normalizedPersonalInfo };
+            for (const [key, value] of Object.entries(derivedPersonal)) {
+                if (!mergedPersonalInfo[key]) {
+                    mergedPersonalInfo[key] = value;
+                }
             }
 
             return {
-                sourceContent: data?.text || '',
-                fullName: extracted.full_name || '',
-                title: extracted.title || '',
-                email: extracted.email || '',
-                phone: extracted.phone || '',
-                location: extracted.location || '',
-                website: extracted.website || '',
-                targetRole: extracted.target_role || '',
-                jobDescription: extracted.job_description || '',
-                personalInfo: normalizedPersonalInfo
+                sourceContent: rawText || '',
+                fullName: pickValue(extracted.full_name, extracted.name),
+                title: pickValue(extracted.title, extracted.current_title, extracted.role),
+                email: pickValue(extracted.email, contactInfo.email, contactInfo.email_address, personalInfo.email, personalInfo.email_address, derived.email),
+                phone: pickValue(rawPhone, contactInfo.phone, contactInfo.contact_number, personalInfo.phone, personalInfo.contact_number, derived.phone),
+                location: pickValue(extracted.location, contactInfo.location, contactInfo.address, personalInfo.address, personalInfo.location, derived.location),
+                website: pickValue(extracted.website, contactInfo.website, contactInfo.linkedin, personalInfo.website, personalInfo.linkedin, derived.website),
+                targetRole: pickValue(extracted.target_role, extracted.target_position),
+                jobDescription: pickValue(extracted.job_description, extracted.job_posting),
+                personalInfo: mergedPersonalInfo
+            };
+        },
+
+        deriveContactFromText(text) {
+            const lines = String(text || '')
+                .split(/\r?\n/)
+                .map((line) => line.trim())
+                .filter(Boolean);
+
+            const emailMatch = text.match(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i);
+            const phoneMatch = text.match(/(?:\+?\d[\d\s().\/-]{7,}\d)/);
+
+            const locationLine = lines.find((line) => /\d/.test(line) && /,/.test(line))
+                || lines.find((line) => /(city|province|country|address)/i.test(line));
+
+            const websiteMatch = text.match(/https?:\/\/[^\s]+|www\.[^\s]+/i);
+
+            return {
+                email: emailMatch ? emailMatch[0] : '',
+                phone: phoneMatch ? phoneMatch[0] : '',
+                location: locationLine ? locationLine.replace(/^(address|location)\s*[:\-]\s*/i, '').trim() : '',
+                website: websiteMatch ? websiteMatch[0] : ''
+            };
+        },
+
+        derivePersonalFromText(text) {
+            const lines = String(text || '')
+                .split(/\r?\n/)
+                .map((line) => line.trim())
+                .filter(Boolean);
+
+            const getLabeledValue = (label) => {
+                const regex = new RegExp(`^${label}\\s*[:\-]\\s*(.+)$`, 'i');
+                const match = lines.find((line) => regex.test(line));
+                if (!match) return '';
+                return match.replace(regex, '$1').trim();
+            };
+
+            const age = getLabeledValue('Age');
+            const dob = getLabeledValue('Date of Birth|DOB');
+            const gender = getLabeledValue('Gender');
+            const civilStatus = getLabeledValue('Civil Status|Marital Status');
+            const nationality = getLabeledValue('Nationality');
+            const religion = getLabeledValue('Religion');
+            const placeOfBirth = getLabeledValue('Place of Birth|Birthplace');
+            const languages = getLabeledValue('Languages|Languages Spoken');
+
+            const extractedGender = gender || (lines.find((line) => /\b(Male|Female|Other)\b/i.test(line)) || '');
+            const extractedCivil = civilStatus || (lines.find((line) => /\b(Single|Married|Widowed|Separated)\b/i.test(line)) || '');
+
+            return {
+                age: age ? age.replace(/[^0-9]/g, '') : '',
+                dob: dob,
+                gender: extractedGender.replace(/^Gender\s*[:\-]?\s*/i, ''),
+                civil_status: extractedCivil.replace(/^(Civil Status|Marital Status)\s*[:\-]?\s*/i, ''),
+                nationality,
+                religion,
+                place_of_birth: placeOfBirth,
+                languages
             };
         },
 

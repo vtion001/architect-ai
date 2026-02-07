@@ -6,7 +6,7 @@ namespace App\Services\Generators;
 
 use App\DTOs\ReportRequestData;
 use App\Services\BrandResolverService;
-use App\Services\SampleContentProvider;
+use App\Services\Report\SampleContentProvider;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 
