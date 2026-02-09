@@ -2,9 +2,27 @@
 <div class="bg-card border border-border rounded-[40px] p-8 shadow-sm hover:border-primary/30 transition-all group relative overflow-hidden flex flex-col">
     <!-- Meta Badge -->
     <div class="flex items-center justify-between mb-8">
-        <span class="px-2.5 py-1 rounded-lg bg-muted border border-border text-[9px] font-black uppercase tracking-widest text-slate-500">
-            {{ $doc->category ?? 'Intelligence' }}
-        </span>
+        <div class="flex items-center gap-2">
+            <span class="px-2.5 py-1 rounded-lg bg-muted border border-border text-[9px] font-black uppercase tracking-widest text-slate-500">
+                {{ $doc->category ?? 'Intelligence' }}
+            </span>
+            {{-- Signature Status Badge --}}
+            @php
+                $signatureStatus = $doc->metadata['signature_status'] ?? 'unsigned';
+                $statusConfig = [
+                    'unsigned' => ['color' => 'slate', 'icon' => 'file-text'],
+                    'pending' => ['color' => 'yellow', 'icon' => 'clock'],
+                    'signed' => ['color' => 'green', 'icon' => 'check-circle']
+                ];
+                $status = $statusConfig[$signatureStatus];
+            @endphp
+            @if($signatureStatus !== 'unsigned')
+                <span class="px-2 py-1 rounded-lg bg-{{ $status['color'] }}-50 border border-{{ $status['color'] }}-200 text-[9px] font-black uppercase tracking-widest text-{{ $status['color'] }}-600 flex items-center gap-1">
+                    <i data-lucide="{{ $status['icon'] }}" class="w-3 h-3"></i>
+                    {{ ucfirst($signatureStatus) }}
+                </span>
+            @endif
+        </div>
         <span class="text-[8px] font-mono text-slate-500 uppercase tracking-tighter">ID: {{ substr($doc->id, 0, 8) }}</span>
     </div>
 
@@ -34,14 +52,40 @@
     </div>
 
     <!-- Actions -->
-    <div class="flex gap-2">
-        <a href="{{ route('documents.show', $doc) }}" 
-           class="flex-1 h-12 rounded-xl bg-muted border border-border font-black uppercase text-[10px] tracking-widest flex items-center justify-center hover:bg-white hover:text-black transition-all">
-            Open Viewer
-        </a>
+    <div class="flex flex-col gap-2">
+        <div class="flex gap-2">
+            <a href="{{ route('documents.show', $doc) }}" 
+               class="flex-1 h-12 rounded-xl bg-muted border border-border font-black uppercase text-[10px] tracking-widest flex items-center justify-center hover:bg-white hover:text-black transition-all">
+                Open Viewer
+            </a>
+            {{-- Signature Action Button --}}
+            @php
+                $signatureStatus = $doc->metadata['signature_status'] ?? 'unsigned';
+            @endphp
+            @if($signatureStatus === 'unsigned')
+                <button onclick="alert('Request e-signature feature coming soon!')" 
+                        class="flex-1 h-12 rounded-xl bg-primary/10 border border-primary/30 text-primary font-black uppercase text-[10px] tracking-widest flex items-center justify-center gap-2 hover:bg-primary hover:text-white transition-all">
+                    <i data-lucide="pen-tool" class="w-3.5 h-3.5"></i>
+                    Sign
+                </button>
+            @elseif($signatureStatus === 'pending')
+                <button onclick="alert('Signature pending')" 
+                        class="flex-1 h-12 rounded-xl bg-yellow-50 border border-yellow-200 text-yellow-700 font-black uppercase text-[10px] tracking-widest flex items-center justify-center gap-2 hover:bg-yellow-100 transition-all">
+                    <i data-lucide="clock" class="w-3.5 h-3.5"></i>
+                    Pending
+                </button>
+            @else
+                <button onclick="alert('View signature details')" 
+                        class="flex-1 h-12 rounded-xl bg-green-50 border border-green-200 text-green-700 font-black uppercase text-[10px] tracking-widest flex items-center justify-center gap-2 hover:bg-green-100 transition-all">
+                    <i data-lucide="check-circle" class="w-3.5 h-3.5"></i>
+                    Signed
+                </button>
+            @endif
+        </div>
         <button @click="if(confirm('Purge this intelligence record?')) { fetch('{{ route('documents.destroy', $doc) }}', { method: 'DELETE', headers: { 'X-CSRF-TOKEN': '{{ csrf_token() }}' } }).then(() => window.location.reload()); }"
-                class="w-12 h-12 rounded-xl bg-red-50 text-red-600 border border-red-100 flex items-center justify-center hover:bg-red-600 hover:text-white transition-all">
-            <i data-lucide="trash-2" class="w-4 h-4"></i>
+                class="w-full h-10 rounded-xl bg-red-50 text-red-600 border border-red-100 flex items-center justify-center gap-2 hover:bg-red-600 hover:text-white transition-all text-[9px] font-black uppercase tracking-widest">
+            <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+            Delete
         </button>
     </div>
 </div>

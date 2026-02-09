@@ -88,6 +88,9 @@
 
     {{-- Footer Watermark --}}
     @include('documents.partials.footer')
+
+    {{-- Signature Request Modal --}}
+    @include('documents.partials.signature-request-modal')
 </div>
 
 {{-- Styles --}}

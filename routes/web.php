@@ -8,6 +8,7 @@ use App\Http\Controllers\ContentCreatorController;
 use App\Http\Controllers\SocialPlannerController;
 use App\Http\Controllers\KnowledgeBaseController;
 use App\Http\Controllers\DocumentsController;
+use App\Http\Controllers\SignatureRequestController;
 use App\Http\Controllers\AnalyticsController;
 
 use App\Http\Controllers\Auth\AuthController;
@@ -20,6 +21,10 @@ use App\Http\Controllers\Auth\InvitationController;
 Route::get('/', [LandingPageController::class, 'index'])->name('landing');
 Route::get('/waitlist', [LandingPageController::class, 'waitlist'])->name('waitlist');
 Route::post('/waitlist', [LandingPageController::class, 'joinWaitlist'])->name('waitlist.join');
+
+// Public Signature Routes (no auth required)
+Route::get('/signatures/{token}/sign', [SignatureRequestController::class, 'show'])->name('signatures.sign');
+Route::post('/signatures/{token}/submit', [SignatureRequestController::class, 'submit'])->name('signatures.submit');
 
 // Invitation Protocol
 Route::get('/auth/join/{token}', [InvitationController::class, 'show'])->name('invitation.show');
@@ -181,6 +186,10 @@ Route::middleware(['auth', 'tenant', 'mfa', 'session_security'])->group(function
     Route::get('/documents/{document}', [DocumentsController::class, 'show'])->name('documents.show');
     Route::put('/documents/{document}', [DocumentsController::class, 'update'])->name('documents.update');
     Route::delete('/documents/{document}', [DocumentsController::class, 'destroy'])->name('documents.destroy');
+
+    // Signature Request Routes
+    Route::post('/documents/{document}/request-signature', [SignatureRequestController::class, 'send'])->name('documents.request-signature');
+    Route::get('/documents/{document}/signatures', [SignatureRequestController::class, 'index'])->name('documents.signatures.index');
 
     Route::get('/media-registry', [\App\Http\Controllers\MediaRegistryController::class, 'index'])->name('media-registry.index');
     Route::post('/media-registry', [\App\Http\Controllers\MediaRegistryController::class, 'store'])->name('media-registry.store');

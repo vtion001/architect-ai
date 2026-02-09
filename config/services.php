@@ -45,4 +45,10 @@ return [
         'api_key' => env('CLOUDINARY_API_KEY'),
         'api_secret' => trim(str_replace('\n', '', env('CLOUDINARY_API_SECRET', ''))),
     ],
+
+    'hellosign' => [
+        'api_key' => env('HELLOSIGN_API_KEY'),
+        'client_id' => env('HELLOSIGN_CLIENT_ID'),
+        'test_mode' => env('HELLOSIGN_TEST_MODE', true),
+    ],
 ];

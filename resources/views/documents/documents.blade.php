@@ -72,10 +72,23 @@
                             <td class="py-4 px-4 text-xs text-muted-foreground">{{ $doc->updated_at->format('Y-m-d H:i') }}</td>
                             <td class="py-4 px-4 text-right">
                                 <div class="flex items-center justify-end gap-2">
-                                    <a href="{{ route('documents.show', $doc) }}" target="_blank" class="inline-flex items-center justify-center rounded-md text-sm font-medium border border-border bg-background hover:bg-accent h-9 w-9">
+                                    <a href="{{ route('documents.show', $doc) }}" target="_blank" class="inline-flex items-center justify-center rounded-md text-sm font-medium border border-border bg-background hover:bg-accent h-9 w-9" title="View Document">
                                         <i data-lucide="eye" class="w-4 h-4"></i>
                                     </a>
-                                    <button @click="deleteDocument('{{ $doc->id }}')" class="inline-flex items-center justify-center rounded-md text-sm font-medium border border-border bg-background text-destructive hover:bg-destructive/10 h-9 w-9">
+                                    @php
+                                        $signatureStatus = $doc->metadata['signature_status'] ?? 'unsigned';
+                                        $signatureColors = [
+                                            'unsigned' => 'text-slate-500 hover:bg-blue-50 hover:text-blue-600',
+                                            'pending' => 'text-yellow-600 hover:bg-yellow-50',
+                                            'signed' => 'text-green-600 hover:bg-green-50'
+                                        ];
+                                    @endphp
+                                    <button onclick="alert('{{ $signatureStatus === 'unsigned' ? 'Request e-signature for this document' : ($signatureStatus === 'pending' ? 'Signature pending' : 'View signatures') }}')" 
+                                            class="inline-flex items-center justify-center rounded-md text-sm font-medium border border-border bg-background h-9 w-9 {{ $signatureColors[$signatureStatus] }}" 
+                                            title="{{ $signatureStatus === 'unsigned' ? 'Request Signature' : ($signatureStatus === 'pending' ? 'Pending Signature' : 'View Signatures') }}">
+                                        <i data-lucide="{{ $signatureStatus === 'unsigned' ? 'pen-tool' : ($signatureStatus === 'pending' ? 'clock' : 'check-circle') }}" class="w-4 h-4"></i>
+                                    </button>
+                                    <button @click="deleteDocument('{{ $doc->id }}')" class="inline-flex items-center justify-center rounded-md text-sm font-medium border border-border bg-background text-destructive hover:bg-destructive/10 h-9 w-9" title="Delete Document">
                                         <i data-lucide="trash-2" class="w-4 h-4"></i>
                                     </button>
                                 </div>
