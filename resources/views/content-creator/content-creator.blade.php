@@ -54,6 +54,9 @@
             {{-- Normal Mode: Recent Content Feed --}}
             @include('content-creator.partials.sidebar.recent-activity')
 
+            {{-- Incoming Drafts from External Sources --}}
+            @include('content-creator.partials.sidebar.incoming-content')
+
             {{-- Video Mode: How It Works & Tokens --}}
             @include('content-creator.partials.sidebar.video-info')
         </div>

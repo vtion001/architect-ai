@@ -42,10 +42,12 @@ abstract class BaseGenerator implements DocumentGeneratorInterface
      */
     public function generate(ReportRequestData $data, ?string $kbContext = null, ?string $researchData = null): string
     {
-        $apiKey = config('services.openai.key');
+        $apiKey = config('services.openrouter.key');
+        $model = config('services.openrouter.resume_model', 'arcee/arcee-trinity-large-preview');
+        $baseUrl = config('services.openrouter.base_url', 'https://openrouter.ai/api/v1/chat/completions');
 
         if (!$apiKey) {
-            Log::warning('OpenAI API key not configured - using sample content');
+            Log::warning('OpenRouter API key not configured - using sample content');
             return $this->getFallbackContent($data);
         }
 
@@ -55,8 +57,8 @@ abstract class BaseGenerator implements DocumentGeneratorInterface
 
             $response = Http::withToken($apiKey)
                 ->timeout(120)
-                ->post('https://api.openai.com/v1/chat/completions', [
-                    'model' => config('services.openai.model', 'gpt-4o-mini'),
+                ->post($baseUrl, [
+                    'model' => $model,
                     'messages' => [
                         [
                             'role' => 'system',
@@ -75,9 +77,9 @@ abstract class BaseGenerator implements DocumentGeneratorInterface
                 return $this->sanitizeOutput($rawResult);
             }
 
-            Log::error('OpenAI API error: ' . $response->body());
+            Log::error('OpenRouter API error: ' . $response->body());
         } catch (\Exception $e) {
-            Log::error('OpenAI generation error: ' . $e->getMessage());
+            Log::error('OpenRouter generation error: ' . $e->getMessage());
         }
 
         // Fallback to sample content

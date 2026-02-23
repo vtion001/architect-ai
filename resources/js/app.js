@@ -13,6 +13,8 @@ import './bootstrap';
 import Alpine from 'alpinejs';
 import { createIcons, icons } from 'lucide';
 import Chart from 'chart.js/auto';
+import { createTeamChatWidgetComponent } from './components/team-chat-widget';
+window.createTeamChatWidgetComponent = createTeamChatWidgetComponent;
 
 // =========================================================================
 // Alpine.js

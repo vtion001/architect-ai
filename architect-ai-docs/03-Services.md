@@ -64,14 +64,14 @@ Handles media upload and management via Cloudinary.
 ### ContentService
 **Path**: `app/Services/ContentService.php`
 
-Main content generation service with RAG integration.
+Main content generation service with RAG integration, powered by OpenRouter.
 
 **Dependencies**:
 - `ContentGeneratorFactory` - Factory for content generators
 - `KnowledgeBaseService` - RAG context provider
 
 **Methods**:
-- `generateText(string $topic, string $type, ?string $context = null, array $options = [])` - Generate content
+- `generateText(string $topic, string $type, ?string $context = null, array $options = [])` - Generate content (uses OpenRouter GLM-4.5 Air)
 - `generateWithBrand(string $topic, string $type, Brand $brand, array $options = [])` - Generate with brand context
 
 **Content Types**:
@@ -93,13 +93,12 @@ Main content generation service with RAG integration.
 #### BaseContentGenerator
 **Path**: `app/Services/ContentGenerators/BaseContentGenerator.php`
 
-Abstract base class for content generators.
+Abstract base class for content generators (OpenRouter GLM-4.5 Air).
 
 **Methods**:
-- `generate(string $topic, ?string $context, array $options)` - Abstract generate method
+- `generate(string $topic, ?string $context, array $options)` - Generate content via OpenRouter
 - `buildSystemPrompt(Brand $brand)` - Build system prompt from brand
 - `buildUserPrompt(string $topic, ?string $context, array $options)` - Build user prompt
-- `callOpenAI(array $messages, array $options)` - Call OpenAI API
 
 ---
 
@@ -159,23 +158,19 @@ Generates content calendars.
 ### ResearchService
 **Path**: `app/Services/ResearchService.php`
 
-Performs deep research using Google Gemini API.
+Performs deep research and chat using OpenRouter GPT-OSS-120B.
 
 **Dependencies**:
 - `KnowledgeBaseService` - RAG context provider
 
 **Methods**:
-- `performResearch(string $topic)` - Perform research on topic
-- `attemptResearchWithModel(string $model, string $enhancedTopic)` - Try specific model
-
-**Models (fallback order)**:
-1. `gemini-1.5-pro` (configured default)
-2. `gemini-1.5-flash`
-3. `gemini-pro`
+- `performResearch(string $topic)` - Perform research on topic (OpenRouter GPT-OSS-120B)
+- `suggestSocialMediaTopics(string $topic)` - Suggest topics (OpenRouter GPT-OSS-120B)
+- `refineContext(string $text)` - Refine context/mandate (OpenRouter GPT-OSS-120B)
 
 **Features**:
 - RAG integration
-- Model fallback
+- Unified OpenRouter model for research and chat
 - Comprehensive reports
 - Source citations
 
@@ -184,7 +179,7 @@ Performs deep research using Google Gemini API.
 ### ReportService
 **Path**: `app/Services/ReportService.php`
 
-Generates various types of reports.
+Generates various types of reports and documents. Resume builder uses OpenRouter Arcee Trinity Large Preview.
 
 **Methods**:
 - `generateContentReport(Tenant $tenant, array $filters)` - Generate content performance report
@@ -197,6 +192,7 @@ Generates various types of reports.
 - Date range filtering
 - Multiple export formats
 - Chart generation
+- Resume/document builder powered by OpenRouter Arcee Trinity Large Preview
 
 ---
 

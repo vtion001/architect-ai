@@ -1,0 +1,48 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "Architect Grid API",
+    "version": "1.0.0",
+    "description": "API documentation for Architect Grid."
+  },
+  "servers": [
+    { "url": "http://localhost/api", "description": "Local Dev" }
+  ],
+  "paths": {
+    "/content/receive": {
+      "post": {
+        "summary": "Receive Content",
+        "description": "Create a new draft from external source (n8n, OpenClaw, etc.).",
+        "tags": ["Content"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/ContentReceive" }
+            }
+          }
+        },
+        "responses": {
+          "201": { "description": "Content created successfully" }
+        }
+      }
+    }
+    // ... Add all other endpoints here ...
+  },
+  "components": {
+    "schemas": {
+      "ContentReceive": {
+        "type": "object",
+        "required": ["title", "content"],
+        "properties": {
+          "title": { "type": "string" },
+          "content": { "type": "string" },
+          "type": { "type": "string" },
+          "platforms": { "type": "array", "items": { "type": "string" } },
+          "scheduled_at": { "type": "string" },
+          "source": { "type": "string" }
+        }
+      }
+    }
+  }
+}

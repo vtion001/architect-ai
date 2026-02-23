@@ -1,22 +1,20 @@
 <?php
+require __DIR__.'/api-docs.php';
 
-use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\DashboardController;
-use App\Http\Controllers\DocumentBuilderController;
-use App\Http\Controllers\ResearchEngineController;
-use App\Http\Controllers\ContentCreatorController;
-use App\Http\Controllers\SocialPlannerController;
-use App\Http\Controllers\KnowledgeBaseController;
-use App\Http\Controllers\DocumentsController;
-use App\Http\Controllers\SignatureRequestController;
 use App\Http\Controllers\AnalyticsController;
-
 use App\Http\Controllers\Auth\AuthController;
 use App\Http\Controllers\Auth\DeveloperController;
-
-use App\Http\Controllers\LandingPageController;
-
 use App\Http\Controllers\Auth\InvitationController;
+use App\Http\Controllers\ContentCreatorController;
+use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\DocumentBuilderController;
+use App\Http\Controllers\DocumentsController;
+use App\Http\Controllers\KnowledgeBaseController;
+use App\Http\Controllers\LandingPageController;
+use App\Http\Controllers\ResearchEngineController;
+use App\Http\Controllers\SignatureRequestController;
+use App\Http\Controllers\SocialPlannerController;
+use Illuminate\Support\Facades\Route;
 
 Route::get('/', [LandingPageController::class, 'index'])->name('landing');
 Route::get('/waitlist', [LandingPageController::class, 'waitlist'])->name('waitlist');
@@ -37,15 +35,23 @@ Route::post('/auth/join/{token}', [InvitationController::class, 'accept'])->name
 
 // Auth Routes
 Route::prefix('auth')->group(function () {
-    Route::get('register', function () { return view('auth.register'); })->name('register');
-    Route::get('login/{tenant_slug?}', function ($slug = null) { return view('auth.login', ['slug' => $slug]); })->name('login');
-    
+    Route::get('register', function () {
+        return view('auth.register');
+    })->name('register');
+    Route::get('login/{tenant_slug?}', function ($slug = null) {
+        return view('auth.login', ['slug' => $slug]);
+    })->name('login');
+
     Route::get('join/{token}', [\App\Http\Controllers\Auth\InvitationController::class, 'show'])->name('invitation.join');
     Route::post('join/{token}', [\App\Http\Controllers\Auth\InvitationController::class, 'accept']);
-    
+
     Route::post('register-agency', [AuthController::class, 'registerAgency'])->middleware('throttle:3,60'); // 3 agencies per hour
     Route::post('login', [AuthController::class, 'login'])->middleware('throttle:5,15'); // 5 attempts per 15 mins
-    Route::post('logout', function () { auth()->logout(); return redirect('/auth/login'); })->name('logout');
+    Route::post('logout', function () {
+        auth()->logout();
+
+        return redirect('/auth/login');
+    })->name('logout');
 
     // MFA Challenge/Setup (Auth only, no mfa middleware)
     Route::middleware('auth')->group(function () {
@@ -56,9 +62,14 @@ Route::prefix('auth')->group(function () {
     });
 });
 
+// Public Routes (No Auth Required)
+Route::get('/api-docs', function () {
+    return response()->file(public_path('api-docs.html'));
+})->name('api-docs');
+
 // Protected Workspace Routes
 Route::middleware(['auth', 'tenant', 'mfa', 'session_security'])->group(function () {
-    
+
     // Task & Note Management
     Route::resource('tasks', \App\Http\Controllers\TaskController::class)->only(['index', 'store', 'update', 'destroy']);
     Route::post('tasks/{task}/restore', [\App\Http\Controllers\TaskController::class, 'restore'])->name('tasks.restore');
@@ -66,7 +77,7 @@ Route::middleware(['auth', 'tenant', 'mfa', 'session_security'])->group(function
     Route::post('tasks/breakdown', [\App\Http\Controllers\TaskController::class, 'breakdown'])->name('tasks.breakdown');
     Route::post('tasks/voice-to-intelligence', [\App\Http\Controllers\TaskController::class, 'voiceToIntelligence'])->name('tasks.voice');
     Route::post('tasks/voice-save', [\App\Http\Controllers\TaskController::class, 'saveAudioOnly'])->name('tasks.voice-save');
-    
+
     // Ghost Demo Routes
     Route::post('tasks/ghost-demo', [\App\Http\Controllers\TaskController::class, 'storeGhostDemo'])->name('tasks.ghost-demo.store');
     Route::get('tasks/ghost-demo/{document}', [\App\Http\Controllers\TaskController::class, 'showGhostDemo'])->name('tasks.ghost-demo.show');
@@ -75,11 +86,14 @@ Route::middleware(['auth', 'tenant', 'mfa', 'session_security'])->group(function
 
     // Content & Intelligence Registry
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
+
+    // API Documentation - moved to public routes
     Route::post('/notifications/read-all', function () {
         auth()->user()->unreadNotifications->markAsRead();
+
         return response()->json(['success' => true]);
     })->name('notifications.read-all');
-    
+
     Route::get('/tenant/switch/{tenant}', [\App\Http\Controllers\Auth\TenantController::class, 'switch'])->name('tenant.switch');
     Route::post('/agency/impersonate', [\App\Http\Controllers\Auth\AgencyImpersonationController::class, 'impersonate'])->name('agency.impersonate');
     Route::get('/agency/impersonate/stop', [\App\Http\Controllers\Auth\AgencyImpersonationController::class, 'stop'])->name('agency.impersonate.stop');
@@ -115,7 +129,7 @@ Route::middleware(['auth', 'tenant', 'mfa', 'session_security'])->group(function
             Route::get('/sub-accounts', [\App\Http\Controllers\Tenant\SubAccountController::class, 'index'])->name('sub-accounts.index');
             Route::post('/sub-accounts', [\App\Http\Controllers\Tenant\SubAccountController::class, 'store'])->name('sub-accounts.store');
         });
-        
+
         Route::get('/users', [\App\Http\Controllers\Tenant\UserManagementController::class, 'index'])->name('users.index');
         Route::post('/users', [\App\Http\Controllers\Tenant\UserManagementController::class, 'store'])->name('users.store');
         Route::post('/users/invite', [\App\Http\Controllers\Tenant\UserManagementController::class, 'invite'])->name('users.invite');
@@ -141,7 +155,7 @@ Route::middleware(['auth', 'tenant', 'mfa', 'session_security'])->group(function
     // Bulk Operations (Moved from API for session auth)
     Route::post('/content-creator/generate-bulk-images', [ContentCreatorController::class, 'generateBulkImages'])->name('content-creator.generate-bulk-images');
     Route::post('/content-creator/bulk-schedule', [ContentCreatorController::class, 'bulkSchedule'])->name('content-creator.bulk-schedule');
-    
+
     Route::post('/content-creator/suggestions', [ContentCreatorController::class, 'getSuggestions'])->name('content-creator.suggestions');
     Route::post('/content-creator/refine', [ContentCreatorController::class, 'refineContext'])->name('content-creator.refine');
     Route::post('/content-creator/upload-media', [ContentCreatorController::class, 'uploadMedia'])->name('content-creator.upload-media');
@@ -218,9 +232,9 @@ Route::middleware(['auth', 'tenant', 'mfa', 'session_security'])->group(function
         Route::get('/', [\App\Http\Controllers\Admin\AdminController::class, 'index'])->name('admin.dashboard');
         Route::post('/toggle-observability', [\App\Http\Controllers\Admin\AdminController::class, 'toggleObservability'])->name('admin.toggle-observability');
         Route::post('/waitlist/{lead}/convert', [\App\Http\Controllers\Admin\AdminController::class, 'convertLead'])->name('admin.waitlist.convert');
-        
+
         Route::get('/audit', [\App\Http\Controllers\Admin\AuditController::class, 'index'])->name('admin.audit.index');
-        
+
         Route::get('/tenants', [\App\Http\Controllers\Admin\TenantExplorerController::class, 'index'])->name('admin.tenants.index');
         Route::get('/tenants/{tenant}', [\App\Http\Controllers\Admin\TenantExplorerController::class, 'show'])->name('admin.tenants.show');
         Route::post('/tenants/{tenant}/grant', [\App\Http\Controllers\Admin\TenantExplorerController::class, 'grantTokens'])->name('admin.tenants.grant');

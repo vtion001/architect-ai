@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>API Documentation - Architect Grid</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swagger-ui-dist@5/swagger-ui.css">
+    <style>
+        body { margin: 0; padding: 0; }
+        .topbar { display: none; }
+        .swagger-ui .info .title { font-size: 2rem; }
+    </style>
+</head>
+<body>
+    <div id="swagger-ui"></div>
+    
+    <script src="https://cdn.jsdelivr.net/npm/swagger-ui-dist@5/swagger-ui-bundle.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/swagger-ui-dist@5/swagger-ui-standalone-preset.js"></script>
+    <script>
+        const spec = {
+            "openapi": "3.0.3",
+            "info": {
+                "title": "Architect Grid API",
+                "version": "1.0.0",
+                "description": "## Authentication\n\nAll API requests require a Bearer token. Include in header:\n```\nAuthorization: Bearer YOUR_TOKEN\n```\n\n## Base URL\n`https://your-domain.com/api`\n\n## Rate Limits\n- 60 requests per minute for content creation\n- 30 requests per minute for publishing"
+            },
+            "servers": [{ "url": "/api", "description": "Production Server" }],
+            "security": [{ "bearerAuth": [] }],
+            "components": {
+                "securitySchemes": {
+                    "bearerAuth": { "type": "http", "scheme": "bearer", "bearerFormat": "JWT" }
+                }
+            },
+            "paths": {
+                "/content/receive": {
+                    "post": {
+                        "summary": "Receive Content",
+                        "description": "Create a new draft from external source (n8n, OpenClaw, etc.)",
+                        "tags": ["Content"],
+                        "security": [{ "bearerAuth": [] }],
+                        "requestBody": {
+                            "required": true,
+                            "content": {
+                                "application/json": {
+                                    "schema": { "type": "object" },
+                                    "example": {
+                                        "title": "New Post from n8n",
+                                        "content": "This is the content body...",
+                                        "type": "social-post",
+                                        "image_url": "https://res.cloudinary.com/demo/image/upload/sample.jpg",
+                                        "platforms": ["facebook", "instagram"],
+                                        "scheduled_at": "now",
+                                        "source": "n8n"
+                                    }
+                                }
+                            }
+                        },
+                        "responses": {
+                            "201": { "description": "Content created successfully" },
+                            "401": { "description": "Unauthorized" }
+                        }
+                    }
+                },
+                "/content/drafts": {
+                    "get": {
+                        "summary": "List All Drafts",
+                        "description": "Get all draft and scheduled content from external sources.",
+                        "tags": ["Content"],
+                        "security": [{ "bearerAuth": [] }],
+                        "responses": { "200": { "description": "List of drafts" } }
+                    }
+                },
+                "/content/drafts/{id}": {
+                    "get": {
+                        "summary": "Get Draft",
+                        "description": "Get a specific draft by ID.",
+                        "tags": ["Content"],
+                        "security": [{ "bearerAuth": [] }],
+                        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }],
+                        "responses": { "200": { "description": "Draft details" } }
+                    },
+                    "put": {
+                        "summary": "Update Draft",
+                        "description": "Update an existing draft.",
+                        "tags": ["Content"],
+                        "security": [{ "bearerAuth": [] }],
+                        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }],
+                        "requestBody": {
+                            "content": { "application/json": { "example": { "title": "Updated Title", "content": "Updated content..." } } }
+                        },
+                        "responses": { "200": { "description": "Draft updated" } }
+                    },
+                    "delete": {
+                        "summary": "Delete Draft",
+                        "description": "Delete a draft.",
+                        "tags": ["Content"],
+                        "security": [{ "bearerAuth": [] }],
+                        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }],
+                        "responses": { "200": { "description": "Draft deleted" } }
+                    }
+                },
+                "/content/drafts/{id}/publish": {
+                    "post": {
+                        "summary": "Publish Draft",
+                        "description": "Publish a draft to social media platforms.",
+                        "tags": ["Publishing"],
+                        "security": [{ "bearerAuth": [] }],
+                        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }],
+                        "requestBody": {
+                            "required": true,
+                            "content": {
+                                "application/json": {
+                                    "example": { "platforms": ["facebook", "instagram"], "scheduled_at": "now" }
+                                }
+                            }
+                        },
+                        "responses": { "200": { "description": "Published successfully" } }
+                    }
+                },
+                "/publish": {
+                    "post": {
+                        "summary": "Direct Publish",
+                        "description": "Create and publish content in one step (skip draft).",
+                        "tags": ["Publishing"],
+                        "security": [{ "bearerAuth": [] }],
+                        "requestBody": {
+                            "required": true,
+                            "content": {
+                                "application/json": {
+                                    "example": { "title": "Quick Post", "content": "Content to publish...", "platforms": ["facebook"], "scheduled_at": "now", "source": "external" }
+                                }
+                            }
+                        },
+                        "responses": { "200": { "description": "Published successfully" } }
+                    }
+                },
+                "/platforms": {
+                    "get": {
+                        "summary": "Get Platforms",
+                        "description": "Check which social media platforms are connected.",
+                        "tags": ["Platforms"],
+                        "security": [{ "bearerAuth": [] }],
+                        "responses": {
+                            "200": {
+                                "description": "Platform status",
+                                "content": {
+                                    "application/json": {
+                                        "example": { "success": true, "platforms": { "facebook": { "connected": true }, "instagram": { "connected": false }, "linkedin": { "connected": false } } }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "tags": [
+                { "name": "Content", "description": "Content management endpoints" },
+                { "name": "Publishing", "description": "Social media publishing endpoints" },
+                { "name": "Platforms", "description": "Platform status endpoints" }
+            ]
+        };
+
+        window.onload = function() {
+            SwaggerUIBundle({
+                spec: spec,
+                dom_id: '#swagger-ui',
+                deepLinking: true,
+                presets: [
+                    SwaggerUIBundle.presets.apis,
+                    SwaggerUIBundle.SwaggerUIStandalonePreset
+                ],
+                layout: "StandaloneLayout"
+            });
+        };
+    </script>
+</body>
+</html>

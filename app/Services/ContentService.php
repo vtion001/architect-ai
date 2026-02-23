@@ -8,80 +8,86 @@ use Illuminate\Support\Facades\Log;
 
 class ContentService
 {
-    protected string $apiKey;
+    protected ?string $apiKey;
+
     protected string $model;
+
+    protected string $baseUrl;
+
     protected ?string $hikerApiKey;
 
     public function __construct(
         protected ContentGeneratorFactory $factory,
         protected KnowledgeBaseService $knowledgeBaseService
     ) {
-        $this->apiKey = config('services.openai.key');
-        $this->model = config('services.openai.model', 'gpt-4o-mini');
+        $this->apiKey = config('services.openrouter.key');
+        $this->model = config('services.openrouter.content_model', 'zhipu-ai/glm-4.5-air');
+        $this->baseUrl = config('services.openrouter.base_url', 'https://openrouter.ai/api/v1/chat/completions');
         $this->hikerApiKey = config('services.hiker_api.key');
     }
 
     public function generateText(string $topic, string $type, ?string $context = null, array $options = []): string
     {
-        $generatorType = $options['generator'] ?? 'post';
-        
         // 1. RAG: Fetch relevant knowledge base assets
         $kbContext = $this->knowledgeBaseService->getContext($topic);
         if ($kbContext) {
-            $context = ($context ? $context . "\n\n" : "") . "EXTERNAL KNOWLEDGE BASE DATA:\n" . $kbContext;
+            $context = ($context ? $context."\n\n" : '')."EXTERNAL KNOWLEDGE BASE DATA:\n".$kbContext;
         }
 
-        // 2. Prepare specialized data for specific generators
-        if ($generatorType === 'post' || $type === 'social-media post') {
-            $viralPosts = $this->getViralPosts($topic);
-            if (!empty($viralPosts)) {
-                $examples = collect($viralPosts)->map(function ($post) {
-                    if (is_string($post)) return $post;
-                    return $post['caption_text'] ?? $post['caption']['text'] ?? null;
-                })->filter()->take(5)->implode("\n\n---\n\n");
-                
-                $options['viral_examples'] = $examples;
-            }
+        // Compose prompt for OpenRouter GLM-4.5 Air
+        $prompt = $topic;
+        if ($context) {
+            $prompt .= "\n".$context;
         }
 
-        // 3. Delegate to Strategy via Factory
-        $generator = $this->factory->make($generatorType);
-        
-        // Pass common options that might be needed by base class
-        $options['type'] = $type;
-        
-        return $generator->generate($topic, $context, $options);
+        $response = \Http::withToken($this->apiKey)
+            ->timeout(120)
+            ->post($this->baseUrl, [
+                'model' => $this->model,
+                'messages' => [
+                    ['role' => 'system', 'content' => 'You are a professional content creator.'],
+                    ['role' => 'user', 'content' => $prompt],
+                ],
+                'temperature' => $options['temperature'] ?? 0.8,
+                'max_tokens' => $options['max_tokens'] ?? 4000,
+            ]);
+
+        if ($response->successful()) {
+            return $response->json('choices.0.message.content') ?? '';
+        }
+
+        return 'Content generation failed.';
     }
 
     protected function getViralPosts(string $topic): array
     {
-        if (!$this->hikerApiKey) {
+        if (! $this->hikerApiKey) {
             return [];
         }
 
         $hashtag = strtolower(preg_replace('/[^a-zA-Z0-9]/', '', $topic));
-        
+
         try {
             $response = Http::withHeaders([
                 'x-access-key' => $this->hikerApiKey,
                 'accept' => 'application/json',
-            ])->get("https://api.hikerapi.com/v2/hashtag/medias/top", [
-                'name' => $hashtag
+            ])->get('https://api.hikerapi.com/v2/hashtag/medias/top', [
+                'name' => $hashtag,
             ]);
 
             if ($response->successful()) {
                 $data = $response->json();
-                
+
                 if (is_array($data)) {
                     return $data;
                 }
-                
+
                 if (isset($data['response'])) {
                     return $data['response'];
                 }
             }
         } catch (\Exception $e) {
-            Log::warning("HikerAPI fetch failed: " . $e->getMessage());
+            Log::warning('HikerAPI fetch failed: '.$e->getMessage());
         }
 
         return [];
@@ -89,7 +95,7 @@ class ContentService
 
     /**
      * RAG: Retrieve relevant context from knowledge base.
-     * 
+     *
      * @deprecated Use KnowledgeBaseService::getContext() directly. This is a backward-compatible delegate.
      */
     protected function getKnowledgeBaseContext(string $topic): ?string
@@ -97,32 +103,12 @@ class ContentService
         return $this->knowledgeBaseService->getContext($topic);
     }
 
+    // Image generation via OpenRouter is not yet implemented. Placeholder for future support.
     public function generateImage(string $prompt, string $format = 'realistic', array $options = []): ?string
     {
-        try {
-            $enhancedPrompt = $this->buildImagePrompt($prompt, $format, $options);
+        Log::warning('Image generation via OpenRouter is not implemented.');
 
-            $response = Http::withToken($this->apiKey)
-                ->timeout(60)
-                ->post('https://api.openai.com/v1/images/generations', [
-                    'model' => 'dall-e-3',
-                    'prompt' => substr($enhancedPrompt, 0, 4000), // DALL-E 3 limit
-                    'n' => 1,
-                    'size' => '1024x1024',
-                    'style' => $format === 'poster' ? 'vivid' : 'natural',
-                ]);
-
-            if ($response->successful()) {
-                return $response->json('data.0.url');
-            }
-            
-            Log::error("Image generation failed: " . $response->body());
-            return null;
-
-        } catch (\Exception $e) {
-            Log::error("Image generation exception: " . $e->getMessage());
-            return null;
-        }
+        return null;
     }
 
     /**
@@ -133,10 +119,10 @@ class ContentService
         switch ($format) {
             case 'poster':
                 return $this->buildPosterPrompt($prompt, $options);
-            
+
             case 'asset-reference':
                 return $this->buildReferencePrompt($prompt, $options);
-            
+
             case 'realistic':
             default:
                 return $this->buildRealisticPrompt($prompt);
@@ -177,22 +163,22 @@ Artificial, CGI, illustration, cartoon, painting, unrealistic proportions, overs
     {
         $posterText = $options['poster_text'] ?? '';
         $brand = $options['brand'] ?? null;
-        
+
         $colorScheme = 'modern, vibrant professional colors';
         $brandContext = '';
-        
+
         if ($brand) {
             $primaryColor = $brand['colors']['primary'] ?? '#000000';
             $secondaryColor = $brand['colors']['secondary'] ?? '#ffffff';
             $accentColor = $brand['colors']['accent'] ?? '#3b82f6';
-            
+
             $colorScheme = "brand color palette (Primary: $primaryColor, Secondary: $secondaryColor, Accent: $accentColor)";
             $brandContext = " representing the identity of '{$brand['name']}'";
         }
-        
-        $textInstruction = $posterText 
-            ? "Space must be optimized for the headline: \"$posterText\"." 
-            : "Space must be optimized for overlay text placement.";
+
+        $textInstruction = $posterText
+            ? "Space must be optimized for the headline: \"$posterText\"."
+            : 'Space must be optimized for overlay text placement.';
 
         return "Design a professional advertising media asset for: $prompt$brandContext.
 

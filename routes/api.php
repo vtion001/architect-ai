@@ -4,6 +4,7 @@ use App\Http\Controllers\Auth\AuthController;
 use App\Http\Controllers\Auth\DeveloperController;
 use App\Http\Controllers\ContentCreatorController;
 use App\Http\Controllers\ResearchEngineController;
+use App\Http\Controllers\SocialIntegrationController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -22,7 +23,7 @@ Route::prefix('auth')->group(function () {
 |--------------------------------------------------------------------------
 */
 Route::middleware(['auth:sanctum', 'tenant', 'session_security'])->group(function () {
-    
+
     // User Info
     Route::get('/me', function () {
         return auth()->user()->load('tenant', 'roles.permissions');
@@ -38,7 +39,27 @@ Route::middleware(['auth:sanctum', 'tenant', 'session_security'])->group(functio
     Route::post('/content/generate', [ContentCreatorController::class, 'store']);
     // Bulk operations moved to web.php for session auth support
     Route::post('/research/start', [ResearchEngineController::class, 'store']);
-    
+
+    /*
+    |--------------------------------------------------------------------------
+    | Social Integration API (External Source: n8n, openclaw)
+    |--------------------------------------------------------------------------
+    */
+    Route::prefix('content')->group(function () {
+        Route::post('/receive', [SocialIntegrationController::class, 'receiveContent']);
+        Route::get('/drafts', [SocialIntegrationController::class, 'listDrafts']);
+        Route::get('/drafts/{draft}', [SocialIntegrationController::class, 'getDraft']);
+        Route::put('/drafts/{draft}', [SocialIntegrationController::class, 'updateDraft']);
+        Route::delete('/drafts/{draft}', [SocialIntegrationController::class, 'deleteDraft']);
+        Route::post('/drafts/{draft}/publish', [SocialIntegrationController::class, 'publishDraft']);
+    });
+
+    // Direct publish endpoint
+    Route::post('/publish', [SocialIntegrationController::class, 'directPublish']);
+
+    // Platform status
+    Route::get('/platforms', [SocialIntegrationController::class, 'getPlatforms']);
+
     // Global Grid Search (for Command Palette)
     Route::get('/search', [\App\Http\Controllers\GlobalSearchController::class, 'index']);
 

@@ -10,10 +10,10 @@ use Symfony\Component\HttpFoundation\Response;
 
 /**
  * Compression Middleware
- * 
+ *
  * Enables gzip/deflate compression for HTML responses.
  * This addresses Lighthouse's "No compression applied" diagnostic.
- * 
+ *
  * Note: In production, it's better to enable compression at the
  * web server level (Nginx/Apache) for better performance.
  * This middleware is a fallback for environments where
@@ -50,12 +50,17 @@ class CompressionMiddleware
         $response = $next($request);
 
         // Skip if not compressible
-        if (!$this->shouldCompress($request, $response)) {
+        if (! $this->shouldCompress($request, $response)) {
             return $response;
         }
 
         $content = $response->getContent();
-        
+
+        // Skip if content is not a string or is empty
+        if (! is_string($content) || strlen($content) === 0) {
+            return $response;
+        }
+
         // Skip small responses
         if (strlen($content) < self::MIN_COMPRESS_SIZE) {
             return $response;
@@ -63,14 +68,14 @@ class CompressionMiddleware
 
         // Get preferred encoding
         $encoding = $this->getPreferredEncoding($request);
-        
-        if (!$encoding) {
+
+        if (! $encoding) {
             return $response;
         }
 
         // Compress the content
         $compressedContent = $this->compress($content, $encoding);
-        
+
         if ($compressedContent === false) {
             return $response;
         }
@@ -105,7 +110,7 @@ class CompressionMiddleware
 
         // Check content type
         $contentType = $response->headers->get('Content-Type', '');
-        
+
         foreach (self::COMPRESSIBLE_TYPES as $type) {
             if (str_contains($contentType, $type)) {
                 return true;

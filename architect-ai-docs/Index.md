@@ -91,8 +91,10 @@ architect-ai/
 - **Qdrant** - Vector database for RAG
 
 ### AI Services
-- **OpenAI GPT-4o-mini** - Content generation
-- **Google Gemini 1.5 Pro** - Research engine
+- **OpenRouter** - Unified AI provider
+	- **GLM-4.5 Air**: Content generation (posts, blogs, video, calendar)
+	- **Arcee Trinity Large Preview**: Resume/document builder
+	- **GPT-OSS-120B**: AI chat agents, research engine
 - **Hiker API** - Viral content analysis (optional)
 
 ### Frontend
@@ -171,16 +173,14 @@ Architect-AI uses row-level multi-tenancy to ensure complete data isolation betw
 ## AI Integration
 
 ### Content Generation
-- **Primary Model**: OpenAI GPT-4o-mini
-- **Fallback**: Configured alternative models
+- **Primary Model**: OpenRouter GLM-4.5 Air
+- **Resume Builder**: OpenRouter Arcee Trinity Large Preview
 - **RAG**: Context from knowledge base and brand profile
 - **Strategy Pattern**: Different generators for different content types
 
-### Research Engine
-- **Primary Model**: Google Gemini 1.5 Pro
-- **Fallbacks**: Gemini 1.5 Flash, Gemini Pro
+### Research & AI Chat Engine
+- **Primary Model**: OpenRouter GPT-OSS-120B
 - **RAG**: Context from internal knowledge base
-- **Fallback Chain**: Automatic model switching on errors
 
 ---
 
@@ -261,8 +261,7 @@ tail -f storage/logs/laravel.log
 ## External Resources
 
 - [Laravel Documentation](https://laravel.com/docs)
-- [OpenAI API](https://platform.openai.com/docs)
-- [Google Gemini API](https://ai.google.dev/docs)
+- [OpenRouter API](https://openrouter.ai/docs)
 - [Qdrant Documentation](https://qdrant.tech/documentation/)
 - [Tailwind CSS](https://tailwindcss.com/docs)
 

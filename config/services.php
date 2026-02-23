@@ -1,19 +1,18 @@
 <?php
 
 return [
-    'openai' => [
-        'key' => env('OPENAI_API_KEY'),
-        'model' => env('OPENAI_MODEL', 'gpt-4o-mini'),
+    'openrouter' => [
+        'key' => env('OPENROUTER_API_KEY'),
+        'resume_model' => env('OPENROUTER_RESUME_MODEL', 'arcee/arcee-trinity-large-preview'),
+        'chat_model' => env('OPENROUTER_CHAT_MODEL', 'cognitivecomputations/gpt-oss-120b'),
+        'content_model' => env('OPENROUTER_CONTENT_MODEL', 'zhipu-ai/glm-4.5-air'),
+        'base_url' => env('OPENROUTER_BASE_URL', 'https://openrouter.ai/api/v1/chat/completions'),
     ],
     'perplexity' => [
         'key' => env('PERPLEXITY_API_KEY'),
     ],
     'hiker_api' => [
         'key' => env('HIKER_API_KEY'),
-    ],
-    'gemini' => [
-        'key' => env('GEMINI_API_KEY'),
-        'model' => env('GEMINI_MODEL', 'gemini-1.5-pro'),
     ],
 
     'linkedin' => [

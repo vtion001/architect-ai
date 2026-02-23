@@ -10,7 +10,9 @@ export default defineConfig(({ command, mode }) => {
                 input: [
                     'resources/css/app.css', 
                     'resources/js/app.js',
-                    'resources/js/components/content-creator.js'
+                    'resources/js/components/content-creator.js',
+                    'resources/css/elements.css',
+                    'resources/js/elements.js'
                 ],
                 refresh: true,
             }),
