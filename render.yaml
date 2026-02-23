@@ -1,0 +1,34 @@
+# Render Blueprint for Architect AI
+# This file defines the infrastructure for deploying to Render
+
+# To deploy:
+# 1. Push this render.yaml to your GitHub repository
+# 2. Go to https://dashboard.render.com/blueprints
+# 3. Connect your repository and select this render.yaml
+
+services:
+  - type: web
+    name: architect-ai
+    env: docker
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    buildCommand: npm install && npm run build
+    startCommand: sh -c "php artisan migrate --force && php artisan serve --host=0.0.0.0 --port=$PORT"
+    envVars:
+      - key: APP_ENV
+        value: production
+      - key: APP_DEBUG
+        value: false
+      - key: QUEUE_CONNECTION
+        value: redis
+    scaling:
+      minInstances: 1
+      maxInstances: 1
+
+  - type: redis
+    name: architect-redis
+    plan: free
+
+databases:
+  - name: architect-db
+    plan: starter
