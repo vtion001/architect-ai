@@ -26,8 +26,96 @@
           "201": { "description": "Content created successfully" }
         }
       }
+    },
+    "/content/drafts": {
+      "get": {
+        "summary": "List All Drafts",
+        "description": "Get all draft and scheduled content from external sources.",
+        "tags": ["Content"],
+        "responses": {
+          "200": { "description": "List of drafts" }
+        }
+      }
+    },
+    "/content/drafts/{id}": {
+      "get": {
+        "summary": "Get Draft",
+        "description": "Get a specific draft by ID.",
+        "tags": ["Content"],
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": { "200": { "description": "Draft details" } }
+      },
+      "put": {
+        "summary": "Update Draft",
+        "description": "Update an existing draft.",
+        "tags": ["Content"],
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/ContentReceive" }
+            }
+          }
+        },
+        "responses": { "200": { "description": "Draft updated" } }
+      },
+      "delete": {
+        "summary": "Delete Draft",
+        "description": "Delete a draft.",
+        "tags": ["Content"],
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": { "200": { "description": "Draft deleted" } }
+      }
+    },
+    "/content/drafts/{id}/publish": {
+      "post": {
+        "summary": "Publish Draft",
+        "description": "Publish a draft to social media platforms.",
+        "tags": ["Publishing"],
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/PublishDraft" }
+            }
+          }
+        },
+        "responses": { "200": { "description": "Published successfully" } }
+      }
+    },
+    "/publish": {
+      "post": {
+        "summary": "Direct Publish",
+        "description": "Create and publish content in one step (skip draft).",
+        "tags": ["Publishing"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/DirectPublish" }
+            }
+          }
+        },
+        "responses": { "200": { "description": "Published successfully" } }
+      }
+    },
+    "/platforms": {
+      "get": {
+        "summary": "Get Platforms",
+        "description": "Check which social media platforms are connected.",
+        "tags": ["Platforms"],
+        "responses": { "200": { "description": "Platform status" } }
+      }
     }
-    // ... Add all other endpoints here ...
   },
   "components": {
     "schemas": {
@@ -41,6 +129,31 @@
           "platforms": { "type": "array", "items": { "type": "string" } },
           "scheduled_at": { "type": "string" },
           "source": { "type": "string" }
+        }
+      },
+      "DirectPublish": {
+        "type": "object",
+        "required": ["title", "content", "platforms"],
+        "properties": {
+          "title": { "type": "string" },
+          "content": { "type": "string" },
+          "type": { "type": "string" },
+          "media_url": { "type": "string" },
+          "image_url": { "type": "string" },
+          "platforms": { "type": "array", "items": { "type": "string" } },
+          "scheduled_at": { "type": "string" },
+          "source": { "type": "string" }
+        }
+      },
+      "PublishDraft": {
+        "type": "object",
+        "required": ["platforms"],
+        "properties": {
+          "platforms": { "type": "array", "items": { "type": "string" } },
+          "scheduled_at": { "type": "string" },
+          "facebook_page_id": { "type": "string" },
+          "facebook_page_token": { "type": "string" },
+          "instagram_account_id": { "type": "string" }
         }
       }
     }
