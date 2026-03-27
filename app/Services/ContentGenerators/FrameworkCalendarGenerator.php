@@ -6,7 +6,7 @@ namespace App\Services\ContentGenerators;
 
 /**
  * Framework Calendar Generator Strategy.
- * 
+ *
  * Generates a complete weekly content plan based on the 4-Pillar Framework:
  * - Educational (3x)
  * - Showcase (2x)
@@ -24,6 +24,7 @@ class FrameworkCalendarGenerator extends BaseContentGenerator
         $options['temperature'] = 0.4; // Lower temperature for stricter adherence
         $options['max_tokens'] = 4000; // Ensure enough space for 8 full posts
         $options['model'] = 'gpt-4o'; // Force higher intelligence model for complex JSON structure
+
         return parent::generate($topic, $context, $options);
     }
 
@@ -37,8 +38,8 @@ class FrameworkCalendarGenerator extends BaseContentGenerator
         $tone = $options['tone'] ?? 'Professional';
         $brandTone = $options['brand_tone'] ?? '';
         $humanize = $this->getHumanizeInstruction($tone);
-        
-        $brandInstruction = $brandTone ? "Adopt this brand voice: $brandTone." : "";
+
+        $brandInstruction = $brandTone ? "Adopt this brand voice: $brandTone." : '';
 
         return "You are a Strategic Content Manager. Your goal is to plan a high-impact weekly content calendar.
             

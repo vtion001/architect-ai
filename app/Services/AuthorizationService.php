@@ -2,9 +2,9 @@
 
 namespace App\Services;
 
-use App\Models\User;
-use App\Models\AuditLog;
 use App\Models\AccessPolicy;
+use App\Models\AuditLog;
+use App\Models\User;
 use App\Notifications\IntelligenceAlert;
 use Illuminate\Support\Facades\Log;
 
@@ -23,7 +23,7 @@ class AuthorizationService
         // 2. Tenant Isolation (Hard Boundary)
         if ($resource && isset($resource->tenant_id) && $user->tenant_id !== $resource->tenant_id) {
             // Check if it's a sub-account the user has access to
-            if (!$this->hasCrossTenantAccess($user, $resource->tenant_id)) {
+            if (! $this->hasCrossTenantAccess($user, $resource->tenant_id)) {
                 return false;
             }
         }
@@ -62,10 +62,11 @@ class AuthorizationService
     {
         if (isset($conditions['all'])) {
             foreach ($conditions['all'] as $subCondition) {
-                if (!$this->evaluateCondition($subCondition, $user, $permission, $resource, $context)) {
+                if (! $this->evaluateCondition($subCondition, $user, $permission, $resource, $context)) {
                     return false;
                 }
             }
+
             return true;
         }
 
@@ -75,6 +76,7 @@ class AuthorizationService
                     return true;
                 }
             }
+
             return false;
         }
 
@@ -88,7 +90,9 @@ class AuthorizationService
         $operator = $condition['operator'] ?? 'equals';
         $value = $condition['value'] ?? null;
 
-        if (!$attribute) return true;
+        if (! $attribute) {
+            return true;
+        }
 
         $actualValue = $this->getAttributeValue($attribute, $user, $permission, $resource, $context);
 
@@ -101,7 +105,7 @@ class AuthorizationService
             'equals' => $actualValue == $value,
             'not_equals' => $actualValue != $value,
             'in' => is_array($value) && in_array($actualValue, $value),
-            'not_in' => is_array($value) && !in_array($actualValue, $value),
+            'not_in' => is_array($value) && ! in_array($actualValue, $value),
             'contains' => str_contains($actualValue, $value),
             default => false,
         };
@@ -133,10 +137,10 @@ class AuthorizationService
     protected function hasPermission(User $user, string $permission): bool
     {
         [$resource, $action] = explode('.', $permission);
-        
+
         return $user->roles()->whereHas('permissions', function ($query) use ($resource, $action) {
             $query->where('resource', $resource)
-                  ->where('action', $action);
+                ->where('action', $action);
         })->exists();
     }
 
@@ -152,7 +156,7 @@ class AuthorizationService
     /**
      * Log an action to the audit log and check for anomalies.
      */
-    public function audit(User $user, string $action, $resource = null, string $result = 'success', string $justification = null)
+    public function audit(User $user, string $action, $resource = null, string $result = 'success', ?string $justification = null)
     {
         $log = AuditLog::create([
             'actor_id' => $user->id,
@@ -182,10 +186,10 @@ class AuthorizationService
         if ($deniedCount >= 10 && $user->status !== 'suspended') {
             // Potential lateral movement attempt detected
             Log::warning("ANOMALY DETECTED: User {$user->email} triggered {$deniedCount} denied access events in 15 mins.");
-            
+
             // Auto-suspend user for security
             $user->update(['status' => 'suspended']);
-            
+
             AuditLog::create([
                 'actor_id' => $user->id,
                 'actor_type' => 'system',

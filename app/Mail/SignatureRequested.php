@@ -12,6 +12,7 @@ class SignatureRequested extends Mailable
     use Queueable, SerializesModels;
 
     public SignatureRequest $signatureRequest;
+
     public string $signUrl;
 
     /**
@@ -29,12 +30,12 @@ class SignatureRequested extends Mailable
     public function build()
     {
         return $this->subject($this->signatureRequest->subject ?? 'Please sign this document')
-                    ->view('emails.signature-requested')
-                    ->with([
-                        'signerName' => $this->signatureRequest->signer_name,
-                        'documentName' => $this->signatureRequest->document->name,
-                        'message' => $this->signatureRequest->message,
-                        'signUrl' => $this->signUrl,
-                    ]);
+            ->view('emails.signature-requested')
+            ->with([
+                'signerName' => $this->signatureRequest->signer_name,
+                'documentName' => $this->signatureRequest->document->name,
+                'message' => $this->signatureRequest->message,
+                'signUrl' => $this->signUrl,
+            ]);
     }
 }

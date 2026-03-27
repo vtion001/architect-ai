@@ -12,19 +12,19 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('waitlists', function (Blueprint $table) {
-            if (!Schema::hasColumn('waitlists', 'status')) {
+            if (! Schema::hasColumn('waitlists', 'status')) {
                 $table->string('status')->default('pending')->after('agency_name');
             }
-            if (!Schema::hasColumn('waitlists', 'provisioned_at')) {
+            if (! Schema::hasColumn('waitlists', 'provisioned_at')) {
                 $table->timestamp('provisioned_at')->nullable()->after('status');
             }
-            if (!Schema::hasColumn('waitlists', 'rejected_at')) {
+            if (! Schema::hasColumn('waitlists', 'rejected_at')) {
                 $table->timestamp('rejected_at')->nullable()->after('provisioned_at');
             }
-            if (!Schema::hasColumn('waitlists', 'user_id')) {
+            if (! Schema::hasColumn('waitlists', 'user_id')) {
                 $table->foreignUuid('user_id')->nullable()->after('rejected_at')->constrained()->nullOnDelete();
             }
-            if (!Schema::hasColumn('waitlists', 'tenant_id')) {
+            if (! Schema::hasColumn('waitlists', 'tenant_id')) {
                 $table->foreignUuid('tenant_id')->nullable()->after('user_id')->constrained()->nullOnDelete();
             }
         });

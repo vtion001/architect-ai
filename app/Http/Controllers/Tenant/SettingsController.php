@@ -4,9 +4,9 @@ namespace App\Http\Controllers\Tenant;
 
 use App\Http\Controllers\Controller;
 use App\Models\Tenant;
+use App\Services\TokenService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use App\Services\TokenService;
 
 class SettingsController extends Controller
 {
@@ -40,7 +40,7 @@ class SettingsController extends Controller
     public function generateToken(Request $request)
     {
         $request->validate(['token_name' => 'required|string|max:255']);
-        
+
         $token = auth()->user()->createToken($request->token_name);
 
         app(\App\Services\AuthorizationService::class)->audit(
@@ -78,13 +78,13 @@ class SettingsController extends Controller
     public function updateBranding(Request $request)
     {
         $tenant = app(Tenant::class);
-        
+
         $request->validate([
             'name' => 'required|string|max:255',
             'logo' => 'nullable|image|max:2048', // 2MB max logo
             'metadata.primary_color' => 'nullable|string',
             'metadata.timezone' => 'nullable|string',
-            'metadata.custom_domain' => 'nullable|string|unique:tenants,metadata->custom_domain,' . $tenant->id . ',id',
+            'metadata.custom_domain' => 'nullable|string|unique:tenants,metadata->custom_domain,'.$tenant->id.',id',
         ]);
 
         $metadata = array_merge($tenant->metadata ?? [], $request->input('metadata', []));
@@ -96,7 +96,7 @@ class SettingsController extends Controller
             if ($cloudName) {
                 // Cloudinary Upload Protocol
                 $timestamp = time();
-                $signString = "timestamp=$timestamp" . config('services.cloudinary.api_secret');
+                $signString = "timestamp=$timestamp".config('services.cloudinary.api_secret');
                 $signature = sha1($signString);
 
                 $response = \Illuminate\Support\Facades\Http::attach('file', file_get_contents($file->getRealPath()), $file->getClientOriginalName())
@@ -111,9 +111,9 @@ class SettingsController extends Controller
                 }
             } else {
                 // Local Fallback
-                $filename = \Illuminate\Support\Str::random(20) . '.' . $file->getClientOriginalExtension();
+                $filename = \Illuminate\Support\Str::random(20).'.'.$file->getClientOriginalExtension();
                 $file->move(public_path('uploads/branding'), $filename);
-                $metadata['logo_url'] = '/uploads/branding/' . $filename;
+                $metadata['logo_url'] = '/uploads/branding/'.$filename;
             }
         }
 
@@ -133,7 +133,7 @@ class SettingsController extends Controller
         $user = Auth::user();
 
         $request->validate([
-            'email' => 'required|email|unique:users,email,' . $user->id,
+            'email' => 'required|email|unique:users,email,'.$user->id,
             'password' => 'nullable|min:12|confirmed',
         ]);
 
@@ -152,7 +152,7 @@ class SettingsController extends Controller
     public function disableMfa(Request $request)
     {
         $user = Auth::user();
-        
+
         $user->update([
             'mfa_enabled' => false,
             'mfa_secret' => null,

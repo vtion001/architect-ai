@@ -12,7 +12,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class AgentConversation extends Model
 {
-    use HasFactory, HasUuids, BelongsToTenant;
+    use BelongsToTenant, HasFactory, HasUuids;
 
     protected $fillable = [
         'tenant_id',
@@ -49,10 +49,10 @@ class AgentConversation extends Model
             'content' => $content,
             'timestamp' => now()->toIso8601String(),
         ];
-        
+
         $this->messages = $messages;
         $this->save();
-        
+
         return $this;
     }
 
@@ -61,7 +61,7 @@ class AgentConversation extends Model
      */
     public function getMessagesForApi(): array
     {
-        return collect($this->messages ?? [])->map(fn($msg) => [
+        return collect($this->messages ?? [])->map(fn ($msg) => [
             'role' => $msg['role'],
             'content' => $msg['content'],
         ])->toArray();

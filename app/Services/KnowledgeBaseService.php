@@ -11,7 +11,7 @@ use Illuminate\Support\Str;
 
 /**
  * Centralized RAG (Retrieval-Augmented Generation) service.
- * 
+ *
  * Consolidates all knowledge base context retrieval logic that was previously
  * duplicated across ReportService, ResearchService, and ContentService.
  */
@@ -29,7 +29,7 @@ class KnowledgeBaseService
     public function getContext(string $query, int $limit = 3, float $minRelevance = 0.65): ?string
     {
         $tenant = app(Tenant::class);
-        if (!$tenant || empty($query) || !$tenant->id) {
+        if (! $tenant || empty($query) || ! $tenant->id) {
             return null;
         }
 
@@ -54,8 +54,8 @@ class KnowledgeBaseService
     protected function getAssetContextById(string $assetId, string $tenantId): ?string
     {
         $asset = KnowledgeBaseAsset::where('tenant_id', $tenantId)->find($assetId);
-        
-        if (!$asset) {
+
+        if (! $asset) {
             return null;
         }
 
@@ -96,10 +96,11 @@ class KnowledgeBaseService
                 }
             }
 
-            return !empty($contextParts) ? implode("\n\n", $contextParts) : null;
+            return ! empty($contextParts) ? implode("\n\n", $contextParts) : null;
 
         } catch (\Exception $e) {
-            Log::warning("Vector search skipped: " . $e->getMessage());
+            Log::warning('Vector search skipped: '.$e->getMessage());
+
             return null;
         }
     }
@@ -112,7 +113,7 @@ class KnowledgeBaseService
         $assets = KnowledgeBaseAsset::where('tenant_id', $tenantId)
             ->where(function ($q) use ($query) {
                 $q->where('title', 'like', "%{$query}%")
-                  ->orWhere('content', 'like', "%{$query}%");
+                    ->orWhere('content', 'like', "%{$query}%");
             })
             ->limit($limit)
             ->get();
@@ -122,7 +123,7 @@ class KnowledgeBaseService
         }
 
         return $assets
-            ->map(fn($a) => "--- KEYWORD SOURCE: {$a->title} ---\n{$a->content}")
+            ->map(fn ($a) => "--- KEYWORD SOURCE: {$a->title} ---\n{$a->content}")
             ->implode("\n\n");
     }
 
@@ -153,7 +154,7 @@ class KnowledgeBaseService
     /**
      * Format knowledge base assets into a context string.
      *
-     * @param array $assets Array of asset objects with title and content
+     * @param  array  $assets  Array of asset objects with title and content
      * @return string|null Formatted context string or null if empty
      */
     public function formatContext(array $assets): ?string
@@ -162,7 +163,7 @@ class KnowledgeBaseService
             return null;
         }
 
-        $parts = ["[KNOWLEDGE BASE CONTEXT]"];
+        $parts = ['[KNOWLEDGE BASE CONTEXT]'];
 
         foreach ($assets as $asset) {
             $title = $asset->title ?? 'Untitled';

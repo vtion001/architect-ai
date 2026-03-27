@@ -1,4 +1,5 @@
 <?php
+
 require __DIR__.'/api-docs.php';
 
 use App\Http\Controllers\AnalyticsController;

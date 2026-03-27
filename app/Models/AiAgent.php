@@ -13,18 +13,18 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 /**
  * AI Agent Model
- * 
+ *
  * Represents a customizable AI assistant for a tenant.
- * 
+ *
  * TENANT ISOLATION:
  * - Uses BelongsToTenant trait for automatic global scoping
  * - getKnowledgeContext() explicitly validates tenant_id for RAG data
  * - Conversations are scoped via AgentConversation model
- * 
+ *
  * TOKEN CONSUMPTION:
  * - AI chat messages consume tokens via ProcessAiChatMessage job
  * - Cost: TokenService::COSTS['ai_chat_message'] = 5 tokens per message
- * 
+ *
  * @property string $id
  * @property string $tenant_id
  * @property string $user_id
@@ -37,7 +37,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  */
 class AiAgent extends Model
 {
-    use HasFactory, HasUuids, BelongsToTenant;
+    use BelongsToTenant, HasFactory, HasUuids;
 
     protected $fillable = [
         'tenant_id',
@@ -103,11 +103,11 @@ class AiAgent extends Model
     public function getFullSystemPrompt(): string
     {
         $prompt = $this->system_prompt ?: "You are {$this->name}, a {$this->role}.";
-        
+
         if ($this->goal) {
             $prompt .= "\n\nYour primary goal: {$this->goal}";
         }
-        
+
         if ($this->backstory) {
             $prompt .= "\n\nContext: {$this->backstory}";
         }
@@ -117,7 +117,7 @@ class AiAgent extends Model
 
     /**
      * Get knowledge base content for RAG.
-     * 
+     *
      * SECURITY: Only retrieves assets that belong to the same tenant
      * as this agent, preventing cross-tenant data leakage.
      */
@@ -133,13 +133,12 @@ class AiAgent extends Model
             ->where('tenant_id', $this->tenant_id)
             ->whereIn('id', $this->knowledge_sources)
             ->get();
-        
+
         if ($assets->isEmpty()) {
             return null;
         }
 
-        return $assets->map(fn($a) => "--- SOURCE: {$a->title} ---\n{$a->content}")
+        return $assets->map(fn ($a) => "--- SOURCE: {$a->title} ---\n{$a->content}")
             ->implode("\n\n");
     }
 }
-

@@ -9,10 +9,10 @@ use Illuminate\Support\Facades\Log;
 
 /**
  * OpenAI Client Service
- * 
+ *
  * Centralized client for all OpenAI API calls.
  * Handles authentication, timeouts, and error handling.
- * 
+ *
  * USAGE:
  *   $client = app(OpenAIClient::class);
  *   $response = $client->chat($messages, $options);
@@ -20,7 +20,9 @@ use Illuminate\Support\Facades\Log;
 class OpenAIClient
 {
     protected string $apiKey;
+
     protected string $baseUrl = 'https://api.openai.com/v1';
+
     protected int $defaultTimeout = 90;
 
     public function __construct()
@@ -35,15 +37,16 @@ class OpenAIClient
     {
         if (empty($this->apiKey)) {
             Log::error('OpenAI API key not configured');
+
             return $this->errorResponse('AI service not configured');
         }
 
         $timeout = $options['timeout'] ?? $this->defaultTimeout;
-        
+
         // Allowed OpenAI parameters
         $allowedParams = [
-            'model', 'temperature', 'max_tokens', 'top_p', 'frequency_penalty', 
-            'presence_penalty', 'stop', 'n', 'response_format', 'seed', 'user', 'tools', 'tool_choice'
+            'model', 'temperature', 'max_tokens', 'top_p', 'frequency_penalty',
+            'presence_penalty', 'stop', 'n', 'response_format', 'seed', 'user', 'tools', 'tool_choice',
         ];
 
         // Default values
@@ -56,8 +59,8 @@ class OpenAIClient
 
         // Filter options to only include allowed params
         $filteredOptions = array_filter(
-            $options, 
-            fn($key) => in_array($key, $allowedParams), 
+            $options,
+            fn ($key) => in_array($key, $allowedParams),
             ARRAY_FILTER_USE_KEY
         );
 
@@ -79,13 +82,14 @@ class OpenAIClient
             Log::error('OpenAI API error', [
                 'status' => $response->status(),
                 'body' => $response->body(),
-                'payload' => $payload
+                'payload' => $payload,
             ]);
 
             return $this->errorResponse($response->body());
 
         } catch (\Throwable $e) {
             Log::error('OpenAI API exception', ['error' => $e->getMessage()]);
+
             return $this->errorResponse($e->getMessage());
         }
     }
@@ -95,7 +99,7 @@ class OpenAIClient
      */
     public function isConfigured(): bool
     {
-        return !empty($this->apiKey);
+        return ! empty($this->apiKey);
     }
 
     /**

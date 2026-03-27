@@ -17,13 +17,13 @@ return new class extends Migration
             $table->string('avatar_url')->nullable()->after('is_active');
             $table->string('primary_color', 7)->default('#00F2FF')->after('avatar_url');
             $table->string('welcome_message', 500)->default('Hello! How can I assist you today?')->after('primary_color');
-            
+
             // Behavior settings
             $table->string('model')->nullable()->after('welcome_message');
             $table->float('temperature')->default(0.7)->after('model');
             $table->integer('max_tokens')->default(2000)->after('temperature');
             $table->text('system_prompt')->nullable()->after('max_tokens');
-            
+
             // Widget settings
             $table->string('widget_position', 20)->default('bottom-right')->after('system_prompt');
             $table->boolean('widget_enabled')->default(true)->after('widget_position');
@@ -42,7 +42,7 @@ return new class extends Migration
 
             $table->foreign('agent_id')->references('id')->on('ai_agents')->onDelete('cascade');
             $table->foreign('user_id')->references('id')->on('users')->onDelete('set null');
-            
+
             $table->unique(['agent_id', 'session_id']);
             $table->index('session_id');
         });

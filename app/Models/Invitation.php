@@ -9,7 +9,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Invitation extends Model
 {
-    use HasUuids, BelongsToTenant;
+    use BelongsToTenant, HasUuids;
 
     protected $fillable = [
         'tenant_id',
@@ -43,6 +43,6 @@ class Invitation extends Model
 
     public function isAccepted(): bool
     {
-        return !is_null($this->accepted_at);
+        return ! is_null($this->accepted_at);
     }
 }

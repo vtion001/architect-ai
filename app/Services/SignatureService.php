@@ -2,18 +2,20 @@
 
 namespace App\Services;
 
+use App\Mail\SignatureRequested;
 use App\Models\Document;
 use App\Models\SignatureRequest;
-use App\Mail\SignatureRequested;
-use Illuminate\Support\Facades\Mail;
-use Illuminate\Support\Facades\Http;
-use Illuminate\Support\Str;
 use Exception;
+use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Str;
 
 class SignatureService
 {
     protected string $apiKey;
+
     protected string $baseUrl = 'https://api.hellosign.com/v3';
+
     protected bool $testMode;
 
     public function __construct()
@@ -70,11 +72,11 @@ class SignatureService
 
         try {
             $document = $signatureRequest->document;
-            
+
             // Prepare document file path
-            $filePath = storage_path('app/public/' . $document->path);
-            
-            if (!file_exists($filePath)) {
+            $filePath = storage_path('app/public/'.$document->path);
+
+            if (! file_exists($filePath)) {
                 throw new Exception('Document file not found');
             }
 
@@ -92,7 +94,7 @@ class SignatureService
             if ($response->successful()) {
                 $data = $response->json();
                 $signatureRequestId = $data['signature_request']['signature_request_id'] ?? null;
-                
+
                 $signatureRequest->update([
                     'hellosign_signature_request_id' => $signatureRequestId,
                 ]);
@@ -100,9 +102,10 @@ class SignatureService
                 return $signatureRequestId;
             }
 
-            throw new Exception('HelloSign API error: ' . $response->body());
+            throw new Exception('HelloSign API error: '.$response->body());
         } catch (Exception $e) {
-            \Log::error('HelloSign API error: ' . $e->getMessage());
+            \Log::error('HelloSign API error: '.$e->getMessage());
+
             return null;
         }
     }
@@ -118,7 +121,7 @@ class SignatureService
 
             $signatureRequest->markAsSent();
         } catch (Exception $e) {
-            \Log::error('Failed to send signature request email: ' . $e->getMessage());
+            \Log::error('Failed to send signature request email: '.$e->getMessage());
             throw $e;
         }
     }

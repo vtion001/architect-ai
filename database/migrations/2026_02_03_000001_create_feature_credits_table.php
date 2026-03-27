@@ -8,7 +8,7 @@ return new class extends Migration
 {
     /**
      * Run the migrations.
-     * 
+     *
      * Creates the feature_credits table for tracking per-user, per-feature
      * usage with monthly reset capability.
      */
@@ -26,10 +26,10 @@ return new class extends Migration
 
             $table->foreign('tenant_id')->references('id')->on('tenants')->onDelete('cascade');
             $table->foreign('user_id')->references('id')->on('users')->onDelete('cascade');
-            
+
             // Each user can only have one record per feature type
             $table->unique(['tenant_id', 'user_id', 'feature_type'], 'feature_credits_unique');
-            
+
             // Index for quick lookups
             $table->index(['user_id', 'feature_type']);
         });

@@ -2,10 +2,10 @@
 
 namespace App\Console\Commands;
 
-use Illuminate\Console\Command;
 use App\Models\Tenant;
-use App\Services\TokenService;
 use App\Services\AuthorizationService;
+use App\Services\TokenService;
+use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Log;
 
 class RefillGridTokens extends Command
@@ -30,7 +30,7 @@ class RefillGridTokens extends Command
     public function handle(TokenService $tokenService, AuthorizationService $authService)
     {
         $this->info('INITIATING RESOURCE ALLOCATION PROTOCOL...');
-        
+
         $tenants = Tenant::where('status', 'active')->get();
         $bar = $this->output->createProgressBar($tenants->count());
 

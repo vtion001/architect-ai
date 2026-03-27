@@ -13,10 +13,11 @@ class TenantFactory extends Factory
     public function definition(): array
     {
         $name = $this->faker->company;
+
         return [
             'id' => Str::uuid()->toString(),
             'name' => $name,
-            'slug' => Str::slug($name) . '-' . Str::random(5),
+            'slug' => Str::slug($name).'-'.Str::random(5),
             'type' => 'agency',
             'status' => 'active',
             'metadata' => [],

@@ -10,33 +10,37 @@ class PdfToTextService
 {
     public function extract(string $path): string
     {
-        if (!file_exists($path)) {
+        if (! file_exists($path)) {
             Log::error("PdfToText: File not found at $path");
+
             return '';
         }
 
         try {
             // Attempt to find pdftotext
             $binaryPath = $this->findBinaryPath();
-            
-            if (!$binaryPath) {
-                Log::error("PdfToText: Binary not found. Please install poppler-utils or xpdf.");
+
+            if (! $binaryPath) {
+                Log::error('PdfToText: Binary not found. Please install poppler-utils or xpdf.');
+
                 return '';
             }
-            
+
             // Execute pdftotext -layout <file> -
             // -layout maintains layout somewhat
             // - outputs to stdout
-            $result = Process::run("{$binaryPath} -layout " . escapeshellarg($path) . " -");
+            $result = Process::run("{$binaryPath} -layout ".escapeshellarg($path).' -');
 
             if ($result->successful()) {
                 return $this->sanitizeUtf8($result->output());
             } else {
-                Log::error("PdfToText Failed: " . $result->errorOutput());
+                Log::error('PdfToText Failed: '.$result->errorOutput());
+
                 return '';
             }
         } catch (Exception $e) {
-            Log::error("PdfToText Exception: " . $e->getMessage());
+            Log::error('PdfToText Exception: '.$e->getMessage());
+
             return '';
         }
     }
@@ -75,7 +79,7 @@ class PdfToTextService
     {
         // First, try to convert from detected encoding to UTF-8
         $encoding = mb_detect_encoding($text, ['UTF-8', 'ISO-8859-1', 'Windows-1252', 'ASCII'], true);
-        
+
         if ($encoding && $encoding !== 'UTF-8') {
             $text = mb_convert_encoding($text, 'UTF-8', $encoding);
         }
@@ -83,10 +87,10 @@ class PdfToTextService
         // Remove any remaining invalid UTF-8 sequences
         // Using regex to strip invalid byte sequences
         $text = preg_replace('/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/u', '', $text);
-        
+
         // Use iconv as a fallback to transliterate or ignore invalid characters
         $cleaned = @iconv('UTF-8', 'UTF-8//TRANSLIT//IGNORE', $text);
-        
+
         if ($cleaned === false) {
             // Last resort: manually filter out non-UTF8 characters
             $cleaned = mb_convert_encoding($text, 'UTF-8', 'UTF-8');

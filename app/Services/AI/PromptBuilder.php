@@ -6,7 +6,7 @@ namespace App\Services\AI;
 
 /**
  * Prompt Builder Service
- * 
+ *
  * Centralizes prompt construction logic for AI features.
  * Provides reusable methods for building system prompts,
  * brand context, and formatting instructions.
@@ -26,7 +26,7 @@ class PromptBuilder
      */
     public function brandContext(?\App\Models\Brand $brand): string
     {
-        if (!$brand) {
+        if (! $brand) {
             return '';
         }
 
@@ -35,13 +35,13 @@ class PromptBuilder
 
         if ($brand->voice_profile) {
             $voice = $brand->voice_profile;
-            $context .= "Tone: " . ($voice['tone'] ?? 'Standard') . "\n";
-            $context .= "Style: " . ($voice['writing_style'] ?? 'Standard') . "\n";
-            
-            if (!empty($voice['keywords'])) {
+            $context .= 'Tone: '.($voice['tone'] ?? 'Standard')."\n";
+            $context .= 'Style: '.($voice['writing_style'] ?? 'Standard')."\n";
+
+            if (! empty($voice['keywords'])) {
                 $context .= "Key Phrases: {$voice['keywords']}\n";
             }
-            if (!empty($voice['avoid_words'])) {
+            if (! empty($voice['avoid_words'])) {
                 $context .= "Avoid Words: {$voice['avoid_words']}\n";
             }
         }
@@ -50,7 +50,7 @@ class PromptBuilder
             $context .= "Context: {$brand->description}\n";
         }
 
-        $context .= "[END BRAND IDENTITY]";
+        $context .= '[END BRAND IDENTITY]';
 
         return $context;
     }
@@ -74,8 +74,8 @@ class PromptBuilder
     {
         return match ($format) {
             'plain' => "CRITICAL: DO NOT use markdown symbols like '*' or '#' for formatting. Use plain text and clear spacing. For lists, use simple bullet points like '-' or '•'",
-            'markdown' => "Format your response using markdown for better readability.",
-            'html' => "Format your response using HTML tags for structured output.",
+            'markdown' => 'Format your response using markdown for better readability.',
+            'html' => 'Format your response using HTML tags for structured output.',
             default => '',
         };
     }

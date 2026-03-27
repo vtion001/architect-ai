@@ -9,7 +9,7 @@ use Illuminate\Support\Facades\Log;
 
 /**
  * Observer for Content model.
- * 
+ *
  * Handles side effects without cluttering controllers (Observer Pattern).
  * This keeps business logic clean and makes events reusable.
  */
@@ -40,7 +40,7 @@ class ContentObserver
         if ($content->isDirty('status')) {
             $oldStatus = $content->getOriginal('status');
             $newStatus = $content->status;
-            
+
             Log::info('ContentObserver: Content status changed', [
                 'id' => $content->id,
                 'from' => $oldStatus,

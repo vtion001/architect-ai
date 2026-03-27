@@ -3,7 +3,6 @@
 namespace App\Http\Controllers;
 
 use App\Models\Document;
-use App\Models\SignatureRequest;
 use App\Services\SignatureService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
@@ -51,11 +50,11 @@ class SignatureRequestController extends Controller
                 ],
             ]);
         } catch (\Exception $e) {
-            \Log::error('Signature request failed: ' . $e->getMessage());
-            
+            \Log::error('Signature request failed: '.$e->getMessage());
+
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to send signature request: ' . $e->getMessage(),
+                'message' => 'Failed to send signature request: '.$e->getMessage(),
             ], 500);
         }
     }
@@ -67,7 +66,7 @@ class SignatureRequestController extends Controller
     {
         $signatureRequest = $this->signatureService->getByToken($token);
 
-        if (!$signatureRequest) {
+        if (! $signatureRequest) {
             abort(404, 'Signature request not found');
         }
 
@@ -88,7 +87,7 @@ class SignatureRequestController extends Controller
     {
         $signatureRequest = $this->signatureService->getByToken($token);
 
-        if (!$signatureRequest) {
+        if (! $signatureRequest) {
             return response()->json([
                 'success' => false,
                 'message' => 'Signature request not found',
@@ -131,11 +130,11 @@ class SignatureRequestController extends Controller
                 'message' => 'Document signed successfully',
             ]);
         } catch (\Exception $e) {
-            \Log::error('Signature submission failed: ' . $e->getMessage());
-            
+            \Log::error('Signature submission failed: '.$e->getMessage());
+
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to process signature: ' . $e->getMessage(),
+                'message' => 'Failed to process signature: '.$e->getMessage(),
             ], 500);
         }
     }

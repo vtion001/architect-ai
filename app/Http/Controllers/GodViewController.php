@@ -2,16 +2,13 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Waitlist as WaitlistModel;
-use App\Models\User;
-use App\Models\Tenant;
 use App\Models\AuditLog;
-use App\Models\TokenTransaction;
 use App\Models\Content;
 use App\Models\Research;
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Str;
+use App\Models\Tenant;
+use App\Models\TokenTransaction;
+use App\Models\User;
+use App\Models\Waitlist as WaitlistModel;
 
 class GodViewController extends Controller
 {
@@ -61,10 +58,12 @@ class GodViewController extends Controller
      */
     private function authorizeGodAccess(): void
     {
-        if (!auth()->check() || !auth()->user()->is_developer) {
+        if (! auth()->check() || ! auth()->user()->is_developer) {
             abort(403, 'ACCESS DENIED. This node requires Master Node authorization.');
         }
     }
 
-    public function approve(WaitlistModel $waitlist) { /* logic already moved to convertLead in AdminController */ }
+    public function approve(WaitlistModel $waitlist)
+    { /* logic already moved to convertLead in AdminController */
+    }
 }

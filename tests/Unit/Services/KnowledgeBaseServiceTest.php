@@ -30,7 +30,7 @@ class KnowledgeBaseServiceTest extends TestCase
     public function get_context_returns_null_for_empty_query(): void
     {
         $result = $this->service->getContext('');
-        
+
         $this->assertNull($result);
     }
 
@@ -39,7 +39,7 @@ class KnowledgeBaseServiceTest extends TestCase
     {
         // With no knowledge base assets in test db, should return null
         $result = $this->service->getContext('some random query');
-        
+
         $this->assertNull($result);
     }
 
@@ -69,7 +69,7 @@ class KnowledgeBaseServiceTest extends TestCase
     public function format_context_returns_null_for_empty_array(): void
     {
         $result = $this->service->formatContext([]);
-        
+
         $this->assertNull($result);
     }
 }

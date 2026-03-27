@@ -4,8 +4,8 @@ namespace App\Http\Controllers;
 
 use App\Models\Task;
 use App\Models\TaskCategory;
-use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 
@@ -140,6 +140,7 @@ class TaskController extends Controller
             return response()->json(['message' => 'Unauthorized'], 403);
         }
         $category->delete();
+
         return response()->json(['success' => true]);
     }
 
@@ -154,22 +155,22 @@ class TaskController extends Controller
             $baseUrl = config('services.minimax.base_url', 'https://api.minimaxi.com/v1');
             $model = config('services.minimax.model', 'M2.7');
 
-            if (!$apiKey) {
+            if (! $apiKey) {
                 return response()->json(['message' => 'MiniMax AI service not configured'], 503);
             }
 
             $response = Http::withToken($apiKey)
                 ->timeout(30)
-                ->post($baseUrl . '/text/chatcompletion_v2', [
+                ->post($baseUrl.'/text/chatcompletion_v2', [
                     'model' => $model,
                     'messages' => [
                         [
                             'role' => 'system',
-                            'content' => 'You are a productivity expert. Analyze the user request and generate a concise but descriptive title for the project/task, and then break it down into concrete, actionable steps. Return ONLY a valid JSON object with two keys: "title" (string) and "steps" (array of strings). Do not include markdown formatting.'
+                            'content' => 'You are a productivity expert. Analyze the user request and generate a concise but descriptive title for the project/task, and then break it down into concrete, actionable steps. Return ONLY a valid JSON object with two keys: "title" (string) and "steps" (array of strings). Do not include markdown formatting.',
                         ],
                         [
                             'role' => 'user',
-                            'content' => $validated['content']
+                            'content' => $validated['content'],
                         ],
                     ],
                     'temperature' => 0.7,
@@ -183,18 +184,18 @@ class TaskController extends Controller
                 $data = json_decode(trim($content), true);
 
                 // Backward compatibility / Fallback
-                if (!isset($data['title']) || !isset($data['steps'])) {
+                if (! isset($data['title']) || ! isset($data['steps'])) {
                     if (is_array($data) && array_is_list($data)) {
                         // It returned just the list of steps
                         $data = [
-                            'title' => substr($validated['content'], 0, 50) . '...',
-                            'steps' => $data
+                            'title' => substr($validated['content'], 0, 50).'...',
+                            'steps' => $data,
                         ];
                     } else {
                         // Failed to parse, probably plain text
                         $data = [
                             'title' => 'New Project',
-                            'steps' => []
+                            'steps' => [],
                         ];
                     }
                 }
@@ -202,14 +203,15 @@ class TaskController extends Controller
                 return response()->json([
                     'success' => true,
                     'title' => $data['title'],
-                    'steps' => $data['steps']
+                    'steps' => $data['steps'],
                 ]);
             }
 
             return response()->json(['success' => false, 'message' => 'AI generation failed'], 500);
 
         } catch (\Exception $e) {
-            Log::error('Task breakdown error: ' . $e->getMessage());
+            Log::error('Task breakdown error: '.$e->getMessage());
+
             return response()->json(['success' => false, 'message' => 'Server error'], 500);
         }
     }
@@ -224,7 +226,7 @@ class TaskController extends Controller
         $file = $request->file('audio');
         $apiKey = config('services.openai.key');
 
-        if (!$apiKey) {
+        if (! $apiKey) {
             return response()->json(['success' => false, 'message' => 'AI not configured'], 503);
         }
 
@@ -238,7 +240,8 @@ class TaskController extends Controller
                 ]);
 
             if ($transcriptionResponse->failed()) {
-                Log::error('Whisper API Error: ' . $transcriptionResponse->body());
+                Log::error('Whisper API Error: '.$transcriptionResponse->body());
+
                 return response()->json(['success' => false, 'message' => 'Transcription failed'], 500);
             }
 
@@ -253,15 +256,15 @@ class TaskController extends Controller
                 $note = Task::create([
                     'tenant_id' => auth()->user()->tenant_id,
                     'user_id' => auth()->id(),
-                    'title' => 'Voice Memo - ' . now()->format('M d, H:i'),
+                    'title' => 'Voice Memo - '.now()->format('M d, H:i'),
                     'description' => $transcript,
                     'type' => 'note',
-                    'status' => 'pending'
+                    'status' => 'pending',
                 ]);
 
                 return response()->json(['success' => true, 'note' => $note]);
-            } 
-            
+            }
+
             if ($request->type === 'tasks') {
                 // 3. Extract Tasks via GPT-4o
                 $aiResponse = Http::withToken($apiKey)->post('https://api.openai.com/v1/chat/completions', [
@@ -269,14 +272,14 @@ class TaskController extends Controller
                     'messages' => [
                         [
                             'role' => 'system',
-                            'content' => "You are an executive assistant. Analyze the meeting transcript. 
+                            'content' => 'You are an executive assistant. Analyze the meeting transcript. 
                             1. Identify the main topic/goal for the Project Title.
                             2. Extract clear, actionable steps as Tasks.
-                            Return JSON ONLY: { \"title\": \"Project Title\", \"tasks\": [\"Action Item 1\", \"Action Item 2\"] }"
+                            Return JSON ONLY: { "title": "Project Title", "tasks": ["Action Item 1", "Action Item 2"] }',
                         ],
-                        ['role' => 'user', 'content' => $transcript]
+                        ['role' => 'user', 'content' => $transcript],
                     ],
-                    'response_format' => ['type' => 'json_object']
+                    'response_format' => ['type' => 'json_object'],
                 ]);
 
                 if ($aiResponse->successful()) {
@@ -287,12 +290,12 @@ class TaskController extends Controller
                         'tenant_id' => auth()->user()->tenant_id,
                         'user_id' => auth()->id(),
                         'title' => $data['title'] ?? 'Voice Meeting Results',
-                        'description' => "Transcript Summary:\n" . substr($transcript, 0, 500) . (strlen($transcript)>500 ? '...' : ''),
+                        'description' => "Transcript Summary:\n".substr($transcript, 0, 500).(strlen($transcript) > 500 ? '...' : ''),
                         'type' => 'task',
-                        'status' => 'pending'
+                        'status' => 'pending',
                     ]);
 
-                    if (!empty($data['tasks']) && is_array($data['tasks'])) {
+                    if (! empty($data['tasks']) && is_array($data['tasks'])) {
                         foreach ($data['tasks'] as $step) {
                             Task::create([
                                 'tenant_id' => auth()->user()->tenant_id,
@@ -300,7 +303,7 @@ class TaskController extends Controller
                                 'parent_id' => $parentTask->id,
                                 'title' => $step,
                                 'type' => 'task',
-                                'status' => 'pending'
+                                'status' => 'pending',
                             ]);
                         }
                     }
@@ -312,8 +315,9 @@ class TaskController extends Controller
             return response()->json(['success' => false, 'message' => 'Processing failed'], 500);
 
         } catch (\Exception $e) {
-            Log::error('Voice processing error: ' . $e->getMessage());
-            return response()->json(['success' => false, 'message' => 'Server error: ' . $e->getMessage()], 500);
+            Log::error('Voice processing error: '.$e->getMessage());
+
+            return response()->json(['success' => false, 'message' => 'Server error: '.$e->getMessage()], 500);
         }
     }
 
@@ -327,7 +331,7 @@ class TaskController extends Controller
 
         try {
             $file = $request->file('audio');
-            $filename = 'media/voice-' . \Illuminate\Support\Str::uuid() . '.' . $file->getClientOriginalExtension();
+            $filename = 'media/voice-'.\Illuminate\Support\Str::uuid().'.'.$file->getClientOriginalExtension();
             \Illuminate\Support\Facades\Storage::disk('public')->put($filename, file_get_contents($file->getPathname()));
             $url = \Illuminate\Support\Facades\Storage::disk('public')->url($filename);
 
@@ -343,12 +347,13 @@ class TaskController extends Controller
                     'filename' => $filename,
                     'size' => $file->getSize(),
                     'mime_type' => $file->getMimeType(),
-                ]
+                ],
             ]);
 
             return response()->json(['success' => true, 'asset' => $asset]);
         } catch (\Exception $e) {
-            \Illuminate\Support\Facades\Log::error('Audio save error: ' . $e->getMessage());
+            \Illuminate\Support\Facades\Log::error('Audio save error: '.$e->getMessage());
+
             return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
         }
     }
@@ -361,7 +366,7 @@ class TaskController extends Controller
         ]);
 
         try {
-            $filename = 'demos/ghost-' . \Illuminate\Support\Str::uuid() . '.json';
+            $filename = 'demos/ghost-'.\Illuminate\Support\Str::uuid().'.json';
             \Illuminate\Support\Facades\Storage::disk('public')->put($filename, json_encode($validated['events']));
 
             $document = \App\Models\Document::create([
@@ -382,20 +387,23 @@ class TaskController extends Controller
                     'id' => $document->id,
                     'title' => $document->name,
                     'created_at' => $document->created_at->toIso8601String(),
-                ]
+                ],
             ]);
         } catch (\Exception $e) {
-            Log::error('Ghost save error: ' . $e->getMessage());
+            Log::error('Ghost save error: '.$e->getMessage());
+
             return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
         }
     }
 
     public function showGhostDemo(\App\Models\Document $document)
     {
-        if ($document->type !== 'GHOST_DEMO') abort(404);
-        
+        if ($document->type !== 'GHOST_DEMO') {
+            abort(404);
+        }
+
         $events = json_decode(\Illuminate\Support\Facades\Storage::disk('public')->get($document->path), true);
-        
+
         return view('tasks.ghost-player', compact('document', 'events'));
     }
 }

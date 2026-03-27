@@ -22,9 +22,9 @@ class AIServiceProvider extends ServiceProvider
     public function register(): void
     {
         // Register as singletons for performance
-        $this->app->singleton(MiniMaxClient::class, fn() => new MiniMaxClient());
-        $this->app->singleton(OpenAIClient::class, fn() => new OpenAIClient());
-        $this->app->singleton(PromptBuilder::class, fn() => new PromptBuilder());
+        $this->app->singleton(MiniMaxClient::class, fn () => new MiniMaxClient);
+        $this->app->singleton(OpenAIClient::class, fn () => new OpenAIClient);
+        $this->app->singleton(PromptBuilder::class, fn () => new PromptBuilder);
     }
 
     /**

@@ -8,13 +8,14 @@ use Illuminate\Support\Facades\Log;
 class VideoGenerationService
 {
     protected string $apiKey;
+
     protected string $endpoint;
 
     public function __construct()
     {
         // Configurable for Sora, Runway, or Stable Video
         $this->apiKey = config('services.video_ai.key', '');
-        $this->endpoint = config('services.video_ai.endpoint', 'https://api.openai.com/v1/videos/generations'); 
+        $this->endpoint = config('services.video_ai.endpoint', 'https://api.openai.com/v1/videos/generations');
     }
 
     /**
@@ -29,10 +30,11 @@ class VideoGenerationService
 
         Log::info("Starting Video Generation: [$model] $prompt ($duration s, $aspectRatio)");
 
-        if (!$this->apiKey) {
+        if (! $this->apiKey) {
             // Simulation Mode for Development
-            Log::warning("No Video AI API Key found. Simulating generation.");
-            return 'simulated_task_' . uniqid();
+            Log::warning('No Video AI API Key found. Simulating generation.');
+
+            return 'simulated_task_'.uniqid();
         }
 
         try {
@@ -42,7 +44,7 @@ class VideoGenerationService
                     'prompt' => $prompt,
                     'size' => $this->mapAspectRatioToResolution($aspectRatio),
                     'duration' => $duration,
-                    'response_format' => 'url'
+                    'response_format' => 'url',
                 ]);
 
             if ($response->successful()) {
@@ -50,9 +52,9 @@ class VideoGenerationService
                 return $response->json('id') ?? $response->json('url');
             }
 
-            throw new \Exception("Video API Error: " . $response->body());
+            throw new \Exception('Video API Error: '.$response->body());
         } catch (\Exception $e) {
-            Log::error("Video Generation Exception: " . $e->getMessage());
+            Log::error('Video Generation Exception: '.$e->getMessage());
             throw $e;
         }
     }
@@ -67,7 +69,7 @@ class VideoGenerationService
             return [
                 'status' => 'completed',
                 'url' => 'https://res.cloudinary.com/demo/video/upload/v1690567890/samples/cld-sample-video.mp4', // Placeholder
-                'progress' => 100
+                'progress' => 100,
             ];
         }
 
@@ -77,7 +79,7 @@ class VideoGenerationService
 
     protected function mapAspectRatioToResolution(string $ratio): string
     {
-        return match($ratio) {
+        return match ($ratio) {
             'Landscape' => '1920x1080',
             'Portrait' => '1080x1920',
             'Square' => '1080x1080',

@@ -3,8 +3,8 @@
 namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
-use App\Models\User;
 use App\Models\Tenant;
+use App\Models\User;
 use App\Services\AuthorizationService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -30,7 +30,7 @@ class AgencyImpersonationController extends Controller
         // Must be an agency owner AND the target must be their child tenant
         $isAuthorized = $owner->tenant->type === 'agency' && $targetTenant->parent_id === $owner->tenant_id;
 
-        if (!$isAuthorized) {
+        if (! $isAuthorized) {
             $this->authService->audit($owner, 'security.illegal_impersonation', $targetTenant, 'denied', "Illegal attempt to impersonate tenant node: {$targetTenant->slug}");
             abort(403, 'Unauthorized context entry.');
         }
@@ -41,7 +41,7 @@ class AgencyImpersonationController extends Controller
             ->where('tenant_id', $targetTenant->id)
             ->first();
 
-        if (!$targetUser) {
+        if (! $targetUser) {
             abort(404, 'No authorized identity found in target node.');
         }
 
@@ -69,7 +69,7 @@ class AgencyImpersonationController extends Controller
      */
     public function stop()
     {
-        if (!session()->has('impersonated_by')) {
+        if (! session()->has('impersonated_by')) {
             return redirect('/dashboard');
         }
 

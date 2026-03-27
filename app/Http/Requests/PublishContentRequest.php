@@ -8,7 +8,7 @@ use Illuminate\Foundation\Http\FormRequest;
 
 /**
  * Form Request for publishing content to social platforms.
- * 
+ *
  * Extracts validation from ContentCreatorController::publish()
  */
 class PublishContentRequest extends FormRequest
@@ -51,11 +51,11 @@ class PublishContentRequest extends FormRequest
     public function getNormalizedImageUrl(): ?string
     {
         $url = $this->input('image_url');
-        
-        if (!empty($url) && str_starts_with($url, '/')) {
-            return rtrim(config('app.url'), '/') . $url;
+
+        if (! empty($url) && str_starts_with($url, '/')) {
+            return rtrim(config('app.url'), '/').$url;
         }
-        
+
         return $url;
     }
 
@@ -72,8 +72,8 @@ class PublishContentRequest extends FormRequest
      */
     public function getScheduledAt(): string
     {
-        return $this->isImmediate() 
-            ? now()->toDateTimeString() 
+        return $this->isImmediate()
+            ? now()->toDateTimeString()
             : $this->input('scheduled_at');
     }
 

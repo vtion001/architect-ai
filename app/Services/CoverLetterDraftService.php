@@ -9,7 +9,7 @@ use Illuminate\Support\Facades\Log;
 
 /**
  * Cover Letter Draft Service
- * 
+ *
  * Generates AI-powered cover letter drafts based on CV and target role.
  * Extracted from DocumentBuilderController for better separation of concerns.
  */
@@ -24,47 +24,48 @@ class CoverLetterDraftService
         $baseUrl = config('services.minimax.base_url', 'https://api.minimaxi.com/v1');
         $model = config('services.minimax.model', 'M2.7');
 
-        if (!$apiKey) {
+        if (! $apiKey) {
             return [
                 'success' => false,
-                'message' => 'MiniMax AI not configured'
+                'message' => 'MiniMax AI not configured',
             ];
         }
 
         try {
-            $response = Http::withToken($apiKey)->post($baseUrl . '/text/chatcompletion_v2', [
+            $response = Http::withToken($apiKey)->post($baseUrl.'/text/chatcompletion_v2', [
                 'model' => $model,
                 'messages' => [
                     [
                         'role' => 'system',
-                        'content' => $this->getDraftingPrompt()
+                        'content' => $this->getDraftingPrompt(),
                     ],
                     [
                         'role' => 'user',
-                        'content' => "TARGET ROLE:\n{$targetRole}\n\nCANDIDATE CV:\n{$sourceContent}"
-                    ]
+                        'content' => "TARGET ROLE:\n{$targetRole}\n\nCANDIDATE CV:\n{$sourceContent}",
+                    ],
                 ],
                 'max_completion_tokens' => 2000,
-                'temperature' => 0.7
+                'temperature' => 0.7,
             ]);
 
             if ($response->successful()) {
                 return [
                     'success' => true,
-                    'draft' => $response->json('choices.0.message.content')
+                    'draft' => $response->json('choices.0.message.content'),
                 ];
             }
         } catch (\Exception $e) {
-            Log::error('Cover letter drafting failed: ' . $e->getMessage());
+            Log::error('Cover letter drafting failed: '.$e->getMessage());
+
             return [
                 'success' => false,
-                'message' => $e->getMessage()
+                'message' => $e->getMessage(),
             ];
         }
 
         return [
             'success' => false,
-            'message' => 'Drafting failed'
+            'message' => 'Drafting failed',
         ];
     }
 

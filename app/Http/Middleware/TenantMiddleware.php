@@ -26,8 +26,8 @@ class TenantMiddleware
 
             if ($potentialTenant) {
                 // Verify the user is authorized for this SPECIFIC node
-                $isAuthorized = $user->tenant_id === $potentialTenant->id || 
-                                $user->is_developer || 
+                $isAuthorized = $user->tenant_id === $potentialTenant->id ||
+                                $user->is_developer ||
                                 ($user->tenant->type === 'agency' && $potentialTenant->parent_id === $user->tenant_id);
 
                 if ($isAuthorized) {
@@ -35,37 +35,38 @@ class TenantMiddleware
                 } else {
                     // Security Violation: Revoke session context
                     session()->forget('current_tenant_id');
-                    $this->authService->audit($user, 'security.session_revoked', $potentialTenant, 'denied', "Illegal session context detected. Access revoked.");
+                    $this->authService->audit($user, 'security.session_revoked', $potentialTenant, 'denied', 'Illegal session context detected. Access revoked.');
                 }
             }
         }
 
         // 2. Fallback to Domain, Slug, or native tenant if no hot-swap is active
-        if (!$tenant) {
+        if (! $tenant) {
             $host = $request->getHost();
             $slug = $request->route('tenant_slug') ?? $request->header('X-Tenant-Slug');
 
-            if ($host && !in_array($host, [config('app.url'), 'localhost', '127.0.0.1'])) {
+            if ($host && ! in_array($host, [config('app.url'), 'localhost', '127.0.0.1'])) {
                 $tenant = Tenant::where('metadata->custom_domain', $host)->first();
             }
 
-            if (!$tenant && $slug) {
+            if (! $tenant && $slug) {
                 $tenant = Tenant::where('slug', $slug)->first();
             }
 
-            if (!$tenant && $user) {
+            if (! $tenant && $user) {
                 $tenant = $user->tenant;
             }
         }
 
-        if (!$tenant && $this->requiresTenant($request)) {
+        if (! $tenant && $this->requiresTenant($request)) {
             return response()->json(['error' => 'Tenant context required'], 400);
         }
 
         if ($tenant) {
             // 3. Final Isolation Verification
-            if ($user && !$user->is_developer && $user->tenant_id !== $tenant->id && $tenant->parent_id !== $user->tenant_id) {
+            if ($user && ! $user->is_developer && $user->tenant_id !== $tenant->id && $tenant->parent_id !== $user->tenant_id) {
                 $this->authService->audit($user, 'tenant.isolation_violation', $tenant, 'denied', "Unauthorized access attempt to: {$tenant->slug}");
+
                 return response()->json(['error' => 'Unauthorized for this workspace'], 403);
             }
 

@@ -13,6 +13,7 @@ class PolicyController extends Controller
     public function index()
     {
         $policies = AccessPolicy::orderBy('priority', 'desc')->get();
+
         return view('tenant.policies.policies', compact('policies'));
     }
 
@@ -39,10 +40,10 @@ class PolicyController extends Controller
         ]);
 
         $this->authService->audit(
-            auth()->user(), 
-            'security.policy_created', 
-            $policy, 
-            'success', 
+            auth()->user(),
+            'security.policy_created',
+            $policy,
+            'success',
             "Established new security protocol: {$request->name}"
         );
 
@@ -55,10 +56,10 @@ class PolicyController extends Controller
         $policy->delete();
 
         $this->authService->audit(
-            auth()->user(), 
-            'security.policy_purged', 
-            null, 
-            'success', 
+            auth()->user(),
+            'security.policy_purged',
+            null,
+            'success',
             "Security protocol purged: {$name}"
         );
 

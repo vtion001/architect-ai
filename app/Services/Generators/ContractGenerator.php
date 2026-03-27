@@ -8,7 +8,7 @@ use App\DTOs\ReportRequestData;
 
 /**
  * Contract Generator
- * 
+ *
  * Specialized generator for comprehensive, legally sound business contracts with:
  * - Formal legal structure (Parties, Recitals, Articles, Signatures)
  * - International business law compliance
@@ -16,7 +16,7 @@ use App\DTOs\ReportRequestData;
  * - Professional HTML formatting with legal-specific CSS classes
  * - Content extraction and organization from source materials
  * - Party details, payment schedules, and milestone tables
- * 
+ *
  * This generator creates enforceable legal contracts with proper
  * structure, language, and protections for both parties.
  */
@@ -54,13 +54,13 @@ class ContractGenerator extends BaseGenerator
         $roleDescription = $this->getRoleDescription();
         $taskDescription = $this->getTaskDescription();
         $documentType = $this->getDocumentType();
-        
+
         $dataIntegrity = $this->buildDataIntegrityInstruction();
         $coreDirectives = $this->buildCoreDirectives($dataIntegrity);
-        
+
         // Contracts typically don't use brand instructions (legal documents are standardized)
         $contractMandate = $this->buildContractStructureMandate($data);
-        
+
         return "You are an $roleDescription. 
                 Your task is to take RAW source content and transform it into a $taskDescription.
                 
@@ -83,9 +83,9 @@ class ContractGenerator extends BaseGenerator
         $mandate = "\n[CONTRACT STRUCTURE MANDATE]\n";
         $mandate .= "You must generate a comprehensive, professional legal contract by analyzing the pasted content.\n";
         $mandate .= "CRITICAL: Extract all relevant details from the source content and organize into proper legal structure.\n\n";
-        
+
         $mandate .= "[REQUIRED CONTRACT SECTIONS - Generate ALL applicable sections]\n\n";
-        
+
         // 1. PARTIES SECTION
         $mandate .= "1. PARTIES SECTION (REQUIRED):\n";
         $mandate .= "   Generate using this exact HTML structure:\n";
@@ -102,7 +102,7 @@ class ContractGenerator extends BaseGenerator
         $mandate .= "       [Same structure for client details]\n";
         $mandate .= "     </div>\n";
         $mandate .= "   </div>\n\n";
-        
+
         // 2. RECITALS/WHEREAS
         $mandate .= "2. RECITALS/WHEREAS SECTION:\n";
         $mandate .= "   <div class='recitals'>\n";
@@ -111,13 +111,13 @@ class ContractGenerator extends BaseGenerator
         $mandate .= "     <p>WHEREAS, [purpose of engagement];</p>\n";
         $mandate .= "     <p class='therefore-clause'>NOW, THEREFORE, in consideration of the mutual covenants...</p>\n";
         $mandate .= "   </div>\n\n";
-        
+
         // 3. ARTICLES
         $mandate .= "3. ARTICLES - Use <h2> for main articles:\n";
         $mandate .= "   Use <h2>ARTICLE I: SCOPE OF WORK AND DELIVERABLES</h2>\n";
         $mandate .= "   Use <h3>1.1 Project Description</h3> for subsections\n";
         $mandate .= "   Use <h4>A. Component Name</h4> for sub-subsections\n\n";
-        
+
         // 4. STANDARD ARTICLES
         $mandate .= "4. STANDARD ARTICLES TO INCLUDE:\n";
         $mandate .= "   - ARTICLE I: SCOPE OF WORK AND DELIVERABLES (extract from content)\n";
@@ -129,7 +129,7 @@ class ContractGenerator extends BaseGenerator
         $mandate .= "   - ARTICLE VII: DISPUTE RESOLUTION AND GOVERNING LAW\n";
         $mandate .= "   - ARTICLE VIII: TERMINATION\n";
         $mandate .= "   - ARTICLE IX: MISCELLANEOUS PROVISIONS\n\n";
-        
+
         // 5. SPECIAL HTML CLASSES
         $mandate .= "5. SPECIAL HTML CLASSES TO USE:\n";
         $mandate .= "   - For critical/warning clauses: <div class='callout-critical'><strong>CRITICAL:</strong> text...</div>\n";
@@ -137,7 +137,7 @@ class ContractGenerator extends BaseGenerator
         $mandate .= "   - For informational notes: <div class='callout-info'>text...</div>\n";
         $mandate .= "   - For milestone blocks: <div class='milestone-block'><h4>Milestone Name</h4><p>Details...</p></div>\n";
         $mandate .= "   - For payment tables: <table class='payment-table'>...</table>\n\n";
-        
+
         // 6. PAYMENT SCHEDULE TABLE
         $mandate .= "6. PAYMENT SCHEDULE TABLE FORMAT:\n";
         $mandate .= "   <table class='payment-table'>\n";
@@ -147,14 +147,14 @@ class ContractGenerator extends BaseGenerator
         $mandate .= "       <tr class='total-row'><td colspan='3'>Total Contract Value</td><td>\$X,XXX.XX</td></tr>\n";
         $mandate .= "     </tbody>\n";
         $mandate .= "   </table>\n\n";
-        
+
         // 7. LEGAL EMPHASIS
         $mandate .= "7. LEGAL EMPHASIS:\n";
         $mandate .= "   - Use <strong>BOLD CAPS</strong> for critical legal terms\n";
         $mandate .= "   - Use <span class='legal-emphasis'>highlighted text</span> for key provisions\n";
         $mandate .= "   - Use numbered lists for sequential requirements\n";
         $mandate .= "   - Use bullet lists for non-sequential items\n\n";
-        
+
         // 8. CONTENT EXTRACTION RULES
         $mandate .= "8. CONTENT EXTRACTION RULES:\n";
         $mandate .= "   - Identify ALL services/deliverables from pasted content\n";
@@ -163,13 +163,13 @@ class ContractGenerator extends BaseGenerator
         $mandate .= "   - Extract party names and details if provided\n";
         $mandate .= "   - Infer appropriate warranties and terms based on service type\n";
         $mandate .= "   - Add industry-standard legal protections\n\n";
-        
+
         // 9. DO NOT INCLUDE
         $mandate .= "9. DO NOT INCLUDE:\n";
         $mandate .= "   - Signature blocks (already in template)\n";
         $mandate .= "   - 'IN WITNESS WHEREOF' closing (already in template)\n";
         $mandate .= "   - Contract header/title (already in template)\n\n";
-        
+
         // 10. OUTPUT QUALITY
         $mandate .= "10. OUTPUT QUALITY:\n";
         $mandate .= "    - Use formal, precise legal language\n";
@@ -177,7 +177,7 @@ class ContractGenerator extends BaseGenerator
         $mandate .= "    - Include specific details from source content\n";
         $mandate .= "    - Use blank lines ___________ where specific values should be filled in\n";
         $mandate .= "    - Make the contract enforceable and professional\n\n";
-        
+
         return $mandate;
     }
 
@@ -187,28 +187,28 @@ class ContractGenerator extends BaseGenerator
     protected function formatUserPrompt(ReportRequestData $data, string $baseContext): string
     {
         $cDetails = $data->contractDetails;
-        
-        $providerDetails = "
-            - Name: " . ($cDetails['providerName'] ?? 'Service Provider') . "
-            - Business: " . ($cDetails['providerBusiness'] ?? '') . "
-            - Address: " . ($cDetails['providerAddress'] ?? '') . "
-            - Email: " . ($cDetails['providerEmail'] ?? '') . "
-            - Tax ID: " . ($cDetails['providerTaxId'] ?? '');
+
+        $providerDetails = '
+            - Name: '.($cDetails['providerName'] ?? 'Service Provider').'
+            - Business: '.($cDetails['providerBusiness'] ?? '').'
+            - Address: '.($cDetails['providerAddress'] ?? '').'
+            - Email: '.($cDetails['providerEmail'] ?? '').'
+            - Tax ID: '.($cDetails['providerTaxId'] ?? '');
 
         $clientDetails = "
             - Name: {$data->recipientName}
             - Title: {$data->recipientTitle}
             - Business: {$data->companyAddress} 
-            - Address: " . ($cDetails['clientAddress'] ?? '') . "
-            - City/State: " . ($cDetails['clientCity'] ?? '') . "
-            - Country: " . ($cDetails['clientCountry'] ?? '') . "
-            - Email: " . ($cDetails['clientEmail'] ?? '') . "
-            - Tax ID: " . ($cDetails['clientTaxId'] ?? '');
+            - Address: ".($cDetails['clientAddress'] ?? '').'
+            - City/State: '.($cDetails['clientCity'] ?? '').'
+            - Country: '.($cDetails['clientCountry'] ?? '').'
+            - Email: '.($cDetails['clientEmail'] ?? '').'
+            - Tax ID: '.($cDetails['clientTaxId'] ?? '');
 
-        $financialDetails = "
-            - Contract Value: " . ($cDetails['contractValue'] ?? 'To be agreed') . "
-            - Start Date: " . ($cDetails['startDate'] ?? 'Upon signing') . "
-            - Duration: " . ($cDetails['duration'] ?? 'Until completion');
+        $financialDetails = '
+            - Contract Value: '.($cDetails['contractValue'] ?? 'To be agreed').'
+            - Start Date: '.($cDetails['startDate'] ?? 'Upon signing').'
+            - Duration: '.($cDetails['duration'] ?? 'Until completion');
 
         return "Generate a COMPREHENSIVE, LEGALLY SOUND, PROFESSIONALLY FORMATTED business contract.
             

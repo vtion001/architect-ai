@@ -50,7 +50,7 @@ class SignatureRequest extends Model
 
     public function markAsViewed(): void
     {
-        if (!$this->viewed_at) {
+        if (! $this->viewed_at) {
             $this->update([
                 'status' => 'viewed',
                 'viewed_at' => now(),
@@ -71,7 +71,7 @@ class SignatureRequest extends Model
         $metadata['signature_status'] = 'signed';
         $metadata['signed_at'] = now()->toIso8601String();
         $metadata['signed_by'] = $this->signer_email;
-        
+
         $this->document->update(['metadata' => $metadata]);
     }
 

@@ -10,9 +10,9 @@ use Illuminate\Http\Request;
 
 /**
  * Documents Controller
- * 
+ *
  * Manages document listing, viewing, updating, and deletion.
- * 
+ *
  * TENANT ISOLATION: Document model uses BelongsToTenant trait
  * for automatic query scoping.
  */
@@ -25,7 +25,7 @@ class DocumentsController extends Controller
     public function index()
     {
         $this->authService->audit(auth()->user(), 'documents.view');
-        
+
         $documents = Document::latest()->get();
 
         $stats = [
@@ -49,7 +49,7 @@ class DocumentsController extends Controller
                 'created_at' => $document->created_at,
             ]);
         }
-        
+
         return view('documents.viewer', compact('document'));
     }
 
@@ -70,6 +70,7 @@ class DocumentsController extends Controller
     public function destroy(Document $document)
     {
         $document->delete();
+
         return response()->json(['success' => true]);
     }
 
@@ -79,11 +80,12 @@ class DocumentsController extends Controller
     private function formatBytes(int $bytes): string
     {
         if ($bytes < 1024) {
-            return $bytes . ' B';
+            return $bytes.' B';
         }
         if ($bytes < 1048576) {
-            return round($bytes / 1024, 1) . ' KB';
+            return round($bytes / 1024, 1).' KB';
         }
-        return round($bytes / 1048576, 1) . ' MB';
+
+        return round($bytes / 1048576, 1).' MB';
     }
 }

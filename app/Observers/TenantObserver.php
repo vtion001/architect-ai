@@ -11,7 +11,7 @@ use Illuminate\Support\Facades\Log;
 
 /**
  * Observer for Tenant model.
- * 
+ *
  * Handles automated setup for new tenants:
  * - Granting initial tokens
  * - Provisioning feature credits for users
@@ -30,7 +30,7 @@ class TenantObserver
     {
         $plan = $tenant->plan ?? 'starter';
         $amount = config("features.plans.{$plan}.monthly_tokens", config('tokens.initial_grant', 5000));
-        
+
         Log::info('TenantObserver: Granting initial tokens', [
             'tenant_id' => $tenant->id,
             'plan' => $plan,
@@ -49,7 +49,7 @@ class TenantObserver
 
     /**
      * Handle the Tenant "updated" event.
-     * 
+     *
      * When a tenant's plan changes, update feature credits for all users.
      */
     public function updated(Tenant $tenant): void
@@ -76,4 +76,3 @@ class TenantObserver
         }
     }
 }
-

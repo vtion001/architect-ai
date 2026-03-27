@@ -11,6 +11,4 @@ use App\Services\Report\SampleContentProvider as ReportSampleContentProvider;
  *
  * Extends the Report\SampleContentProvider to support legacy type-hints.
  */
-class SampleContentProvider extends ReportSampleContentProvider
-{
-}
+class SampleContentProvider extends ReportSampleContentProvider {}

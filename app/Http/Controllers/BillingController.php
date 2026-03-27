@@ -9,11 +9,10 @@ use App\Enums\PlanType;
 use App\Services\FeatureCreditService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Inertia\Inertia;
 
 /**
  * Controller for subscription and billing management.
- * 
+ *
  * Handles:
  * - Viewing current plan and feature credits
  * - Plan upgrade/downgrade landing pages
@@ -92,7 +91,7 @@ class BillingController extends Controller
         $user = $request->user();
         $tenant = $user->tenant;
 
-        if (!$tenant) {
+        if (! $tenant) {
             return response()->json([
                 'success' => false,
                 'error' => 'no_tenant',
@@ -135,7 +134,7 @@ class BillingController extends Controller
         $user = $request->user();
         $featureType = FeatureType::tryFrom($feature);
 
-        if (!$featureType) {
+        if (! $featureType) {
             return response()->json([
                 'success' => false,
                 'error' => 'invalid_feature',

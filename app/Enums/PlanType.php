@@ -6,7 +6,7 @@ namespace App\Enums;
 
 /**
  * Subscription plan types.
- * 
+ *
  * STARTER: Default for new users - limited feature credits, no access to Pro features
  * PRO: Unlimited credits, access to AI Agents, Knowledge Base, Brand Kits
  * AGENCY: All Pro features + ability to create sub-accounts

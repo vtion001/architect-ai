@@ -4,13 +4,13 @@ declare(strict_types=1);
 
 namespace App\Observers;
 
-use App\Models\AiAgent;
 use App\Models\AgentConversation;
+use App\Models\AiAgent;
 use Illuminate\Support\Facades\Log;
 
 /**
  * Observer for AiAgent model.
- * 
+ *
  * Handles side effects like cleanup when agents are deleted.
  */
 class AiAgentObserver
@@ -30,14 +30,14 @@ class AiAgentObserver
 
     /**
      * Handle the AiAgent "deleting" event.
-     * 
+     *
      * Clean up conversations before agent is deleted.
      */
     public function deleting(AiAgent $agent): void
     {
         // Delete all conversations for this agent
         $deletedCount = AgentConversation::where('agent_id', $agent->id)->delete();
-        
+
         Log::info('AiAgentObserver: Cleaning up agent conversations', [
             'agent_id' => $agent->id,
             'conversations_deleted' => $deletedCount,

@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace App\Jobs;
 
-use App\Models\AiAgent;
 use App\Models\AgentConversation;
+use App\Models\AiAgent;
 use App\Models\User;
 use App\Services\AiChatProcessingService;
 use Illuminate\Bus\Queueable;
@@ -17,18 +17,18 @@ use Illuminate\Support\Facades\Log;
 
 /**
  * Process AI Chat Message Job
- * 
+ *
  * Queue job for processing AI chat messages asynchronously.
- * 
+ *
  * ARCHITECTURE NOTE: This job is DECOUPLED from UI rendering.
  * All AI processing logic is delegated to AiChatProcessingService.
- * 
+ *
  * Changes to this job will NOT affect:
  * - Chat widget UI layout
  * - Chat head positions
  * - Message bubble styling
  * - UI animations
- * 
+ *
  * The UI components (ai-chat-widget.blade.php) are completely
  * independent and can be modified without affecting this job.
  */
@@ -50,7 +50,7 @@ class ProcessAiChatMessage implements ShouldQueue
 
     /**
      * Execute the job.
-     * 
+     *
      * Delegates all processing to AiChatProcessingService which is
      * completely isolated from UI components.
      */
@@ -71,7 +71,7 @@ class ProcessAiChatMessage implements ShouldQueue
                 imageUrl: $this->imageUrl
             );
 
-            if (!$result->success) {
+            if (! $result->success) {
                 Log::warning('AI Chat processing returned failure', [
                     'agent_id' => $this->agent->id,
                     'error' => $result->error,
@@ -84,10 +84,10 @@ class ProcessAiChatMessage implements ShouldQueue
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString(),
             ]);
-            
+
             // Ensure error message is saved to conversation
             $this->conversation->addMessage(
-                'assistant', 
+                'assistant',
                 'An error occurred while processing your request.'
             );
         }

@@ -3,9 +3,9 @@
 namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
-use App\Models\User;
-use App\Models\Tenant;
 use App\Models\Role;
+use App\Models\Tenant;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
@@ -33,7 +33,7 @@ class AuthController extends Controller
             ->where('tenant_id', $tenant->id)
             ->first();
 
-        if (!$user || !Hash::check($request->password, $user->password)) {
+        if (! $user || ! Hash::check($request->password, $user->password)) {
             throw ValidationException::withMessages([
                 'email' => ['Invalid credentials for this workspace.'],
             ]);
@@ -42,13 +42,13 @@ class AuthController extends Controller
         // 2. Check status (Active / Suspended)
         if ($user->status === 'suspended') {
             app(\App\Services\AuthorizationService::class)->audit(
-                $user, 
-                'security.suspended_login_attempt', 
-                null, 
-                'denied', 
-                "Identity node is currently under autonomous suspension."
+                $user,
+                'security.suspended_login_attempt',
+                null,
+                'denied',
+                'Identity node is currently under autonomous suspension.'
             );
-            
+
             throw ValidationException::withMessages([
                 'email' => ['Identity Access Suspended. Please contact grid administration.'],
             ]);
@@ -56,7 +56,7 @@ class AuthController extends Controller
 
         if ($user->status !== 'active') {
             throw ValidationException::withMessages([
-                'email' => ['Account status: ' . strtoupper($user->status)],
+                'email' => ['Account status: '.strtoupper($user->status)],
             ]);
         }
 
@@ -70,7 +70,7 @@ class AuthController extends Controller
                 'message' => 'Login successful',
                 'token' => $user->createToken('auth_token')->plainTextToken,
                 'user' => $user->load('roles'),
-                'tenant' => $tenant
+                'tenant' => $tenant,
             ]);
         }
 

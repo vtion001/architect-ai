@@ -22,7 +22,7 @@ class DeveloperController extends Controller
         $developer = Auth::user();
         $targetUser = User::withoutGlobalScope('tenant')->findOrFail($request->user_id);
 
-        if (!$developer->is_developer) {
+        if (! $developer->is_developer) {
             abort(403, 'Unauthorized');
         }
 
@@ -47,7 +47,7 @@ class DeveloperController extends Controller
 
     public function stopImpersonating()
     {
-        if (!session()->has('impersonated_by')) {
+        if (! session()->has('impersonated_by')) {
             abort(403);
         }
 

@@ -8,14 +8,14 @@ use App\DTOs\ReportRequestData;
 
 /**
  * CV/Resume Generator
- * 
+ *
  * Specialized generator for professional resumes and CVs with:
  * - ATS-friendly formatting
  * - Job description tailoring (keyword matching)
  * - Core competencies structure
  * - Zero data loss policy
  * - Multiple style variants (classic, modern, technical, international)
- * 
+ *
  * This generator implements advanced tailoring that enhances resumes
  * for specific job descriptions while preserving 100% of original content.
  */
@@ -53,19 +53,19 @@ class CvResumeGenerator extends BaseGenerator
         $roleDescription = $this->getRoleDescription();
         $taskDescription = $this->getTaskDescription();
         $documentType = $this->getDocumentType();
-        
+
         $coreDirectives = $this->buildCoreDirectives();
         $brandInstructions = $this->buildBrandInstructions($data->brandId, $data->template->value);
-        
+
         // Build resume structure mandate
         $structureMandate = $this->buildResumeStructureMandate($data);
-        
+
         // Build tailoring instructions if target role is provided
         $tailoringInstructions = $this->buildTailoringInstructions($data);
-        
+
         // Build variant-specific instructions
         $variantInstructions = $this->buildVariantInstructions($data->variant);
-        
+
         return "You are an $roleDescription. 
                 Your task is to take RAW resume content and transform it into a $taskDescription.
                 
@@ -90,21 +90,21 @@ class CvResumeGenerator extends BaseGenerator
     {
         $mandate = "\n[RESUME STRUCTURE MANDATE - ZERO DATA LOSS]\n";
         $mandate .= "You must strictly follow this structure for the resume HTML:\n\n";
-        
+
         $mandate .= "PAGE 1 PRIORITY SECTIONS (Must appear on first page):\n";
         $mandate .= "1. PROFESSIONAL SUMMARY: <h2>Professional Summary</h2><p>3-4 impactful sentences tailored to target role</p>\n\n";
-        
+
         $mandate .= "2. CORE COMPETENCIES: <h2>Core Competencies</h2>\n";
         $mandate .= "   <div class='competencies-grid' style='display:grid;grid-template-columns:repeat(3,1fr);gap:0.5rem;margin:1rem 0;'>\n";
         $mandate .= "      <div class='competency-item' style='padding:0.5rem;background:#f8fafc;border-left:3px solid #3b82f6;'>Skill 1</div>\n";
         $mandate .= "      (Include 9-12 key competencies matching job requirements)\n";
         $mandate .= "   </div>\n\n";
-        
+
         $mandate .= "3. KEY SKILLS HIGHLIGHTS: <h2>Key Skills</h2>\n";
         $mandate .= "   - For 'Modern/Technical' variants: Use <span class='skill-tag' style='display:inline-block;padding:0.25rem 0.75rem;margin:0.25rem;background:#e0f2fe;color:#0369a1;border-radius:9999px;font-size:0.875rem;'>Skill Name</span>\n";
         $mandate .= "   - For 'Classic' variant: Use organized list with categories\n";
         $mandate .= "   - Prioritize skills from job description\n\n";
-        
+
         $mandate .= "SUBSEQUENT PAGE SECTIONS:\n";
         $mandate .= "4. WORK EXPERIENCE: <h2>Work Experience</h2>\n";
         $mandate .= "   - Use <h3>Job Title | Company</h3> and <div class='job-meta'>Date • Location</div> for each role\n";
@@ -112,20 +112,20 @@ class CvResumeGenerator extends BaseGenerator
         $mandate .= "   - PRESERVE every metric, percentage, and quantifiable achievement\n";
         $mandate .= "   - Start bullets with strong action verbs (Led, Architected, Implemented, Reduced, Increased)\n";
         $mandate .= "   - Include ALL projects and responsibilities from source content\n\n";
-        
+
         $mandate .= "5. EDUCATION: <h2>Education</h2>\n";
         $mandate .= "   - Use <h3>Degree | University/School</h3> and <div class='job-meta'>Year • GPA (if >3.5)</div>\n";
         $mandate .= "   - Include honors, relevant coursework, thesis if mentioned\n";
         $mandate .= "   - PRESERVE all education details from source\n\n";
-        
+
         $mandate .= "6. CERTIFICATIONS & LICENSES: <h2>Certifications</h2>\n";
         $mandate .= "   - List ALL certifications with issuing body and date\n";
         $mandate .= "   - Include credential IDs if provided\n\n";
-        
+
         $mandate .= "7. ADDITIONAL SECTIONS (if present in source):\n";
         $mandate .= "   - Projects, Awards, Publications, Volunteer Experience\n";
         $mandate .= "   - Only include if present in source content\n\n";
-        
+
         return $mandate;
     }
 
@@ -134,13 +134,13 @@ class CvResumeGenerator extends BaseGenerator
      */
     protected function buildTailoringInstructions(ReportRequestData $data): string
     {
-        if (!$data->targetRole) {
+        if (! $data->targetRole) {
             return '';
         }
 
         $instructions = "\n[RESUME TAILORING ACTIVE - ENHANCEMENT ONLY]\n";
         $instructions .= "TARGET ROLE: {$data->targetRole}\n";
-        
+
         if ($data->jobDescription) {
             $instructions .= "\nJOB DESCRIPTION CONTEXT:\n{$data->jobDescription}\n\n";
             $instructions .= "KEYWORD MATCHING STRATEGY:\n";
@@ -157,7 +157,7 @@ class CvResumeGenerator extends BaseGenerator
         $instructions .= "✓ DO: Add relevant keywords from job description to competencies\n";
         $instructions .= "✓ DO: Enhance action verbs and quantify impact where possible\n";
         $instructions .= "✓ DO: Add context that demonstrates fit for the role\n\n";
-        
+
         $instructions .= "✗ DON'T: Remove ANY dates, companies, or achievements from source\n";
         $instructions .= "✗ DON'T: Delete ANY work experience, education, or certifications\n";
         $instructions .= "✗ DON'T: Reduce the number of achievement bullets\n";
@@ -177,7 +177,7 @@ class CvResumeGenerator extends BaseGenerator
         $instructions .= "   <document_content>\n";
         $instructions .= "      (Complete Resume HTML with all sections)\n";
         $instructions .= "   </document_content>\n";
-        
+
         return $instructions;
     }
 
@@ -254,7 +254,7 @@ class CvResumeGenerator extends BaseGenerator
         $instructions .= "   </ul>\n\n";
 
         $instructions .= "IMPORTANT: Use underlined text formatting (<u>) for section headers like 'Responsibilities:', 'Samples Handled:'. Use the exact CSS classes provided above.\n";
-        
+
         return $instructions;
     }
 
@@ -295,20 +295,20 @@ class CvResumeGenerator extends BaseGenerator
         if (preg_match('/<tailoring_report>(.*?)<\/tailoring_report>/s', $rawOutput, $matches)) {
             $tailoringReport = trim($matches[1]);
         }
-        
+
         if (preg_match('/<document_content>(.*?)<\/document_content>/s', $rawOutput, $matches)) {
             $cleanContent = trim($matches[1]);
         } else {
             // Fallback: If tags are missing but tailoring report exists, try to strip it
             $cleanContent = preg_replace('/<tailoring_report>.*?<\/tailoring_report>/s', '', $cleanContent);
         }
-        
+
         // Apply base sanitization
         $cleanContent = parent::sanitizeOutput($cleanContent);
-        
+
         // Append tailoring report marker if exists
         if ($tailoringReport) {
-            return $cleanContent . "<!-- TAILORING_REPORT_START -->" . $tailoringReport . "<!-- TAILORING_REPORT_END -->";
+            return $cleanContent.'<!-- TAILORING_REPORT_START -->'.$tailoringReport.'<!-- TAILORING_REPORT_END -->';
         }
 
         return $cleanContent;

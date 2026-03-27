@@ -3,13 +3,12 @@
 namespace Tests\Feature;
 
 use App\Models\User;
-use App\Models\Tenant;
 use App\Services\AI\MiniMaxClient;
-use App\Services\ContentService;
-use App\Services\Factories\ContentGeneratorFactory;
+use App\Services\ContentGenerators\BlogPostGenerator;
 use App\Services\ContentGenerators\SocialPostGenerator;
 use App\Services\ContentGenerators\VideoScriptGenerator;
-use App\Services\ContentGenerators\BlogPostGenerator;
+use App\Services\ContentService;
+use App\Services\Factories\ContentGeneratorFactory;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Http;
 use Mockery;
@@ -24,12 +23,12 @@ class ContentGenerationTest extends TestCase
         parent::setUp();
 
         // Bypass RAG logic which requires DB
-        $this->app->bind(\App\Models\Tenant::class, fn() => null);
+        $this->app->bind(\App\Models\Tenant::class, fn () => null);
     }
 
     public function test_factory_returns_correct_generator_instance()
     {
-        $factory = new ContentGeneratorFactory();
+        $factory = new ContentGeneratorFactory;
 
         $this->assertInstanceOf(SocialPostGenerator::class, $factory->make('post'));
         $this->assertInstanceOf(SocialPostGenerator::class, $factory->make('social-media post'));
@@ -50,6 +49,7 @@ class ContentGenerationTest extends TestCase
             ->once()
             ->andReturnUsing(function ($messages, $options) use (&$capturedArgs) {
                 $capturedArgs = ['messages' => $messages, 'options' => $options];
+
                 return ['success' => true, 'message' => 'Generated Post', 'usage' => null];
             });
 
@@ -79,6 +79,7 @@ class ContentGenerationTest extends TestCase
             ->once()
             ->andReturnUsing(function ($messages, $options) use (&$capturedArgs) {
                 $capturedArgs = ['messages' => $messages, 'options' => $options];
+
                 return ['success' => true, 'message' => 'Video Script', 'usage' => null];
             });
 
@@ -88,7 +89,7 @@ class ContentGenerationTest extends TestCase
         $result = $service->generateText('My Video', 'video', null, [
             'generator' => 'video',
             'video_platform' => 'tiktok',
-            'video_duration' => '30s'
+            'video_duration' => '30s',
         ]);
 
         $this->assertEquals('Video Script', $result);
@@ -112,6 +113,7 @@ class ContentGenerationTest extends TestCase
             ->once()
             ->andReturnUsing(function ($messages, $options) use (&$capturedArgs) {
                 $capturedArgs = ['messages' => $messages, 'options' => $options];
+
                 return ['success' => true, 'message' => 'Blog Content', 'usage' => null];
             });
 
@@ -120,7 +122,7 @@ class ContentGenerationTest extends TestCase
         $service = app(ContentService::class);
         $result = $service->generateText('My Blog', 'blog', null, [
             'generator' => 'blog',
-            'blog_structure' => 'Listicle'
+            'blog_structure' => 'Listicle',
         ]);
 
         $this->assertEquals('Blog Content', $result);
@@ -152,6 +154,7 @@ class ContentGenerationTest extends TestCase
             ->withArgs(function ($messages, $options) {
                 // The user prompt should contain the viral example
                 $userContent = $messages[1]['content'];
+
                 return str_contains($userContent, 'Viral Topic');
             })
             ->andReturn(['success' => true, 'message' => 'Viral Post', 'usage' => null]);

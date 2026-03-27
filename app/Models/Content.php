@@ -9,7 +9,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class Content extends Model
 {
-    use HasFactory, BelongsToTenant, HasUuids;
+    use BelongsToTenant, HasFactory, HasUuids;
 
     protected $guarded = [];
 

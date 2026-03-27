@@ -4,9 +4,9 @@ namespace App\Jobs;
 
 use App\Models\Research;
 use App\Models\User;
+use App\Notifications\IntelligenceAlert;
 use App\Services\ResearchService;
 use App\Services\TokenService;
-use App\Notifications\IntelligenceAlert;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
@@ -59,7 +59,7 @@ class PerformResearch implements ShouldQueue
                     // Remove the JSON block from the content so it doesn't render
                     $resultMarkdown = str_replace($matches[0], '', $resultMarkdown);
                 } catch (\Exception $e) {
-                    Log::warning("Failed to parse research metadata JSON");
+                    Log::warning('Failed to parse research metadata JSON');
                 }
             }
 
@@ -67,7 +67,9 @@ class PerformResearch implements ShouldQueue
             if (empty($metadata['source_count'])) {
                 preg_match_all('/\[\d+\]/', $resultMarkdown, $matches);
                 $sourceCount = count(array_unique($matches[0] ?? []));
-                if ($sourceCount === 0) $sourceCount = rand(15, 20); // Fallback to targeted count
+                if ($sourceCount === 0) {
+                    $sourceCount = rand(15, 20);
+                } // Fallback to targeted count
             } else {
                 $sourceCount = $metadata['source_count'];
             }
@@ -76,11 +78,11 @@ class PerformResearch implements ShouldQueue
                 'result' => $resultMarkdown,
                 'status' => 'completed',
                 'sources_count' => $sourceCount,
-                'pages_count' => max(2, (int)(strlen($resultMarkdown) / 3000)),
-                'options' => $metadata
+                'pages_count' => max(2, (int) (strlen($resultMarkdown) / 3000)),
+                'options' => $metadata,
             ]);
 
-            Log::info("Research completed for ID: {$this->research->id}. Result length: " . strlen($resultMarkdown));
+            Log::info("Research completed for ID: {$this->research->id}. Result length: ".strlen($resultMarkdown));
 
             // Dispatch Intelligence Alert
             $this->user->notify(new IntelligenceAlert(
@@ -91,15 +93,15 @@ class PerformResearch implements ShouldQueue
             ));
 
         } catch (\Throwable $e) {
-            Log::error("Research Job Failed: " . $e->getMessage());
-            
+            Log::error('Research Job Failed: '.$e->getMessage());
+
             // Refund tokens on failure
             $tokenService->grant($this->user->tenant, $this->tokenCost, 'refund_failed_research');
-            
+
             $this->research->update(['status' => 'failed']);
-            
+
             // Re-throw to ensure job is marked failed in queue
-             throw $e;
+            throw $e;
         }
     }
 }

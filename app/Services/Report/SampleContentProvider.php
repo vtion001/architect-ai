@@ -8,7 +8,7 @@ use App\Enums\ReportTemplate;
 
 /**
  * Provides sample/preview content for each report template type.
- * 
+ *
  * Extracted from ReportService to follow SRP - this class has a single
  * responsibility: providing sample HTML content for template previews.
  */
@@ -237,7 +237,7 @@ class SampleContentProvider
         $providerCity = $overrides['providerCity'] ?? '';
         $providerEmail = $overrides['providerEmail'] ?? '';
         $providerTaxId = $overrides['providerTaxId'] ?? '';
-        
+
         $recipientName = $overrides['recipientName'] ?? 'Acme Corporation';
         $recipientTitle = $overrides['recipientTitle'] ?? 'Chief Operations Officer';
         $clientAddress = $overrides['clientAddress'] ?? '';

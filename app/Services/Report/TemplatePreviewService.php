@@ -7,21 +7,21 @@ namespace App\Services\Report;
 use App\Enums\ReportTemplate;
 use App\Models\Brand;
 use App\Services\BrandResolverService;
-use Illuminate\Support\Facades\View;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\View;
 
 /**
  * Template Preview Service
- * 
+ *
  * COMPLETELY ISOLATED preview rendering service for document templates.
- * 
+ *
  * This service is DECOUPLED from:
  * - DocumentBuilderController (UI layer)
  * - ReportService (generation layer)
  * - Document Builder Blade views
- * 
+ *
  * Changes to any of the above will NOT affect preview rendering.
- * 
+ *
  * Architecture:
  * ┌──────────────────────┐     ┌───────────────────────┐
  * │ DocumentBuilderCtrl  │────>│ TemplatePreviewService│
@@ -43,23 +43,23 @@ class TemplatePreviewService
 
     /**
      * Generate preview HTML for a template.
-     * 
+     *
      * This method is COMPLETELY ISOLATED from:
      * - Document generation logic
      * - AI content generation
      * - File upload handling
      * - User state management
-     * 
-     * @param ReportTemplate $template The template type
-     * @param string|null $variant The template variant
-     * @param string|null $brandId The brand ID for styling
-     * @param array $overrides Field overrides for preview
+     *
+     * @param  ReportTemplate  $template  The template type
+     * @param  string|null  $variant  The template variant
+     * @param  string|null  $brandId  The brand ID for styling
+     * @param  array  $overrides  Field overrides for preview
      * @return string Rendered HTML
      */
     public function render(
-        ReportTemplate $template, 
-        ?string $variant = null, 
-        ?string $brandId = null, 
+        ReportTemplate $template,
+        ?string $variant = null,
+        ?string $brandId = null,
         array $overrides = []
     ): string {
         // Get sample content from dedicated provider
@@ -89,7 +89,7 @@ class TemplatePreviewService
      */
     public function getAvailableTemplates(): array
     {
-        return array_map(fn(ReportTemplate $t) => [
+        return array_map(fn (ReportTemplate $t) => [
             'id' => $t->value,
             'name' => $t->label(),
             'icon' => $t->icon(),
@@ -104,16 +104,17 @@ class TemplatePreviewService
     public function isValidCombination(string $templateId, ?string $variantId): bool
     {
         $template = ReportTemplate::tryFrom($templateId);
-        if (!$template) {
+        if (! $template) {
             return false;
         }
 
-        if (!$variantId) {
+        if (! $variantId) {
             return true;
         }
 
         $variants = $template->variants();
-        return collect($variants)->contains(fn($v) => $v['id'] === $variantId);
+
+        return collect($variants)->contains(fn ($v) => $v['id'] === $variantId);
     }
 
     /**
@@ -202,23 +203,23 @@ class TemplatePreviewService
      * Add template-specific context data.
      */
     protected function addTemplateSpecificContext(
-        ReportTemplate $template, 
-        array $context, 
+        ReportTemplate $template,
+        array $context,
         array $overrides
     ): array {
         switch ($template) {
             case ReportTemplate::PROPOSAL:
                 $context['financials'] = $overrides['financials'] ?? $this->getDefaultFinancials();
                 break;
-                
+
             case ReportTemplate::CONTRACT:
                 $context['contractDetails'] = $overrides['contractDetails'] ?? $this->getDefaultContractDetails();
                 break;
-                
+
             case ReportTemplate::CV_RESUME:
                 $context['profilePhotoUrl'] = $overrides['profilePhotoUrl'] ?? null;
                 break;
-                
+
             case ReportTemplate::COVER_LETTER:
                 $context['targetRole'] = $overrides['targetRole'] ?? 'Software Engineer';
                 break;
@@ -271,7 +272,7 @@ class TemplatePreviewService
                 'template' => $template->value,
                 'error' => $e->getMessage(),
             ]);
-            
+
             return $this->getErrorHtml($template, $e);
         }
     }

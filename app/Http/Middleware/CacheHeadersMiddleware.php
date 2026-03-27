@@ -6,15 +6,15 @@ namespace App\Http\Middleware;
 
 use Closure;
 use Illuminate\Http\Request;
-use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
+use Symfony\Component\HttpFoundation\Response;
 
 /**
  * Cache Headers Middleware
- * 
+ *
  * Sets appropriate cache headers for different asset types.
  * This addresses Lighthouse's "Use efficient cache lifetimes" diagnostic.
- * 
+ *
  * Cache Strategy:
  * - Static assets (versioned): 1 year (immutable)
  * - Images: 30 days
@@ -112,6 +112,7 @@ class CacheHeadersMiddleware
                 return true;
             }
         }
+
         return false;
     }
 
@@ -121,6 +122,7 @@ class CacheHeadersMiddleware
     protected function setLongCache(Response $response): Response
     {
         $response->headers->set('Cache-Control', 'public, max-age=31536000, immutable');
+
         return $response;
     }
 
@@ -130,6 +132,7 @@ class CacheHeadersMiddleware
     protected function setMediumCache(Response $response): Response
     {
         $response->headers->set('Cache-Control', 'public, max-age=2592000'); // 30 days
+
         return $response;
     }
 
@@ -141,6 +144,7 @@ class CacheHeadersMiddleware
         // Most API responses should not be cached
         // Exception: list endpoints that rarely change
         $response->headers->set('Cache-Control', 'no-cache, must-revalidate');
+
         return $response;
     }
 
@@ -150,6 +154,7 @@ class CacheHeadersMiddleware
     protected function setNoCache(Response $response): Response
     {
         $response->headers->set('Cache-Control', 'no-store, must-revalidate');
+
         return $response;
     }
 }

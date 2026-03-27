@@ -3,12 +3,12 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
-use App\Models\Tenant;
-use App\Models\User;
 use App\Models\AuditLog;
-use App\Models\Waitlist;
 use App\Models\Invitation;
 use App\Models\Role;
+use App\Models\Tenant;
+use App\Models\User;
+use App\Models\Waitlist;
 use App\Services\AuthorizationService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
@@ -26,7 +26,7 @@ class AdminController extends Controller
             // 1. Provision the Tenant
             $tenant = Tenant::create([
                 'type' => 'agency',
-                'name' => $lead->agency_name ?? ($lead->name . "'s Agency"),
+                'name' => $lead->agency_name ?? ($lead->name."'s Agency"),
                 'slug' => Str::slug($lead->agency_name ?? $lead->name),
                 'status' => 'active',
             ]);
@@ -58,7 +58,7 @@ class AdminController extends Controller
             return response()->json([
                 'success' => true,
                 'message' => 'Lead successfully architected into a tenant. Invitation dispatched.',
-                'invitation_url' => url("/auth/join/{$invitation->token}")
+                'invitation_url' => url("/auth/join/{$invitation->token}"),
             ]);
         });
     }
@@ -98,8 +98,8 @@ class AdminController extends Controller
         );
 
         return response()->json([
-            'message' => 'Observability mode ' . ($enabled ? 'enabled' : 'disabled'),
-            'status' => $enabled
+            'message' => 'Observability mode '.($enabled ? 'enabled' : 'disabled'),
+            'status' => $enabled,
         ]);
     }
 }

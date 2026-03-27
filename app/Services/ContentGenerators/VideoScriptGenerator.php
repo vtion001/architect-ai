@@ -6,7 +6,7 @@ namespace App\Services\ContentGenerators;
 
 /**
  * Video Script Generator Strategy.
- * 
+ *
  * Generates scripts and visual prompts for short-form video content (Reels, TikTok, Shorts).
  */
 class VideoScriptGenerator extends BaseContentGenerator
@@ -24,10 +24,10 @@ class VideoScriptGenerator extends BaseContentGenerator
         $style = $options['video_style'] ?? 'UGC';
         $aspectRatio = $options['aspect_ratio'] ?? 'Portrait';
         $brandTone = $options['brand_tone'] ?? '';
-        
-        $brandInstruction = $brandTone ? "Align with this brand voice: $brandTone." : "";
-        
-        $styleGuide = match($style) {
+
+        $brandInstruction = $brandTone ? "Align with this brand voice: $brandTone." : '';
+
+        $styleGuide = match ($style) {
             'UGC' => 'Authentic, raw, relatable. Handheld camera feel, natural lighting, real people in everyday settings.',
             'Cinematic' => 'Professional, dramatic, high production value. Smooth camera movements, golden hour lighting, epic establishing shots.',
             'Animation' => '3D animated, stylized characters, vibrant colors, smooth transitions, Pixar-like quality.',

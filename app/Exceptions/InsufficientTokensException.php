@@ -14,7 +14,7 @@ class InsufficientTokensException extends Exception
     public function __construct(
         public readonly int $requiredTokens,
         public readonly int $availableTokens = 0,
-        string $message = null
+        ?string $message = null
     ) {
         $message = $message ?? "Insufficient tokens. This operation requires {$requiredTokens} tokens.";
         parent::__construct($message, 402);

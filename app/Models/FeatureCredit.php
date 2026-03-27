@@ -12,18 +12,18 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 /**
  * Feature Credit Model
- * 
+ *
  * Tracks per-user, per-feature usage with monthly reset capability.
- * 
+ *
  * CREDIT LIMITS:
  * - limit = -1: Unlimited usage (Pro/Agency plans)
  * - limit = 0: Feature disabled for this user
  * - limit > 0: Limited usage (Starter plan)
- * 
+ *
  * TENANT ISOLATION:
  * - Uses BelongsToTenant trait for automatic global scoping
  * - Each credit record is tied to a specific tenant and user
- * 
+ *
  * @property string $id
  * @property string $tenant_id
  * @property string $user_id
@@ -34,7 +34,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  */
 class FeatureCredit extends Model
 {
-    use HasUuids, BelongsToTenant;
+    use BelongsToTenant, HasUuids;
 
     protected $fillable = [
         'tenant_id',
@@ -101,8 +101,8 @@ class FeatureCredit extends Model
 
     /**
      * Consume credits for this feature.
-     * 
-     * @param int $amount Number of credits to consume
+     *
+     * @param  int  $amount  Number of credits to consume
      * @return bool True if credits were consumed, false if insufficient
      */
     public function consume(int $amount = 1): bool
@@ -118,6 +118,7 @@ class FeatureCredit extends Model
         }
 
         $this->increment('used', $amount);
+
         return true;
     }
 
@@ -137,7 +138,7 @@ class FeatureCredit extends Model
      */
     public function shouldReset(): bool
     {
-        if (!$this->reset_at) {
+        if (! $this->reset_at) {
             return false;
         }
 

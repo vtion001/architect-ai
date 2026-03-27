@@ -11,14 +11,16 @@ use Illuminate\Support\Str;
 
 /**
  * Cloudinary file upload service.
- * 
+ *
  * Centralizes all Cloudinary operations for consistency and reusability.
  * Follows the Service Layer Pattern.
  */
 class CloudinaryService
 {
     protected ?string $cloudName;
+
     protected ?string $apiKey;
+
     protected ?string $apiSecret;
 
     public function __construct()
@@ -33,37 +35,38 @@ class CloudinaryService
      */
     public function isConfigured(): bool
     {
-        return !empty($this->cloudName) && !empty($this->apiKey) && !empty($this->apiSecret);
+        return ! empty($this->cloudName) && ! empty($this->apiKey) && ! empty($this->apiSecret);
     }
 
     /**
      * Upload a file to Cloudinary.
      *
-     * @param UploadedFile|string $file File object or URL to upload
-     * @param string $folder Folder in Cloudinary
-     * @param array $options Additional options
+     * @param  UploadedFile|string  $file  File object or URL to upload
+     * @param  string  $folder  Folder in Cloudinary
+     * @param  array  $options  Additional options
      * @return array{url: string, public_id: string}|null
      */
     public function upload(UploadedFile|string $file, string $folder = 'uploads', array $options = []): ?array
     {
-        if (!$this->isConfigured()) {
+        if (! $this->isConfigured()) {
             Log::warning('CloudinaryService: Not configured, returning null');
+
             return null;
         }
 
         try {
             $timestamp = time();
-            
+
             // Build signature params
             $signParams = array_merge([
                 'folder' => $folder,
                 'timestamp' => $timestamp,
             ], $options);
-            
+
             // Sort and build signature string
             ksort($signParams);
             $signString = collect($signParams)
-                ->map(fn($v, $k) => "{$k}={$v}")
+                ->map(fn ($v, $k) => "{$k}={$v}")
                 ->implode('&');
             $signString .= $this->apiSecret;
             $signature = sha1($signString);
@@ -89,8 +92,8 @@ class CloudinaryService
 
             if ($response->successful()) {
                 $data = $response->json();
-                Log::info("CloudinaryService: Upload successful", ['url' => $data['secure_url']]);
-                
+                Log::info('CloudinaryService: Upload successful', ['url' => $data['secure_url']]);
+
                 return [
                     'url' => $data['secure_url'],
                     'public_id' => $data['public_id'],
@@ -101,17 +104,18 @@ class CloudinaryService
                 ];
             }
 
-            Log::error("CloudinaryService: Upload failed", [
+            Log::error('CloudinaryService: Upload failed', [
                 'status' => $response->status(),
                 'body' => Str::limit($response->body(), 500),
             ]);
-            
+
             return null;
 
         } catch (\Exception $e) {
-            Log::error("CloudinaryService: Exception during upload", [
+            Log::error('CloudinaryService: Exception during upload', [
                 'message' => $e->getMessage(),
             ]);
+
             return null;
         }
     }
@@ -119,12 +123,11 @@ class CloudinaryService
     /**
      * Delete a file from Cloudinary by public_id.
      *
-     * @param string $publicId The public_id of the resource
-     * @return bool
+     * @param  string  $publicId  The public_id of the resource
      */
     public function delete(string $publicId): bool
     {
-        if (!$this->isConfigured()) {
+        if (! $this->isConfigured()) {
             return false;
         }
 
@@ -144,19 +147,22 @@ class CloudinaryService
 
             if ($response->successful() && $response->json('result') === 'ok') {
                 Log::info("CloudinaryService: Deleted {$publicId}");
+
                 return true;
             }
 
             Log::warning("CloudinaryService: Delete may have failed for {$publicId}", [
                 'response' => $response->json(),
             ]);
+
             return false;
 
         } catch (\Exception $e) {
-            Log::error("CloudinaryService: Exception during delete", [
+            Log::error('CloudinaryService: Exception during delete', [
                 'public_id' => $publicId,
                 'message' => $e->getMessage(),
             ]);
+
             return false;
         }
     }
@@ -165,16 +171,16 @@ class CloudinaryService
      * Upload from a temporary URL (e.g., AI-generated image).
      * Falls back to local storage if Cloudinary fails.
      *
-     * @param string $tempUrl Temporary URL to fetch and upload
-     * @param string $folder Cloudinary folder
-     * @param string $localFallbackPath Local path for fallback
+     * @param  string  $tempUrl  Temporary URL to fetch and upload
+     * @param  string  $folder  Cloudinary folder
+     * @param  string  $localFallbackPath  Local path for fallback
      * @return array{url: string, source: string}
      */
     public function uploadFromUrl(string $tempUrl, string $folder = 'ai-generated', string $localFallbackPath = 'uploads/content-media'): array
     {
         // Try Cloudinary first
         $result = $this->upload($tempUrl, $folder);
-        
+
         if ($result) {
             return [
                 'url' => $result['url'],
@@ -190,32 +196,33 @@ class CloudinaryService
     /**
      * Save a file to local storage (fallback when Cloudinary fails).
      *
-     * @param string $url URL to download
-     * @param string $relativePath Path relative to public directory
+     * @param  string  $url  URL to download
+     * @param  string  $relativePath  Path relative to public directory
      * @return array{url: string, source: string}
      */
     protected function saveToLocalStorage(string $url, string $relativePath): array
     {
         try {
             $imageContent = file_get_contents($url);
-            
+
             if ($imageContent === false) {
-                Log::error("CloudinaryService: Failed to download from URL for local fallback");
+                Log::error('CloudinaryService: Failed to download from URL for local fallback');
+
                 return ['url' => $url, 'source' => 'temp_url', 'public_id' => null];
             }
 
-            $filename = 'ai_' . Str::random(40) . '.png';
+            $filename = 'ai_'.Str::random(40).'.png';
             $fullPath = public_path($relativePath);
-            
-            if (!file_exists($fullPath)) {
+
+            if (! file_exists($fullPath)) {
                 mkdir($fullPath, 0755, true);
             }
-            
-            file_put_contents($fullPath . '/' . $filename, $imageContent);
-            $localUrl = '/' . $relativePath . '/' . $filename;
-            
-            Log::info("CloudinaryService: Saved to local storage", ['path' => $localUrl]);
-            
+
+            file_put_contents($fullPath.'/'.$filename, $imageContent);
+            $localUrl = '/'.$relativePath.'/'.$filename;
+
+            Log::info('CloudinaryService: Saved to local storage', ['path' => $localUrl]);
+
             return [
                 'url' => $localUrl,
                 'public_id' => null,
@@ -223,7 +230,8 @@ class CloudinaryService
             ];
 
         } catch (\Exception $e) {
-            Log::error("CloudinaryService: Local fallback failed", ['message' => $e->getMessage()]);
+            Log::error('CloudinaryService: Local fallback failed', ['message' => $e->getMessage()]);
+
             return ['url' => $url, 'source' => 'temp_url', 'public_id' => null];
         }
     }

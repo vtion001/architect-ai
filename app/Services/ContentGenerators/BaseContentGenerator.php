@@ -9,18 +9,20 @@ use Illuminate\Support\Facades\Http;
 
 /**
  * Base class for content generators.
- * 
+ *
  * Uses modular AI services for maintainability.
  * All generators extend this class and implement
  * getSystemPrompt() and getUserPrompt() methods.
- * 
+ *
  * @see OpenAIClient for API calls
  * @see PromptBuilder for prompt construction
  */
 abstract class BaseContentGenerator implements ContentGeneratorInterface
 {
     protected string $apiKey;
+
     protected string $model;
+
     protected string $baseUrl;
 
     public function __construct()

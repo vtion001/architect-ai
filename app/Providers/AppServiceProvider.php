@@ -12,9 +12,9 @@ use App\Observers\TenantObserver;
 use App\Policies\AiAgentPolicy;
 use App\Policies\BrandPolicy;
 use App\View\Composers\ContentViewerComposer;
-use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\View;
+use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
 {

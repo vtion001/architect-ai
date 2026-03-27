@@ -6,36 +6,34 @@ namespace App\Services;
 
 use App\DTOs\ReportRequestData;
 use App\Enums\ReportTemplate;
+use App\Services\Generators\ContractGenerator;
+use App\Services\Generators\CoverLetterGenerator;
+use App\Services\Generators\CvResumeGenerator;
+use App\Services\Generators\DocumentGeneratorInterface;
+use App\Services\Generators\ProposalGenerator;
+use App\Services\Generators\ReportsGenerator;
 use App\Services\Report\SampleContentProvider;
-use App\Services\Generators\{
-    CvResumeGenerator,
-    CoverLetterGenerator,
-    ProposalGenerator,
-    ContractGenerator,
-    ReportsGenerator,
-    DocumentGeneratorInterface
-};
 use Illuminate\Support\Facades\View;
 
 /**
  * ReportService - Document Generation Coordinator
- * 
+ *
  * REFACTORED: Now uses Factory Pattern with specialized generators.
- * 
+ *
  * This service coordinates document generation by:
  * 1. Accepting document generation requests (ReportRequestData)
  * 2. Performing optional deep research via Gemini (for reports/proposals)
  * 3. Retrieving knowledge base context via RAG system
  * 4. Delegating content generation to specialized generator classes
  * 5. Rendering the final HTML output with proper template variables
- * 
+ *
  * MODULAR ARCHITECTURE:
  * - CvResumeGenerator: Handles CV/Resume with job tailoring, Core Competencies
  * - CoverLetterGenerator: Handles persuasive 4-part cover letters
  * - ProposalGenerator: Handles business proposals with client focus
  * - ContractGenerator: Handles legal contracts with proper structure
  * - ReportsGenerator: Handles all business reports (Market Analysis, Financial, etc.)
- * 
+ *
  * Each generator implements DocumentGeneratorInterface with specialized:
  * - System prompts (HOW to format)
  * - User prompts (WHAT to process)
@@ -53,7 +51,7 @@ class ReportService
 
     /**
      * Generate complete HTML report/document.
-     * 
+     *
      * Main entry point for document generation. Generates content using
      * specialized generators, then renders with appropriate template.
      */
@@ -63,7 +61,7 @@ class ReportService
 
         // Resolve Brand Logic via centralized service
         $brandData = $this->brandResolverService->resolve($data->brandId);
-        
+
         return View::make($data->template->view(), [
             'content' => $content,
             'recipientName' => $data->recipientName ?? 'Recipient',
@@ -91,7 +89,7 @@ class ReportService
 
     /**
      * Generate preview HTML with sample data.
-     * 
+     *
      * Used for template previewing before actual generation.
      */
     public function generatePreviewHtml(ReportTemplate $template, ?string $variant = null, ?string $brandId = null, array $overrides = []): string
@@ -127,13 +125,13 @@ class ReportService
 
     /**
      * Generate document content using specialized generators (REFACTORED).
-     * 
+     *
      * This method implements the Factory Pattern:
      * 1. Retrieves knowledge base context (RAG)
      * 2. Performs deep research if generator requires it (Gemini)
      * 3. Creates appropriate generator for document type
      * 4. Delegates content generation to specialized generator
-     * 
+     *
      * Previously: 753-line monolithic method with all template logic
      * Now: Clean 30-line coordinator that delegates to specialized generators
      */
@@ -143,7 +141,7 @@ class ReportService
         $kbContext = null;
         if ($data->researchTopic) {
             $kbContext = $this->knowledgeBaseService->getContext(
-                $data->researchTopic . ' ' . $data->prompt
+                $data->researchTopic.' '.$data->prompt
             );
         }
 
@@ -166,16 +164,16 @@ class ReportService
 
     /**
      * Factory Method: Create appropriate generator based on template type.
-     * 
+     *
      * DESIGN PATTERN: Factory Pattern
-     * 
+     *
      * This method encapsulates generator instantiation logic.
      * Each document type gets its own specialized generator with:
      * - Template-specific prompt engineering
      * - Custom HTML structure requirements
      * - Dedicated content processing rules
      * - Specialized sanitization logic
-     * 
+     *
      * Benefits:
      * - Single Responsibility: Each generator handles one document type
      * - Open/Closed: Easy to add new generators without modifying ReportService
@@ -184,31 +182,31 @@ class ReportService
      */
     private function createGenerator(ReportTemplate $template): DocumentGeneratorInterface
     {
-        return match($template) {
+        return match ($template) {
             // CV/Resume: Job tailoring, Core Competencies, Zero data loss
             ReportTemplate::CV_RESUME => new CvResumeGenerator(
                 $this->brandResolverService,
                 $this->sampleContentProvider
             ),
-            
+
             // Cover Letter: 4-part story structure, persuasive writing
             ReportTemplate::COVER_LETTER => new CoverLetterGenerator(
                 $this->brandResolverService,
                 $this->sampleContentProvider
             ),
-            
+
             // Proposal: Client-focused, solution-oriented, pricing/timeline
             ReportTemplate::PROPOSAL => new ProposalGenerator(
                 $this->brandResolverService,
                 $this->sampleContentProvider
             ),
-            
+
             // Contract: Legal structure, comprehensive articles, formal language
             ReportTemplate::CONTRACT => new ContractGenerator(
                 $this->brandResolverService,
                 $this->sampleContentProvider
             ),
-            
+
             // All Report Types: Research-driven, analytical, data visualization
             ReportTemplate::EXECUTIVE_SUMMARY,
             ReportTemplate::MARKET_ANALYSIS,
@@ -242,7 +240,7 @@ class ReportService
     /**
      * @deprecated Use SampleContentProvider::getContent() directly
      */
-    private function getSampleContent(): string  
+    private function getSampleContent(): string
     {
         return $this->sampleContentProvider->getContent(ReportTemplate::EXECUTIVE_SUMMARY);
     }

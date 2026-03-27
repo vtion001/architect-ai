@@ -4,31 +4,31 @@ declare(strict_types=1);
 
 namespace App\Services;
 
-use App\Models\TokenAllocation;
-use App\Models\TokenTransaction;
-use App\Models\TokenLimit;
-use App\Models\Tenant;
-use App\Models\User;
 use App\Exceptions\UserTokenLimitExceededException;
+use App\Models\Tenant;
+use App\Models\TokenAllocation;
+use App\Models\TokenLimit;
+use App\Models\TokenTransaction;
+use App\Models\User;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
 /**
  * Token Service
- * 
+ *
  * Manages token consumption, allocation, and balance tracking.
- * 
+ *
  * SECURITY: All operations are tenant-scoped to prevent cross-tenant access.
  * Token transactions are audited for compliance.
- * 
+ *
  * @see config/tokens.php for cost configuration
  */
 class TokenService
 {
     /**
      * Get the current token balance for a tenant.
-     * 
+     *
      * SECURITY: Explicitly bypasses global scope and filters by tenant_id
      * to prevent any potential scope manipulation.
      */
@@ -38,7 +38,7 @@ class TokenService
             ->where('tenant_id', $tenant->id)
             ->where(function ($q) {
                 $q->whereNull('expires_at')
-                  ->orWhere('expires_at', '>', now());
+                    ->orWhere('expires_at', '>', now());
             })
             ->sum('balance');
     }
@@ -70,17 +70,18 @@ class TokenService
 
     /**
      * Consume tokens for a specific action.
-     * 
-     * SECURITY: 
+     *
+     * SECURITY:
      * - Uses explicit tenant_id filter (not global scope)
      * - Validates user belongs to the tenant
      * - Logs all consumption for audit
-     * 
-     * @param User $user The user consuming tokens
-     * @param int $amount Number of tokens to consume
-     * @param string $reason Reason for consumption (audit trail)
-     * @param array $metadata Additional metadata for the transaction
+     *
+     * @param  User  $user  The user consuming tokens
+     * @param  int  $amount  Number of tokens to consume
+     * @param  string  $reason  Reason for consumption (audit trail)
+     * @param  array  $metadata  Additional metadata for the transaction
      * @return bool True if tokens were successfully consumed
+     *
      * @throws UserTokenLimitExceededException
      */
     public function consume(User $user, int $amount, string $reason, array $metadata = []): bool
@@ -92,19 +93,21 @@ class TokenService
                 'amount' => $amount,
                 'reason' => $reason,
             ]);
+
             return true;
         }
 
         $tenant = $user->tenant;
-        if (!$tenant) {
+        if (! $tenant) {
             Log::warning('Token consumption failed: No tenant', ['user_id' => $user->id]);
+
             return false;
         }
 
         return DB::transaction(function () use ($user, $tenant, $amount, $reason, $metadata) {
             // 1. Check Individual User Limit
             $limit = $this->getUserLimit($user);
-            
+
             if ($limit->hasReachedLimit($amount)) {
                 throw new UserTokenLimitExceededException($limit->amount, $limit->used);
             }
@@ -114,17 +117,18 @@ class TokenService
                 ->where('tenant_id', $tenant->id)
                 ->where(function ($q) {
                     $q->whereNull('expires_at')
-                      ->orWhere('expires_at', '>', now());
+                        ->orWhere('expires_at', '>', now());
                 })
                 ->where('balance', '>=', $amount)
                 ->lockForUpdate()
                 ->first();
 
-            if (!$allocation) {
+            if (! $allocation) {
                 Log::info('Insufficient tokens', [
                     'tenant_id' => $tenant->id,
                     'required' => $amount,
                 ]);
+
                 return false;
             }
 

@@ -6,7 +6,7 @@ namespace App\Services\ContentGenerators;
 
 /**
  * Blog Post Generator Strategy.
- * 
+ *
  * Generates long-form blog articles with SEO structure.
  */
 class BlogPostGenerator extends BaseContentGenerator
@@ -22,9 +22,9 @@ class BlogPostGenerator extends BaseContentGenerator
         $structure = $options['blog_structure'] ?? 'Standard';
         $cta = $options['cta'] ?? '';
         $brandTone = $options['brand_tone'] ?? '';
-        
+
         $humanize = $this->getHumanizeInstruction($tone);
-        $brandInstruction = $brandTone ? "Adopt this brand voice: $brandTone." : "";
+        $brandInstruction = $brandTone ? "Adopt this brand voice: $brandTone." : '';
 
         return "You are an expert content writer and SEO specialist. Write a comprehensive, high-ranking blog article.
             
@@ -49,7 +49,7 @@ class BlogPostGenerator extends BaseContentGenerator
     public function getUserPrompt(string $topic, ?string $context = null, array $options = []): string
     {
         $keywords = $options['blog_keywords'] ?? '';
-        
+
         return "Write a blog post about: \"$topic\".
         Target Keywords: $keywords.
         Specific Context/Mandates: $context.

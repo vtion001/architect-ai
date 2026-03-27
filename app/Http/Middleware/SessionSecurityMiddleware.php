@@ -6,7 +6,6 @@ use Closure;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Symfony\Component\HttpFoundation\Response;
-use Carbon\Carbon;
 
 class SessionSecurityMiddleware
 {
@@ -17,7 +16,7 @@ class SessionSecurityMiddleware
      */
     public function handle(Request $request, Closure $next): Response
     {
-        if (!Auth::check()) {
+        if (! Auth::check()) {
             return $next($request);
         }
 
@@ -27,36 +26,36 @@ class SessionSecurityMiddleware
 
         // 1. Identity Baseline (Guardian)
         // Establish baseline if not set
-        if (!session()->has('identity_baseline_ip')) {
+        if (! session()->has('identity_baseline_ip')) {
             session([
                 'identity_baseline_ip' => $request->ip(),
                 'identity_baseline_ua' => $request->userAgent(),
             ]);
         } else {
             // Check for Identity Drift (Suspicious shift in IP or Browser)
-            $driftDetected = session('identity_baseline_ip') !== $request->ip() || 
+            $driftDetected = session('identity_baseline_ip') !== $request->ip() ||
                              session('identity_baseline_ua') !== $request->userAgent();
 
-            if ($driftDetected && !app()->isLocal()) {
+            if ($driftDetected && ! app()->isLocal()) {
                 $this->authService->audit(
-                    $user, 
-                    'security.identity_drift', 
-                    null, 
-                    'denied', 
-                    "Suspicious identity shift. Expected: " . session('identity_baseline_ip') . " | Found: " . $request->ip()
+                    $user,
+                    'security.identity_drift',
+                    null,
+                    'denied',
+                    'Suspicious identity shift. Expected: '.session('identity_baseline_ip').' | Found: '.$request->ip()
                 );
 
                 return $this->logout($request, 'Identity drift detected. Session terminated for security.');
             }
         }
 
-        if (!$config) {
+        if (! $config) {
             return $next($request);
         }
 
         // 2. Check Max Duration
         $sessionStartedAt = session('session_started_at');
-        if (!$sessionStartedAt) {
+        if (! $sessionStartedAt) {
             session(['session_started_at' => now()->timestamp]);
         } else {
             $maxDuration = $config['max_duration'] * 60; // to seconds
@@ -82,10 +81,12 @@ class SessionSecurityMiddleware
 
     protected function getUserType($user): string
     {
-        if ($user->is_developer) return 'developer';
-        
+        if ($user->is_developer) {
+            return 'developer';
+        }
+
         $role = $user->roles()->first()?->name;
-        
+
         return match ($role) {
             'Agency Owner' => 'agency_owner',
             'Agency Admin' => 'agency_admin',

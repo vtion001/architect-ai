@@ -24,11 +24,11 @@ class TenantController extends Controller
         // - It is their native tenant
         // - They are a developer (Break-Glass)
         // - They are an Agency Owner and the target is a sub-account of their native tenant
-        $isAuthorized = $user->tenant_id === $tenant->id || 
-                        $user->is_developer || 
+        $isAuthorized = $user->tenant_id === $tenant->id ||
+                        $user->is_developer ||
                         ($user->tenant->type === 'agency' && $tenant->parent_id === $user->tenant_id);
 
-        if (!$isAuthorized) {
+        if (! $isAuthorized) {
             $this->authService->audit($user, 'tenant.switch_denied', $tenant, 'denied', "Unauthorized context switch attempt to: {$tenant->slug}");
             abort(403, 'Unauthorized workspace switch.');
         }

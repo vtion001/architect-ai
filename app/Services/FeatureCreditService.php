@@ -13,13 +13,13 @@ use Illuminate\Support\Facades\Log;
 
 /**
  * Feature Credit Service
- * 
+ *
  * Manages feature credit operations including:
  * - Provisioning initial credits for new users
  * - Checking feature access and credit availability
  * - Consuming credits for feature usage
  * - Monthly credit resets
- * 
+ *
  * SECURITY:
  * - Developer accounts bypass all restrictions
  * - All operations are tenant-scoped
@@ -33,7 +33,7 @@ class FeatureCreditService
      */
     public function isDeveloperBypass(User $user): bool
     {
-        if (!config('features.developer_bypass', true)) {
+        if (! config('features.developer_bypass', true)) {
             return false;
         }
 
@@ -46,11 +46,12 @@ class FeatureCreditService
     public function provisionCreditsForUser(User $user): void
     {
         $tenant = $user->tenant;
-        
-        if (!$tenant) {
+
+        if (! $tenant) {
             Log::warning('FeatureCreditService: Cannot provision credits - no tenant', [
                 'user_id' => $user->id,
             ]);
+
             return;
         }
 
@@ -84,7 +85,7 @@ class FeatureCreditService
 
     /**
      * Check if a user can use a specific feature.
-     * 
+     *
      * For credit-based features: checks remaining credits
      * For access-gated features: checks plan access
      */
@@ -96,8 +97,8 @@ class FeatureCreditService
         }
 
         $tenant = $user->tenant;
-        
-        if (!$tenant) {
+
+        if (! $tenant) {
             return false;
         }
 
@@ -108,8 +109,8 @@ class FeatureCreditService
 
         // For credit-based features, check credits
         $credit = $this->getUserCredit($user, $feature);
-        
-        if (!$credit) {
+
+        if (! $credit) {
             // No credit record - provision and check again
             $this->provisionCreditsForUser($user);
             $credit = $this->getUserCredit($user, $feature);
@@ -125,7 +126,7 @@ class FeatureCreditService
 
     /**
      * Consume a credit for a feature usage.
-     * 
+     *
      * @return bool True if credit was consumed, false if insufficient credits
      */
     public function consumeCredit(User $user, FeatureType $feature, int $amount = 1): bool
@@ -136,16 +137,18 @@ class FeatureCreditService
                 'user_id' => $user->id,
                 'feature' => $feature->value,
             ]);
+
             return true;
         }
 
         $credit = $this->getUserCredit($user, $feature);
-        
-        if (!$credit) {
+
+        if (! $credit) {
             Log::warning('FeatureCreditService: No credit record found', [
                 'user_id' => $user->id,
                 'feature' => $feature->value,
             ]);
+
             return false;
         }
 
@@ -197,7 +200,7 @@ class FeatureCreditService
             ->keyBy('feature_type');
 
         $result = [];
-        
+
         foreach (FeatureType::cases() as $feature) {
             if ($feature->isCreditBased()) {
                 $credit = $credits->get($feature->value);

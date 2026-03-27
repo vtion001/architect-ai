@@ -16,7 +16,7 @@ class AiAgentFactory extends Factory
         return [
             'id' => Str::uuid()->toString(),
             'tenant_id' => Tenant::factory(),
-            'name' => $this->faker->name . ' Agent',
+            'name' => $this->faker->name.' Agent',
             'role' => 'Assistant',
             'goal' => 'Help users',
             'system_prompt' => 'You are a helpful assistant.',

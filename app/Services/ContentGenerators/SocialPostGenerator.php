@@ -8,18 +8,18 @@ use App\Services\TokenService;
 
 /**
  * Social Media Post Generator Strategy.
- * 
+ *
  * Generates engaging social media posts with viral patterns.
- * 
+ *
  * TOKEN CONSUMPTION:
  * - Tokens are consumed at the CONTROLLER level (ContentCreatorController)
  * - Single post: TokenService::COSTS['social_post'] = 10 tokens
  * - Batch generation: TokenService::COSTS['content_batch'] = 25 tokens
- * 
+ *
  * TENANT ISOLATION:
  * - This service is stateless and doesn't access tenant data directly
  * - All tenant scoping is handled by the calling controller
- * 
+ *
  * @see \App\Http\Controllers\ContentCreatorController::store()
  */
 class SocialPostGenerator extends BaseContentGenerator
@@ -33,26 +33,26 @@ class SocialPostGenerator extends BaseContentGenerator
     {
         $tone = $options['tone'] ?? 'Professional';
         $cta = $options['cta'] ?? '';
-        $count = (int)($options['count'] ?? 1);
-        
-        $lineBreaks = ($options['addLineBreaks'] ?? true) 
-            ? "Use natural spacing and paragraph breaks for a human-like flow." 
-            : "Use standard spacing.";
-        $hashtags = ($options['includeHashtags'] ?? false) 
-            ? "Include 2-3 relevant hashtags that a human would actually use (no spamming)." 
-            : "";
-        
+        $count = (int) ($options['count'] ?? 1);
+
+        $lineBreaks = ($options['addLineBreaks'] ?? true)
+            ? 'Use natural spacing and paragraph breaks for a human-like flow.'
+            : 'Use standard spacing.';
+        $hashtags = ($options['includeHashtags'] ?? false)
+            ? 'Include 2-3 relevant hashtags that a human would actually use (no spamming).'
+            : '';
+
         $humanize = $this->getHumanizeInstruction($tone);
 
-        $quantityRule = "";
+        $quantityRule = '';
         if ($count > 1) {
             $quantityRule = "\n- BATCH GENERATION: You are generating EXACTLY $count distinct, unique, and separate pieces of content. Each must be high-quality and different from the others.";
         }
 
         // Check if we have viral examples
         $examples = $options['viral_examples'] ?? '';
-        
-        if (!empty($examples)) {
+
+        if (! empty($examples)) {
             return "You are a viral content expert. Your task is to generate social media captions.
                 
                 STRICT GUIDELINES BASED ON THESE HIGH-PERFORMING EXAMPLES:
@@ -83,7 +83,7 @@ class SocialPostGenerator extends BaseContentGenerator
 
     public function getUserPrompt(string $topic, ?string $context = null, array $options = []): string
     {
-        $count = (int)($options['count'] ?? 1);
+        $count = (int) ($options['count'] ?? 1);
         $type = $options['type'] ?? 'social media post';
         $tone = $options['tone'] ?? 'Professional';
         $length = $options['length'] ?? 'Short, concise, and engaging';
@@ -97,7 +97,7 @@ class SocialPostGenerator extends BaseContentGenerator
         }
 
         $prompt = "TASK: Generate EXACTLY $count distinct and unique $type(s) about the topic: \"$topic\".\n";
-        
+
         if ($count > 1) {
             $prompt .= "\nCRITICAL FORMATTING RULE:\n";
             $prompt .= "Separate each distinct $type with exactly three dashes '---' on their own line.\n";
@@ -105,7 +105,7 @@ class SocialPostGenerator extends BaseContentGenerator
             $prompt .= "Content for item 1\n---\nContent for item 2\n---\n... and so on until item $count\n\n";
             $prompt .= "STRICT ADHERENCE: Do not add any introductory text, titles, or concluding remarks. Start immediately with the first item. Total number of items must be exactly $count.";
         }
-        
+
         $prompt .= "\n\nADDITIONAL CONTEXT: $context \nTONE: $tone \nLENGTH: $length.\n";
 
         if ($count > 1) {
@@ -120,8 +120,8 @@ class SocialPostGenerator extends BaseContentGenerator
      */
     public function generate(string $topic, ?string $context = null, array $options = []): string
     {
-        $count = (int)($options['count'] ?? 1);
-        
+        $count = (int) ($options['count'] ?? 1);
+
         // Upgrade to high-tier model for batch generation to ensure instruction following
         if ($count > 1) {
             $options['model'] = 'gpt-4o';

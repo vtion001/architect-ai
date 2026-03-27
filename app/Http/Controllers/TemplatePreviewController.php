@@ -11,17 +11,17 @@ use Illuminate\Http\JsonResponse;
 
 /**
  * Template Preview Controller
- * 
+ *
  * ISOLATED controller for template preview rendering.
- * 
+ *
  * This controller is COMPLETELY SEPARATE from:
  * - DocumentBuilderController
  * - Document generation logic
  * - File uploads and parsing
- * 
+ *
  * This ensures that changes to the Document Builder do NOT
  * affect preview rendering and vice versa.
- * 
+ *
  * Routes:
  * - POST /api/templates/preview    - Render template preview
  * - GET  /api/templates            - List available templates
@@ -35,16 +35,13 @@ class TemplatePreviewController extends Controller
 
     /**
      * Render a template preview.
-     * 
-     * @param PreviewReportRequest $request
-     * @return JsonResponse
      */
     public function preview(PreviewReportRequest $request): JsonResponse
     {
         $validated = $request->validated();
-        
+
         $template = ReportTemplate::tryFrom($validated['template']);
-        if (!$template) {
+        if (! $template) {
             return response()->json([
                 'success' => false,
                 'error' => 'Invalid template type',
@@ -57,7 +54,7 @@ class TemplatePreviewController extends Controller
 
         try {
             $html = $this->previewService->render($template, $variant, $brandId, $overrides);
-            
+
             return response()->json([
                 'success' => true,
                 'html' => $html,
@@ -73,8 +70,6 @@ class TemplatePreviewController extends Controller
 
     /**
      * List all available templates.
-     * 
-     * @return JsonResponse
      */
     public function index(): JsonResponse
     {
@@ -86,15 +81,12 @@ class TemplatePreviewController extends Controller
 
     /**
      * Get a specific template's info.
-     * 
-     * @param string $templateId
-     * @return JsonResponse
      */
     public function show(string $templateId): JsonResponse
     {
         $template = ReportTemplate::tryFrom($templateId);
-        
-        if (!$template) {
+
+        if (! $template) {
             return response()->json([
                 'success' => false,
                 'error' => 'Template not found',
@@ -115,15 +107,11 @@ class TemplatePreviewController extends Controller
 
     /**
      * Validate a template/variant combination.
-     * 
-     * @param string $templateId
-     * @param string|null $variantId
-     * @return JsonResponse
      */
     public function validateCombination(string $templateId, ?string $variantId = null): JsonResponse
     {
         $isValid = $this->previewService->isValidCombination($templateId, $variantId);
-        
+
         return response()->json([
             'success' => true,
             'valid' => $isValid,
@@ -138,26 +126,26 @@ class TemplatePreviewController extends Controller
         $overrides = [];
 
         // Recipient/Sender info
-        if (!empty($validated['recipientName'])) {
+        if (! empty($validated['recipientName'])) {
             $overrides['recipientName'] = $validated['recipientName'];
         }
-        if (!empty($validated['recipientTitle'])) {
+        if (! empty($validated['recipientTitle'])) {
             $overrides['recipientTitle'] = $validated['recipientTitle'];
         }
-        if (!empty($validated['senderName'])) {
+        if (! empty($validated['senderName'])) {
             $overrides['senderName'] = $validated['senderName'];
         }
-        if (!empty($validated['senderTitle'])) {
+        if (! empty($validated['senderTitle'])) {
             $overrides['senderTitle'] = $validated['senderTitle'];
         }
 
         // Contract details
-        if (!empty($validated['contractDetails'])) {
+        if (! empty($validated['contractDetails'])) {
             $overrides['contractDetails'] = $validated['contractDetails'];
         }
 
         // Financials
-        if (!empty($validated['financials'])) {
+        if (! empty($validated['financials'])) {
             $overrides['financials'] = $validated['financials'];
         }
 
@@ -170,7 +158,7 @@ class TemplatePreviewController extends Controller
     protected function getFallbackHtml(?ReportTemplate $template): string
     {
         $name = $template ? $template->label() : 'Template';
-        
+
         return sprintf(
             '<div style="padding: 60px; text-align: center; color: #888; font-family: system-ui;">
                 <div style="font-size: 48px; margin-bottom: 20px;">📄</div>

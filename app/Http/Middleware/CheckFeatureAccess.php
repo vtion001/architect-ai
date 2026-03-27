@@ -12,13 +12,13 @@ use Symfony\Component\HttpFoundation\Response;
 
 /**
  * Middleware to check feature access based on subscription plan.
- * 
+ *
  * Usage in routes:
  *   ->middleware('feature:ai_agents')
  *   ->middleware('feature:knowledge_base')
  *   ->middleware('feature:brand_kits')
  *   ->middleware('feature:sub_accounts')
- * 
+ *
  * For credit-based features (post_generator, video_generator, etc.),
  * use the FeatureCreditService directly in controllers instead.
  */
@@ -35,7 +35,7 @@ class CheckFeatureAccess
     {
         $user = $request->user();
 
-        if (!$user) {
+        if (! $user) {
             if ($request->wantsJson()) {
                 return response()->json([
                     'success' => false,
@@ -43,6 +43,7 @@ class CheckFeatureAccess
                     'message' => 'Authentication required.',
                 ], 401);
             }
+
             return redirect()->route('login');
         }
 
@@ -53,7 +54,7 @@ class CheckFeatureAccess
 
         $tenant = $user->tenant;
 
-        if (!$tenant) {
+        if (! $tenant) {
             if ($request->wantsJson()) {
                 return response()->json([
                     'success' => false,
@@ -67,15 +68,15 @@ class CheckFeatureAccess
         // Try to parse the feature type
         $featureType = FeatureType::tryFrom($feature);
 
-        if (!$featureType) {
+        if (! $featureType) {
             // Invalid feature type - allow through (fail open for safety)
             return $next($request);
         }
 
         // Check if the user can access this feature
-        if (!$this->featureCreditService->canUseFeature($user, $featureType)) {
+        if (! $this->featureCreditService->canUseFeature($user, $featureType)) {
             $planRequired = $this->getRequiredPlanForFeature($featureType);
-            
+
             if ($request->wantsJson()) {
                 return response()->json([
                     'success' => false,

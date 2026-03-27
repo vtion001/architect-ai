@@ -20,11 +20,11 @@ class CheckPermission
     {
         $user = auth()->user();
 
-        if (!$user) {
+        if (! $user) {
             abort(401);
         }
 
-        if (!$this->authService->can($user, $permission)) {
+        if (! $this->authService->can($user, $permission)) {
             // Log denied attempt for anomaly detection
             $this->authService->audit(
                 $user,

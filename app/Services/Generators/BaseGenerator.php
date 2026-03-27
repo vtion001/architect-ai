@@ -22,9 +22,9 @@ abstract class BaseGenerator implements DocumentGeneratorInterface
     /**
      * Constructor
      *
-     * @param BrandResolverService $brandResolverService Service for brand voice and guidelines
-     * @param SampleContentProvider $sampleContentProvider Service for fallback sample content
-     * @param MiniMaxClient $miniMaxClient AI client for content generation
+     * @param  BrandResolverService  $brandResolverService  Service for brand voice and guidelines
+     * @param  SampleContentProvider  $sampleContentProvider  Service for fallback sample content
+     * @param  MiniMaxClient  $miniMaxClient  AI client for content generation
      */
     public function __construct(
         protected BrandResolverService $brandResolverService,
@@ -44,8 +44,9 @@ abstract class BaseGenerator implements DocumentGeneratorInterface
      */
     public function generate(ReportRequestData $data, ?string $kbContext = null, ?string $researchData = null): string
     {
-        if (!$this->miniMaxClient->isConfigured()) {
+        if (! $this->miniMaxClient->isConfigured()) {
             Log::warning('MiniMax API key not configured - using sample content');
+
             return $this->getFallbackContent($data);
         }
 
@@ -72,7 +73,7 @@ abstract class BaseGenerator implements DocumentGeneratorInterface
 
             Log::error('MiniMax API error', ['error' => $response['error'] ?? 'Unknown']);
         } catch (\Exception $e) {
-            Log::error('MiniMax generation error: ' . $e->getMessage());
+            Log::error('MiniMax generation error: '.$e->getMessage());
         }
 
         // Fallback to sample content
@@ -81,7 +82,7 @@ abstract class BaseGenerator implements DocumentGeneratorInterface
 
     /**
      * Build system prompt - must be implemented by subclasses.
-     * 
+     *
      * Each generator defines its own system instructions including:
      * - AI role/persona
      * - Document structure requirements
@@ -92,7 +93,7 @@ abstract class BaseGenerator implements DocumentGeneratorInterface
 
     /**
      * Build user prompt with context and content.
-     * 
+     *
      * Default implementation provides standard context structure.
      * Subclasses can override for template-specific formatting.
      */
@@ -101,7 +102,7 @@ abstract class BaseGenerator implements DocumentGeneratorInterface
         // Ensure null values become empty strings
         $kbContext = $kbContext ?? '';
         $researchData = $researchData ?? '';
-        
+
         $baseContext = "
             INTERNAL KNOWLEDGE BASE (CONTEXT):
             ---
@@ -124,7 +125,7 @@ abstract class BaseGenerator implements DocumentGeneratorInterface
 
     /**
      * Format user prompt with template-specific instructions.
-     * 
+     *
      * Subclasses override this to add document-specific context.
      */
     abstract protected function formatUserPrompt(ReportRequestData $data, string $baseContext): string;
@@ -149,7 +150,7 @@ abstract class BaseGenerator implements DocumentGeneratorInterface
 
     /**
      * Sanitize AI output - removes markdown artifacts.
-     * 
+     *
      * Default implementation handles common cleanup.
      * Subclasses can override for template-specific sanitization.
      */
@@ -157,16 +158,16 @@ abstract class BaseGenerator implements DocumentGeneratorInterface
     {
         // Remove markdown bold/italic markers
         $content = str_replace(['**', '___'], '', $rawOutput);
-        
+
         // Remove header hashes if they slipped through
         $content = preg_replace('/^#+\s+/m', '', $content);
-        
+
         // Remove bullet stars if they slipped through (only if followed by space)
         $content = preg_replace('/^\*\s+/m', '• ', $content);
 
         // Remove horizontal rule markers
         $content = preg_replace('/^-{3,}$/m', '<hr>', $content);
-        
+
         // Final trim
         return trim($content);
     }
@@ -200,14 +201,14 @@ abstract class BaseGenerator implements DocumentGeneratorInterface
 
     /**
      * Build brand instructions using BrandResolverService.
-     * 
-     * @param int|null $brandId Brand identifier
-     * @param string $templateValue Template type for brand-specific instructions
+     *
+     * @param  int|null  $brandId  Brand identifier
+     * @param  string  $templateValue  Template type for brand-specific instructions
      * @return string Brand instructions or empty string if not applicable
      */
     protected function buildBrandInstructions(?int $brandId, string $templateValue): string
     {
-        if (!$this->supportsBrandInstructions() || !$brandId) {
+        if (! $this->supportsBrandInstructions() || ! $brandId) {
             return '';
         }
 
@@ -216,8 +217,8 @@ abstract class BaseGenerator implements DocumentGeneratorInterface
 
     /**
      * Get fallback content when generation fails.
-     * 
-     * @param ReportRequestData $data Request data for fallback selection
+     *
+     * @param  ReportRequestData  $data  Request data for fallback selection
      * @return string Sample content HTML
      */
     protected function getFallbackContent(ReportRequestData $data): string
@@ -225,14 +226,14 @@ abstract class BaseGenerator implements DocumentGeneratorInterface
         $overrides = $data->contractDetails ?? [];
         $overrides['recipientName'] = $data->recipientName;
         $overrides['recipientTitle'] = $data->recipientTitle;
-        
+
         return $this->sampleContentProvider->getContent($data->template, $overrides);
     }
 
     /**
      * Build core AI directives common to all generators.
-     * 
-     * @param string $dataIntegrity Optional data integrity instructions
+     *
+     * @param  string  $dataIntegrity  Optional data integrity instructions
      * @return string Core directives text
      */
     protected function buildCoreDirectives(string $dataIntegrity = ''): string
@@ -249,7 +250,7 @@ abstract class BaseGenerator implements DocumentGeneratorInterface
 
     /**
      * Build data integrity instruction for templates that need metric preservation.
-     * 
+     *
      * @return string Data integrity instruction
      */
     protected function buildDataIntegrityInstruction(): string

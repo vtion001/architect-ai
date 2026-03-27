@@ -9,42 +9,42 @@ use Illuminate\Http\JsonResponse;
 
 /**
  * Trait for controllers that consume tokens.
- * 
+ *
  * Provides convenient methods for token consumption with
  * automatic error responses and balance checking.
- * 
+ *
  * @see config/tokens.php for cost configuration
  */
 trait ConsumesTokens
 {
     /**
      * Consume tokens by operation type from config.
-     * 
-     * @param string $operation Operation key from config/tokens.php
-     * @param array $metadata Additional metadata for the transaction
+     *
+     * @param  string  $operation  Operation key from config/tokens.php
+     * @param  array  $metadata  Additional metadata for the transaction
      * @return JsonResponse|null Returns JsonResponse on failure, null on success
      */
     protected function consumeTokens(string $operation, array $metadata = []): ?JsonResponse
     {
         $tokenService = app(TokenService::class);
         $cost = $tokenService->getCost($operation);
-        
+
         return $this->consumeTokensAmount($cost, $operation, $metadata);
     }
 
     /**
      * Consume a specific amount of tokens.
      *
-     * @param int $amount Token amount to consume
-     * @param string $reason Reason for consumption (for audit)
-     * @param array $metadata Additional metadata for the transaction
+     * @param  int  $amount  Token amount to consume
+     * @param  string  $reason  Reason for consumption (for audit)
+     * @param  array  $metadata  Additional metadata for the transaction
      * @return JsonResponse|null Returns JsonResponse on failure, null on success
      */
     protected function consumeTokensAmount(int $amount, string $reason, array $metadata = []): ?JsonResponse
     {
         $tokenService = app(TokenService::class);
-        
-        if (!$tokenService->consume(auth()->user(), $amount, $reason, $metadata)) {
+
+        if (! $tokenService->consume(auth()->user(), $amount, $reason, $metadata)) {
             return response()->json([
                 'success' => false,
                 'message' => "Insufficient tokens. This operation requires {$amount} tokens.",
@@ -71,6 +71,7 @@ trait ConsumesTokens
     protected function getTokenBalance(): int
     {
         $tokenService = app(TokenService::class);
+
         return $tokenService->getBalance(auth()->user()->tenant);
     }
 
@@ -81,6 +82,7 @@ trait ConsumesTokens
     {
         $tokenService = app(TokenService::class);
         $cost = $tokenService->getCost($operation);
+
         return $tokenService->hasBalance(auth()->user()->tenant, $cost);
     }
 }

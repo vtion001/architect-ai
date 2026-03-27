@@ -15,10 +15,11 @@ class MfaMiddleware
     {
         $user = auth()->user();
 
-        if ($user && $user->mfa_enabled && !session('mfa_verified')) {
+        if ($user && $user->mfa_enabled && ! session('mfa_verified')) {
             if ($request->wantsJson()) {
                 return response()->json(['error' => 'MFA challenge required', 'mfa_required' => true], 403);
             }
+
             return redirect()->route('mfa.challenge');
         }
 

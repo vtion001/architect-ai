@@ -20,8 +20,11 @@ use Illuminate\Support\Facades\Log;
 class MiniMaxClient
 {
     protected string $apiKey;
+
     protected string $baseUrl = 'https://api.minimax.io/v1';
+
     protected string $model = 'minimax-m2.7';
+
     protected int $defaultTimeout = 90;
 
     public function __construct()
@@ -37,6 +40,7 @@ class MiniMaxClient
     {
         if (empty($this->apiKey)) {
             Log::error('MiniMax API key not configured');
+
             return $this->errorResponse('MiniMax AI service not configured');
         }
 
@@ -67,6 +71,7 @@ class MiniMaxClient
 
             if ($response->successful()) {
                 $data = $response->json();
+
                 return [
                     'success' => true,
                     'message' => $data['choices'][0]['message']['content'] ?? '',
@@ -84,6 +89,7 @@ class MiniMaxClient
 
         } catch (\Throwable $e) {
             Log::error('MiniMax API exception', ['error' => $e->getMessage()]);
+
             return $this->errorResponse($e->getMessage());
         }
     }
@@ -93,7 +99,7 @@ class MiniMaxClient
      */
     public function isConfigured(): bool
     {
-        return !empty($this->apiKey);
+        return ! empty($this->apiKey);
     }
 
     /**

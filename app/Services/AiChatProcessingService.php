@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace App\Services;
 
 use App\DTOs\ChatProcessingResult;
-use App\Models\AiAgent;
 use App\Models\AgentConversation;
+use App\Models\AiAgent;
 use App\Models\Brand;
 use App\Models\User;
 use App\Services\AI\MiniMaxClient;
@@ -51,14 +51,14 @@ class AiChatProcessingService
     ): ChatProcessingResult {
         try {
             // 1. Consume tokens first
-            if (!$this->consumeTokens($user, $agent->id, $mode)) {
+            if (! $this->consumeTokens($user, $agent->id, $mode)) {
                 return $this->insufficientTokensResponse($conversation);
             }
 
             // 2. Build prompt and messages
             $systemPrompt = $this->buildSystemPrompt($agent, $brandId, $userMessage);
             $messages = $this->formatMessages($systemPrompt, $conversation, $userMessage, $imageUrl);
-            
+
             // 3. Call AI
             $response = $this->aiClient->chat($messages, [
                 'model' => $this->selectModel($agent, $mode, $imageUrl),
@@ -70,15 +70,18 @@ class AiChatProcessingService
             if ($response['success']) {
                 $sanitized = $this->promptBuilder->sanitize($response['message']);
                 $conversation->addMessage('assistant', $sanitized);
+
                 return ChatProcessingResult::success($sanitized);
             }
 
             // Refund on failure
             $this->refundTokens($user);
+
             return $this->errorResponse($conversation, $response['error']);
 
         } catch (\Throwable $e) {
             Log::error('AI Chat error', ['agent' => $agent->id, 'error' => $e->getMessage()]);
+
             return $this->errorResponse($conversation, $e->getMessage());
         }
     }
@@ -89,6 +92,7 @@ class AiChatProcessingService
     protected function consumeTokens(User $user, string $agentId, string $mode): bool
     {
         $cost = $this->tokenService->getCost('ai_chat_message');
+
         return $this->tokenService->consume($user, $cost, 'ai_chat_message', [
             'agent_id' => $agentId,
             'mode' => $mode,
@@ -110,7 +114,7 @@ class AiChatProcessingService
     protected function buildSystemPrompt(AiAgent $agent, ?string $brandId, string $userMessage): string
     {
         $brand = $brandId ? Brand::find($brandId) : null;
-        
+
         return $this->promptBuilder->build([
             $agent->getFullSystemPrompt(),
             $this->promptBuilder->brandContext($brand),
@@ -127,9 +131,11 @@ class AiChatProcessingService
     {
         try {
             $context = $this->researchService->getKnowledgeBaseContext($userMessage);
+
             return $context ? $this->promptBuilder->knowledgeContext($context, 'RELEVANT KNOWLEDGE') : '';
         } catch (\Exception $e) {
             Log::warning("RAG failed: {$e->getMessage()}");
+
             return '';
         }
     }
@@ -148,7 +154,7 @@ class AiChatProcessingService
             ...$conversation->getMessagesForApi(),
         ];
 
-        if ($imageUrl && !empty($messages)) {
+        if ($imageUrl && ! empty($messages)) {
             $lastIdx = count($messages) - 1;
             if ($messages[$lastIdx]['role'] === 'user') {
                 $messages[$lastIdx]['content'] = [
@@ -178,6 +184,7 @@ class AiChatProcessingService
         $cost = $this->tokenService->getCost('ai_chat_message');
         $message = "Insufficient tokens. AI chat requires {$cost} tokens per message.";
         $conversation->addMessage('assistant', $message);
+
         return ChatProcessingResult::failure($message, 'insufficient_tokens');
     }
 
@@ -188,6 +195,7 @@ class AiChatProcessingService
     {
         $message = 'Sorry, I encountered an error processing your request.';
         $conversation->addMessage('assistant', $message);
+
         return ChatProcessingResult::failure($message, $error);
     }
 }

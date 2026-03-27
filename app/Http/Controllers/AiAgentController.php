@@ -4,17 +4,15 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers;
 
-use App\Models\AiAgent;
+use App\Jobs\ProcessAiChatMessage;
 use App\Models\AgentConversation;
+use App\Models\AiAgent;
 use App\Models\KnowledgeBaseAsset;
 use App\Services\AuthorizationService;
 use App\Services\ResearchService;
-use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Support\Facades\Http;
-use Illuminate\Support\Facades\Log;
+use Illuminate\Http\Request;
 use Illuminate\Support\Str;
-use App\Jobs\ProcessAiChatMessage;
 
 class AiAgentController extends Controller
 {
@@ -26,12 +24,12 @@ class AiAgentController extends Controller
     public function index()
     {
         $this->authService->audit(auth()->user(), 'ai_agents.view');
-        
+
         $agents = AiAgent::where('tenant_id', auth()->user()->tenant_id)->latest()->get();
         $knowledgeAssets = KnowledgeBaseAsset::where('tenant_id', auth()->user()->tenant_id)
             ->select('id', 'title', 'category', 'type')
             ->get();
-        
+
         $brands = auth()->user()->tenant->brands()->get();
 
         return view('ai-agents.ai-agents', compact('agents', 'knowledgeAssets', 'brands'));
@@ -126,7 +124,7 @@ class AiAgentController extends Controller
         ]);
 
         $agent = AiAgent::findOrFail($validated['agent_id']);
-        
+
         // Policy-based authorization
         $this->authorize('chat', $agent);
 
@@ -134,12 +132,12 @@ class AiAgentController extends Controller
         $imageUrl = null;
         if ($request->hasFile('image')) {
             $file = $request->file('image');
-            $filename = 'chat-' . time() . '-' . Str::random(10) . '.' . $file->getClientOriginalExtension();
+            $filename = 'chat-'.time().'-'.Str::random(10).'.'.$file->getClientOriginalExtension();
             $file->move(public_path('uploads/chat-images'), $filename);
-            $imageUrl = asset('uploads/chat-images/' . $filename);
+            $imageUrl = asset('uploads/chat-images/'.$filename);
         }
 
-        if (empty($validated['message']) && !$imageUrl) {
+        if (empty($validated['message']) && ! $imageUrl) {
             return response()->json(['success' => false, 'message' => 'Message or image required'], 422);
         }
 
@@ -177,7 +175,7 @@ class AiAgentController extends Controller
     {
         // Remove markdown bold/italic/header symbols
         $text = str_replace(['**', '##', '#'], '', $text);
-        
+
         // Final fallback: remove any single * that might be lingering
         $text = str_replace('*', '', $text);
 
@@ -195,7 +193,7 @@ class AiAgentController extends Controller
             ->where('session_id', $validated['session_id'])
             ->first();
 
-        if (!$conversation) {
+        if (! $conversation) {
             return response()->json([
                 'success' => true,
                 'messages' => [],
@@ -240,7 +238,7 @@ class AiAgentController extends Controller
      */
     public function widget(AiAgent $agent): JsonResponse
     {
-        if (!$agent->is_active || !$agent->widget_enabled) {
+        if (! $agent->is_active || ! $agent->widget_enabled) {
             return response()->json(['success' => false, 'message' => 'Widget not available'], 404);
         }
 

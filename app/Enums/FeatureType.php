@@ -6,10 +6,10 @@ namespace App\Enums;
 
 /**
  * Feature types for credit-based and access-gated features.
- * 
+ *
  * CREDIT-BASED: Features that consume credits per use
  * - post_generator, video_generator, blog_generator, click_calendar, document_builder
- * 
+ *
  * ACCESS-GATED: Features locked behind plan tiers (Pro+, Agency)
  * - ai_agents, knowledge_base, brand_kits, sub_accounts
  */

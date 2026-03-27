@@ -3,16 +3,16 @@
 namespace App\Http\Controllers\Tenant;
 
 use App\Http\Controllers\Controller;
+use App\Models\Role;
 use App\Models\Tenant;
 use App\Models\User;
-use App\Models\Role;
-use App\Services\TokenService;
 use App\Services\AuthorizationService;
 use App\Services\FeatureCreditService;
+use App\Services\TokenService;
 use Illuminate\Http\Request;
-use Illuminate\Support\Str;
-use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Str;
 
 class SubAccountController extends Controller
 {
@@ -28,22 +28,23 @@ class SubAccountController extends Controller
     public function index()
     {
         $agency = app(Tenant::class);
-        
+
         if ($agency->type !== 'agency') {
             abort(403, 'Only agencies can manage sub-accounts.');
         }
 
         $subAccounts = $agency->subAccounts()->withCount('users')->get();
-        
-        $subAccounts->map(function($sub) {
+
+        $subAccounts->map(function ($sub) {
             $sub->token_balance = $this->tokenService->getBalance($sub);
+
             return $sub;
         });
 
         $capacity = [
             'current' => $subAccounts->count(),
             'max' => $agency->getMaxSubAccounts(),
-            'label' => strtoupper($agency->plan ?? 'starter') . ' NODE',
+            'label' => strtoupper($agency->plan ?? 'starter').' NODE',
             'can_create' => $agency->canCreateSubAccounts(),
         ];
 
@@ -58,13 +59,13 @@ class SubAccountController extends Controller
         $agency = app(Tenant::class);
 
         // 1. Plan Access Check - Only Agency plan can create sub-accounts
-        if (!$agency->canCreateSubAccounts()) {
+        if (! $agency->canCreateSubAccounts()) {
             $this->authService->audit(
                 auth()->user(),
                 'security.feature_access_denied',
                 null,
                 'denied',
-                "Attempted to create sub-account without Agency plan."
+                'Attempted to create sub-account without Agency plan.'
             );
 
             return response()->json([
@@ -90,7 +91,7 @@ class SubAccountController extends Controller
 
             return response()->json([
                 'success' => false,
-                'message' => "Grid Capacity reached. Your Agency node is limited to {$maxNodes} nested workspaces. Please contact support to scale."
+                'message' => "Grid Capacity reached. Your Agency node is limited to {$maxNodes} nested workspaces. Please contact support to scale.",
             ], 403);
         }
 
@@ -141,7 +142,7 @@ class SubAccountController extends Controller
 
             return response()->json([
                 'message' => 'Sub-account and identity provisioned successfully.',
-                'sub_account' => $subAccount
+                'sub_account' => $subAccount,
             ], 201);
         });
     }

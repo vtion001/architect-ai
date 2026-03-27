@@ -51,6 +51,7 @@ class ContentService
         }
 
         Log::error('ContentService: MiniMax generation failed', ['error' => $response['error'] ?? 'Unknown']);
+
         return 'Content generation failed.';
     }
 

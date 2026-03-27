@@ -4,15 +4,15 @@ namespace App\Models;
 
 use App\Enums\FeatureType;
 use App\Enums\PlanType;
-use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Tenant extends Model
 {
-    use HasUuids, HasFactory;
+    use HasFactory, HasUuids;
 
     protected $fillable = [
         'type',
@@ -39,15 +39,17 @@ class Tenant extends Model
             'instagram_access_token',
             'linkedin_access_token',
             'api_secret',
-            'custom_app_secret'
+            'custom_app_secret',
         ];
 
         return \Illuminate\Database\Eloquent\Casts\Attribute::make(
             get: function ($value) use ($sensitiveFields) {
-                if (!$value) return [];
+                if (! $value) {
+                    return [];
+                }
                 $data = json_decode($value, true);
                 foreach ($sensitiveFields as $field) {
-                    if (isset($data[$field]) && !empty($data[$field])) {
+                    if (isset($data[$field]) && ! empty($data[$field])) {
                         try {
                             $data[$field] = \Illuminate\Support\Facades\Crypt::decryptString($data[$field]);
                         } catch (\Exception $e) {
@@ -55,15 +57,19 @@ class Tenant extends Model
                         }
                     }
                 }
+
                 return $data;
             },
             set: function ($value) use ($sensitiveFields) {
-                if (!is_array($value)) return json_encode([]);
+                if (! is_array($value)) {
+                    return json_encode([]);
+                }
                 foreach ($sensitiveFields as $field) {
-                    if (isset($value[$field]) && !empty($value[$field])) {
+                    if (isset($value[$field]) && ! empty($value[$field])) {
                         $value[$field] = \Illuminate\Support\Facades\Crypt::encryptString($value[$field]);
                     }
                 }
+
                 return json_encode($value);
             }
         );

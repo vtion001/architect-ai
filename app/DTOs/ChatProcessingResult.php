@@ -6,7 +6,7 @@ namespace App\DTOs;
 
 /**
  * Result DTO for AI chat processing.
- * 
+ *
  * Immutable data transfer object representing the result
  * of processing an AI chat message.
  */

@@ -17,9 +17,10 @@ class TenantExplorerController extends Controller
     {
         // Use withoutGlobalScope if necessary, but Developer can toggle it via session
         $tenants = Tenant::withCount('users')->whereNull('parent_id')->get(); // Agencies first
-        
-        $tenants->map(function($t) {
+
+        $tenants->map(function ($t) {
             $t->token_balance = $this->tokenService->getBalance($t);
+
             return $t;
         });
 
@@ -31,7 +32,7 @@ class TenantExplorerController extends Controller
         $tenant->load('users', 'subAccounts.users');
         $tokenBalance = $this->tokenService->getBalance($tenant);
         $transactions = TokenTransaction::where('tenant_id', $tenant->id)->latest()->take(50)->get();
-        
+
         // Find associated waitlist lead (if any)
         $linkedWaitlist = Waitlist::whereIn('email', $tenant->users->pluck('email'))->first();
 
@@ -48,11 +49,11 @@ class TenantExplorerController extends Controller
             'reason' => 'required|string|min:5',
         ]);
 
-        $this->tokenService->grant($tenant, (int)$request->amount, $request->reason);
+        $this->tokenService->grant($tenant, (int) $request->amount, $request->reason);
 
         return response()->json([
             'success' => true,
-            'message' => "Successfully allocated {$request->amount} tokens to {$tenant->name}."
+            'message' => "Successfully allocated {$request->amount} tokens to {$tenant->name}.",
         ]);
     }
 }

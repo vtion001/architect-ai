@@ -2,11 +2,10 @@
 
 namespace App\Console\Commands;
 
-use Illuminate\Console\Command;
 use App\Models\MediaAsset;
+use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Storage;
 
 class MigrateAssetsToCloudinary extends Command
 {
@@ -33,21 +32,22 @@ class MigrateAssetsToCloudinary extends Command
         $apiKey = config('services.cloudinary.api_key');
         $apiSecret = config('services.cloudinary.api_secret');
 
-        if (!$cloudName || !$apiKey || !$apiSecret) {
-            $this->error("Cloudinary credentials missing in configuration.");
+        if (! $cloudName || ! $apiKey || ! $apiSecret) {
+            $this->error('Cloudinary credentials missing in configuration.');
+
             return 1;
         }
 
         $assets = MediaAsset::where('url', 'not like', '%cloudinary.com%')
             ->where('url', 'not like', 'http%') // Usually local paths start with /
-            ->orWhere(function($q) {
+            ->orWhere(function ($q) {
                 // Also catch full local URLs if they exist
-                $q->where('url', 'like', config('app.url') . '%');
+                $q->where('url', 'like', config('app.url').'%');
             })
             ->get();
 
         if ($this->option('force')) {
-             $assets = MediaAsset::where('url', 'not like', '%cloudinary.com%')->get();
+            $assets = MediaAsset::where('url', 'not like', '%cloudinary.com%')->get();
         }
 
         $count = $assets->count();
@@ -60,7 +60,7 @@ class MigrateAssetsToCloudinary extends Command
             try {
                 // Determine file path
                 $localPath = null;
-                
+
                 if (str_starts_with($asset->url, '/')) {
                     $localPath = public_path($asset->url);
                 } elseif (str_starts_with($asset->url, config('app.url'))) {
@@ -68,10 +68,11 @@ class MigrateAssetsToCloudinary extends Command
                     $localPath = public_path($relativePath);
                 }
 
-                if (!$localPath || !file_exists($localPath)) {
+                if (! $localPath || ! file_exists($localPath)) {
                     $this->warn("\nFile not found for asset ID {$asset->id}: {$asset->url}");
                     Log::warning("Migration: File not found for asset ID {$asset->id}");
                     $bar->advance();
+
                     continue;
                 }
 
@@ -79,10 +80,10 @@ class MigrateAssetsToCloudinary extends Command
                 $timestamp = time();
                 $params = ['timestamp' => $timestamp];
                 ksort($params);
-                $signString = http_build_query($params) . $apiSecret;
-                
+                $signString = http_build_query($params).$apiSecret;
+
                 // Manual signature construction matches controller logic
-                $stringToSign = "timestamp=" . $timestamp . $apiSecret;
+                $stringToSign = 'timestamp='.$timestamp.$apiSecret;
                 $signature = sha1($stringToSign);
 
                 $response = Http::attach(
@@ -97,31 +98,31 @@ class MigrateAssetsToCloudinary extends Command
 
                 if ($response->successful()) {
                     $cloudinaryUrl = $response->json('secure_url');
-                    
+
                     $asset->update([
                         'url' => $cloudinaryUrl,
-                        'source' => 'upload_migrated' // Mark as migrated
+                        'source' => 'upload_migrated', // Mark as migrated
                     ]);
-                    
-                    // Optional: Delete local file? 
-                    // unlink($localPath); 
+
+                    // Optional: Delete local file?
+                    // unlink($localPath);
                 } else {
-                    $this->error("\nUpload failed for ID {$asset->id}: " . $response->body());
-                    Log::error("Migration upload failed for ID {$asset->id}: " . $response->body());
+                    $this->error("\nUpload failed for ID {$asset->id}: ".$response->body());
+                    Log::error("Migration upload failed for ID {$asset->id}: ".$response->body());
                 }
 
             } catch (
-Exception $e) {
-                $this->error("\nException for ID {$asset->id}: " . $e->getMessage());
-            }
+                Exception $e) {
+                    $this->error("\nException for ID {$asset->id}: ".$e->getMessage());
+                }
 
             $bar->advance();
         }
 
         $bar->finish();
         $this->newLine();
-        $this->info("Migration completed.");
-        
+        $this->info('Migration completed.');
+
         return 0;
     }
 }

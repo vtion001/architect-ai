@@ -21,7 +21,7 @@ class IAMSeeder extends Seeder
             ['resource' => 'content', 'action' => 'update', 'scope' => 'own'],
             ['resource' => 'content', 'action' => 'delete', 'scope' => 'own'],
             ['resource' => 'content', 'action' => 'publish', 'scope' => 'own'],
-            
+
             ['resource' => 'content', 'action' => 'create', 'scope' => 'tenant'],
             ['resource' => 'content', 'action' => 'read', 'scope' => 'tenant'],
             ['resource' => 'content', 'action' => 'update', 'scope' => 'tenant'],

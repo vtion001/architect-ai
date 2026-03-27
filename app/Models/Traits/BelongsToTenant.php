@@ -11,7 +11,7 @@ trait BelongsToTenant
     protected static function bootBelongsToTenant()
     {
         static::addGlobalScope('tenant', function (Builder $builder) {
-            if (app()->runningInConsole() && !app()->runningUnitTests()) {
+            if (app()->runningInConsole() && ! app()->runningUnitTests()) {
                 return;
             }
 
@@ -24,12 +24,12 @@ trait BelongsToTenant
                     return;
                 }
 
-                $builder->where($builder->getModel()->getTable() . '.tenant_id', $tenantId);
+                $builder->where($builder->getModel()->getTable().'.tenant_id', $tenantId);
             }
         });
 
         static::creating(function ($model) {
-            if (!$model->tenant_id) {
+            if (! $model->tenant_id) {
                 $tenantId = session('current_tenant_id') ?? (app()->bound(Tenant::class) ? app(Tenant::class)->id : null);
                 if ($tenantId) {
                     $model->tenant_id = $tenantId;

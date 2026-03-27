@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers;
 
-use Illuminate\Http\Request;
 use Illuminate\View\View;
 
 class HelpCenterController extends Controller
@@ -15,7 +14,7 @@ class HelpCenterController extends Controller
     public function index(): View
     {
         $sections = $this->getHelpSections();
-        
+
         return view('help-center.help-center', [
             'sections' => $sections,
         ]);
@@ -27,17 +26,17 @@ class HelpCenterController extends Controller
     public function show(string $section, string $article): View
     {
         $sections = $this->getHelpSections();
-        
+
         // Find the section and article
         $sectionData = collect($sections)->firstWhere('slug', $section);
-        $articleData = $sectionData 
+        $articleData = $sectionData
             ? collect($sectionData['articles'])->firstWhere('slug', $article)
             : null;
-        
-        if (!$sectionData || !$articleData) {
+
+        if (! $sectionData || ! $articleData) {
             abort(404, 'Article not found');
         }
-        
+
         return view('help-center.article', [
             'section' => $sectionData,
             'article' => $articleData,

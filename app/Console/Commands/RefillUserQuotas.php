@@ -40,7 +40,7 @@ class RefillUserQuotas extends Command
             ]);
 
         $this->info("Successfully reset quotas for {$affected} users.");
-        
+
         Log::info('RefillUserQuotas: Monthly reset completed', [
             'users_affected' => $affected,
         ]);

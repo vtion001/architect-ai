@@ -7,10 +7,10 @@ return new class extends Migration
 {
     /**
      * Run the migrations.
-     * 
+     *
      * Migrates existing plan values to new tier structure:
      * - standard → starter
-     * - enterprise → pro  
+     * - enterprise → pro
      * - master → agency
      */
     public function up(): void

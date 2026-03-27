@@ -2,15 +2,15 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Factories\HasFactory;
 use App\Models\Traits\BelongsToTenant;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Brand extends Model
 {
-    use HasUuids, BelongsToTenant, HasFactory;
+    use BelongsToTenant, HasFactory, HasUuids;
 
     protected $fillable = [
         'tenant_id',
@@ -94,6 +94,7 @@ class Brand extends Model
     public function getColorsAttribute($value): array
     {
         $decoded = is_string($value) ? json_decode($value, true) : ($value ?? []);
+
         return array_merge(self::defaultColors(), $decoded ?? []);
     }
 
@@ -103,6 +104,7 @@ class Brand extends Model
     public function getTypographyAttribute($value): array
     {
         $decoded = is_string($value) ? json_decode($value, true) : ($value ?? []);
+
         return array_merge(self::defaultTypography(), $decoded ?? []);
     }
 
@@ -112,6 +114,7 @@ class Brand extends Model
     public function getVoiceProfileAttribute($value): array
     {
         $decoded = is_string($value) ? json_decode($value, true) : ($value ?? []);
+
         return array_merge(self::defaultVoiceProfile(), $decoded ?? []);
     }
 
@@ -121,36 +124,36 @@ class Brand extends Model
     public function getAIContext(): string
     {
         $context = "Brand: {$this->name}";
-        
+
         if ($this->tagline) {
             $context .= "\nTagline: {$this->tagline}";
         }
-        
+
         if ($this->description) {
             $context .= "\nDescription: {$this->description}";
         }
-        
+
         if ($this->industry) {
             $context .= "\nIndustry: {$this->industry}";
         }
-        
+
         $voice = $this->voice_profile;
-        if (!empty($voice['tone'])) {
+        if (! empty($voice['tone'])) {
             $context .= "\nTone: {$voice['tone']}";
         }
-        if (!empty($voice['personality'])) {
+        if (! empty($voice['personality'])) {
             $context .= "\nPersonality: {$voice['personality']}";
         }
-        if (!empty($voice['keywords'])) {
+        if (! empty($voice['keywords'])) {
             $context .= "\nKey phrases to use: {$voice['keywords']}";
         }
-        if (!empty($voice['avoid_words'])) {
+        if (! empty($voice['avoid_words'])) {
             $context .= "\nWords/phrases to avoid: {$voice['avoid_words']}";
         }
-        if (!empty($voice['writing_style'])) {
+        if (! empty($voice['writing_style'])) {
             $context .= "\nWriting style: {$voice['writing_style']}";
         }
-        
+
         return $context;
     }
 

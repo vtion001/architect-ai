@@ -8,7 +8,7 @@ use Illuminate\Foundation\Http\FormRequest;
 
 /**
  * Form Request for content generation.
- * 
+ *
  * Extracts validation from ContentCreatorController::store()
  * following Separation of Concerns principle.
  */
@@ -34,7 +34,7 @@ class StoreContentRequest extends FormRequest
             'includeHashtags' => ['nullable', 'boolean'],
             'generator' => ['nullable', 'string', 'in:post,video,blog,framework'],
             'brand_id' => ['nullable', 'uuid', 'exists:brands,id'],
-            
+
             // Video parameters
             'video_platform' => ['nullable', 'string', 'in:reels,tiktok,youtube_shorts,youtube'],
             'video_hook' => ['nullable', 'string', 'max:100'],
@@ -73,6 +73,7 @@ class StoreContentRequest extends FormRequest
     public function getTokenCost(): int
     {
         $count = $this->input('count', 1);
+
         return $count * 10; // 10 tokens per content piece
     }
 
@@ -83,10 +84,10 @@ class StoreContentRequest extends FormRequest
     {
         return $this->only([
             'count', 'tone', 'length', 'cta', 'addLineBreaks', 'includeHashtags',
-            'generator', 'video_platform', 'video_hook', 'video_duration', 'video_style', 
-            'video_description', 'source_image', 'ai_model', 'resolution', 'aspect_ratio', 
-            'generation_duration', 'blog_keywords', 'blog_structure', 'is_batch_mode', 
-            'featured_image_type', 'brand_id'
+            'generator', 'video_platform', 'video_hook', 'video_duration', 'video_style',
+            'video_description', 'source_image', 'ai_model', 'resolution', 'aspect_ratio',
+            'generation_duration', 'blog_keywords', 'blog_structure', 'is_batch_mode',
+            'featured_image_type', 'brand_id',
         ]);
     }
 }

@@ -8,7 +8,7 @@ use Illuminate\View\View;
 
 /**
  * View Composer for content-viewer.blade.php
- * 
+ *
  * Extracts complex PHP data preparation logic from the Blade view.
  */
 class ContentViewerComposer
@@ -19,15 +19,16 @@ class ContentViewerComposer
     public function compose(View $view): void
     {
         $content = $view->getData()['content'] ?? null;
-        
-        if (!$content) {
+
+        if (! $content) {
             $view->with('postsData', []);
+
             return;
         }
 
         $publishedIndexes = $view->getData()['publishedIndexes'] ?? [];
         $postsData = $this->parseContentSegments($content, $publishedIndexes);
-        
+
         $view->with('postsData', $postsData);
     }
 
@@ -38,15 +39,15 @@ class ContentViewerComposer
     {
         $rawResult = trim($content->result ?? '');
         $expectedCount = $content->options['count'] ?? 1;
-        
+
         // Primary split: separator lines (---, ***, ___)
         $rawSegments = preg_split('/^\s*[-*_]{3,}\s*$/m', $rawResult);
-        
+
         // Fallback 1: Numbered list (e.g., "1. ", "2. ")
         if (count($rawSegments) < $expectedCount) {
             $numberedSplit = preg_split('/^\s*\d+\.\s+/m', $rawResult);
             $numberedSplit = array_values(array_filter(array_map('trim', $numberedSplit)));
-            
+
             if (count($numberedSplit) >= $expectedCount) {
                 $rawSegments = $numberedSplit;
             }
@@ -55,7 +56,7 @@ class ContentViewerComposer
         // Fallback 2: Double newline
         if (count($rawSegments) < $expectedCount) {
             $newlineSplit = preg_split('/\R{2,}/', $rawResult);
-            
+
             if (count($newlineSplit) >= $expectedCount) {
                 $rawSegments = $newlineSplit;
             }
@@ -86,12 +87,13 @@ class ContentViewerComposer
         }
 
         $lastSegment = end($rawSegments);
-        
+
         // Check if last segment is just hashtags (short, starts with #, no newlines)
-        if (str_starts_with($lastSegment, '#') && 
-            strlen($lastSegment) < 300 && 
-            !str_contains($lastSegment, "\n")) {
+        if (str_starts_with($lastSegment, '#') &&
+            strlen($lastSegment) < 300 &&
+            ! str_contains($lastSegment, "\n")) {
             array_pop($rawSegments);
+
             return $lastSegment;
         }
 
@@ -108,21 +110,21 @@ class ContentViewerComposer
         foreach ($rawSegments as $idx => $post) {
             // Clean remaining number prefixes
             $finalPostContent = preg_replace('/^\d+\.\s*/', '', trim($post));
-            
+
             // Append global hashtags if not present
-            if ($globalHashtags && !str_contains($finalPostContent, $globalHashtags)) {
-                $finalPostContent .= "\n\n" . $globalHashtags;
+            if ($globalHashtags && ! str_contains($finalPostContent, $globalHashtags)) {
+                $finalPostContent .= "\n\n".$globalHashtags;
             }
-            
+
             // Generate clean HTML version
             $cleanText = $this->cleanMarkdownForDisplay($finalPostContent);
             $cleanHtml = nl2br(e($cleanText));
-            
+
             $postsData[] = [
                 'index' => $idx,
                 'raw' => $finalPostContent,
                 'html' => $cleanHtml,
-                'published' => in_array($idx, $publishedIndexes)
+                'published' => in_array($idx, $publishedIndexes),
             ];
         }
 
@@ -136,10 +138,10 @@ class ContentViewerComposer
     {
         // Remove markdown headers
         $text = preg_replace('/^#+\s+/m', '', $text);
-        
+
         // Remove bold/italic markers
         $text = str_replace(['*', '`'], '', $text);
-        
+
         return $text;
     }
 }

@@ -30,8 +30,9 @@ class GenerateContent implements ShouldQueue
         // Re-fetch model to ensure we have the absolute latest 'options' and state
         $this->content = $this->content->fresh();
 
-        if (!$this->content) {
-            Log::error("Content Generation Job: Model not found.");
+        if (! $this->content) {
+            Log::error('Content Generation Job: Model not found.');
+
             return;
         }
 
@@ -43,24 +44,26 @@ class GenerateContent implements ShouldQueue
 
         try {
             Log::info("Job processing content generation for Content ID: {$this->content->id}");
-            
+
             // Execute Generation
             $generatedText = $contentService->generateText(
-                $this->content->topic, 
-                $this->content->type, 
+                $this->content->topic,
+                $this->content->type,
                 $this->content->context,
                 $this->content->options ?? []
             );
 
             // Process Results (Title extraction, Word count)
             $lines = collect(explode("\n", trim($generatedText)))
-                ->map(fn($l) => trim($l))
-                ->filter(fn($l) => !empty($l) && !preg_match('/^-{3,}$/', $l)) // Ignore separator lines
+                ->map(fn ($l) => trim($l))
+                ->filter(fn ($l) => ! empty($l) && ! preg_match('/^-{3,}$/', $l)) // Ignore separator lines
                 ->values();
-            
+
             $firstLine = $lines->first() ?? $this->content->topic;
             $title = str_replace(['#', '*', '='], '', $firstLine);
-            if (strlen($title) > 100) $title = substr($title, 0, 97) . '...';
+            if (strlen($title) > 100) {
+                $title = substr($title, 0, 97).'...';
+            }
 
             $wordCount = str_word_count(strip_tags($generatedText));
 
@@ -74,13 +77,13 @@ class GenerateContent implements ShouldQueue
             Log::info("Content generated successfully for ID: {$this->content->id}");
 
         } catch (\Throwable $e) {
-            Log::error("Content Generation Job Failed: " . $e->getMessage());
-            
+            Log::error('Content Generation Job Failed: '.$e->getMessage());
+
             // Refund tokens on failure
             $tokenService->grant($this->user->tenant, $this->tokenCost, 'refund_failed_generation');
-            
+
             $this->content->update(['status' => 'failed']);
-            
+
             throw $e;
         }
     }

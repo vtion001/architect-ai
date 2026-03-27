@@ -9,7 +9,7 @@ use App\Enums\ReportTemplate;
 
 /**
  * Reports Generator
- * 
+ *
  * Specialized generator for all business report types including:
  * - Executive Summary
  * - Market Analysis
@@ -18,7 +18,7 @@ use App\Enums\ReportTemplate;
  * - Infographic / One-Pager
  * - Trend Analysis
  * - Custom Reports
- * 
+ *
  * This generator creates detailed, research-driven business reports
  * with professional formatting, data visualization, and analytical insights.
  */
@@ -56,14 +56,14 @@ class ReportsGenerator extends BaseGenerator
         $roleDescription = $this->getRoleDescription();
         $taskDescription = $this->getTaskDescription();
         $documentType = $this->getDocumentType();
-        
+
         $dataIntegrity = $this->buildDataIntegrityInstruction();
         $coreDirectives = $this->buildCoreDirectives($dataIntegrity);
         $brandInstructions = $this->buildBrandInstructions($data->brandId, $data->template->value);
-        
+
         // Build report-specific structure guidance
         $structureGuidance = $this->buildReportStructureGuidance($data);
-        
+
         return "You are an $roleDescription. 
                 Your task is to take RAW research data, INTERNAL knowledge base data, and RAW source content and transform them into a $taskDescription.
                 
@@ -71,7 +71,7 @@ class ReportsGenerator extends BaseGenerator
                 
                 - THE 'RESEARCH DATA' AND 'INTERNAL KNOWLEDGE BASE' ARE YOUR PRIMARY SOURCES OF TRUTH. You must include the facts, figures, and insights from them. DO NOT GENERALIZE.
                 - THE 'RESEARCH TOPIC' IS THE MANDATORY THEME. Every section must relate back to: {$data->researchTopic}.
-                - GENERATE A DETAILED BUSINESS " . strtoupper($documentType) . ". Use a clean, single-column flow.
+                - GENERATE A DETAILED BUSINESS ".strtoupper($documentType).". Use a clean, single-column flow.
                 - Use <h2> for section titles and <h3> for sub-sections.
                 - Use <p>, <ul>, <li>, and <strong> for content.
                 - ADVANCED LAYOUTS:
@@ -92,38 +92,38 @@ class ReportsGenerator extends BaseGenerator
     protected function buildReportStructureGuidance(ReportRequestData $data): string
     {
         $guidance = "\n[REPORT STRUCTURE GUIDANCE]\n\n";
-        
+
         switch ($data->template) {
             case ReportTemplate::EXECUTIVE_SUMMARY:
                 $guidance .= $this->getExecutiveSummaryGuidance();
                 break;
-            
+
             case ReportTemplate::MARKET_ANALYSIS:
                 $guidance .= $this->getMarketAnalysisGuidance();
                 break;
-            
+
             case ReportTemplate::FINANCIAL_OVERVIEW:
                 $guidance .= $this->getFinancialOverviewGuidance();
                 break;
-            
+
             case ReportTemplate::COMPETITIVE_INTELLIGENCE:
                 $guidance .= $this->getCompetitiveIntelligenceGuidance();
                 break;
-            
+
             case ReportTemplate::INFOGRAPHIC:
                 $guidance .= $this->getInfographicGuidance();
                 break;
-            
+
             case ReportTemplate::TREND_ANALYSIS:
                 $guidance .= $this->getTrendAnalysisGuidance();
                 break;
-            
+
             case ReportTemplate::CUSTOM:
             default:
                 $guidance .= $this->getCustomReportGuidance();
                 break;
         }
-        
+
         return $guidance;
     }
 

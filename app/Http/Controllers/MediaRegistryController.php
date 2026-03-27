@@ -19,9 +19,9 @@ class MediaRegistryController extends Controller
     public function index()
     {
         $this->authService->audit(auth()->user(), 'media_registry.view');
-        
+
         $assets = MediaAsset::latest()->paginate(24);
-        
+
         $stats = [
             'total_assets' => MediaAsset::count(),
             'ai_generated' => MediaAsset::where('source', 'ai_generation')->count(),
@@ -54,11 +54,11 @@ class MediaRegistryController extends Controller
                 $timestamp = time();
                 $params = ['timestamp' => $timestamp];
                 ksort($params);
-                $signString = http_build_query($params) . $apiSecret;
+                $signString = http_build_query($params).$apiSecret;
                 $signature = sha1(urldecode($signString)); // Cloudinary signature usually requires unencoded string for simple params, but let's follow standard signature gen
 
                 // Simpler manual signature for just timestamp
-                $stringToSign = "timestamp=" . $timestamp . $apiSecret;
+                $stringToSign = 'timestamp='.$timestamp.$apiSecret;
                 $signature = sha1($stringToSign);
 
                 $response = Http::attach(
@@ -75,18 +75,18 @@ class MediaRegistryController extends Controller
                     $url = $response->json('secure_url');
                     Log::info("Media Registry: Cloudinary upload successful. URL: $url");
                 } else {
-                    Log::error("Media Registry: Cloudinary upload failed. " . $response->body());
+                    Log::error('Media Registry: Cloudinary upload failed. '.$response->body());
                 }
             } catch (\Exception $e) {
-                Log::error("Media Registry: Cloudinary exception. " . $e->getMessage());
+                Log::error('Media Registry: Cloudinary exception. '.$e->getMessage());
             }
         }
 
         // 2. Fallback to Local Storage
-        if (!$url) {
-            $filename = Str::random(40) . '.' . $file->getClientOriginalExtension();
+        if (! $url) {
+            $filename = Str::random(40).'.'.$file->getClientOriginalExtension();
             $file->move(public_path('uploads/media-registry'), $filename);
-            $url = '/uploads/media-registry/' . $filename;
+            $url = '/uploads/media-registry/'.$filename;
             Log::warning("Media Registry: Fallback to local storage. URL: $url");
         }
 
@@ -101,13 +101,13 @@ class MediaRegistryController extends Controller
             'metadata' => [
                 'size' => $file->getSize(),
                 'mime' => $file->getMimeType(),
-                'original_name' => $file->getClientOriginalName()
-            ]
+                'original_name' => $file->getClientOriginalName(),
+            ],
         ]);
 
         return response()->json([
             'success' => true,
-            'asset' => $asset
+            'asset' => $asset,
         ]);
     }
 
@@ -117,7 +117,7 @@ class MediaRegistryController extends Controller
     public function destroy(MediaAsset $asset)
     {
         $this->authService->audit(auth()->user(), 'media_registry.purge', $asset);
-        
+
         $asset->delete();
 
         return response()->json(['success' => true]);
@@ -129,7 +129,7 @@ class MediaRegistryController extends Controller
     public function getAssets(Request $request)
     {
         $limit = min((int) $request->input('limit', 20), 50);
-        
+
         $assets = MediaAsset::where('tenant_id', auth()->user()->tenant_id)
             ->where('type', 'image')
             ->select('id', 'name', 'url')

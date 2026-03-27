@@ -13,7 +13,7 @@ class KnowledgeBaseController extends Controller
     public function index(Request $request)
     {
         $this->authService->audit(auth()->user(), 'knowledge_base.view');
-        
+
         $parentId = $request->query('folder');
         $currentFolder = $parentId ? KnowledgeBaseAsset::find($parentId) : null;
 
@@ -21,7 +21,7 @@ class KnowledgeBaseController extends Controller
             ->where('parent_id', $parentId)
             ->latest()
             ->get();
-        
+
         $stats = [
             'total_docs' => KnowledgeBaseAsset::count(),
             'categories' => KnowledgeBaseAsset::distinct('category')->count(),
@@ -49,14 +49,14 @@ class KnowledgeBaseController extends Controller
         // Handle File Upload
         if ($request->hasFile('file')) {
             $file = $request->file('file');
-            
+
             // 1. Text Extraction (needs local file access)
             if ($file->extension() === 'txt' || $file->extension() === 'md') {
                 $content = file_get_contents($file->getRealPath());
             } elseif ($file->extension() === 'pdf') {
                 $content = $pdfService->extract($file->getRealPath());
                 if (empty($content)) {
-                    $content = "PDF Document: " . $file->getClientOriginalName() . ". (Content extraction failed or empty)";
+                    $content = 'PDF Document: '.$file->getClientOriginalName().'. (Content extraction failed or empty)';
                 }
             }
 
@@ -69,9 +69,9 @@ class KnowledgeBaseController extends Controller
             if ($cloudName && $apiKey && $apiSecret) {
                 try {
                     $timestamp = time();
-                    $signature = sha1("timestamp=" . $timestamp . $apiSecret);
+                    $signature = sha1('timestamp='.$timestamp.$apiSecret);
 
-                    // Use 'auto' or 'raw' depending on file type. PDF is often 'image' or 'raw' in Cloudinary. 
+                    // Use 'auto' or 'raw' depending on file type. PDF is often 'image' or 'raw' in Cloudinary.
                     // 'auto' is safest.
                     $response = \Illuminate\Support\Facades\Http::attach(
                         'file',
@@ -87,17 +87,17 @@ class KnowledgeBaseController extends Controller
                         $sourceUrl = $response->json('secure_url');
                         $uploadedToCloud = true;
                     } else {
-                        \Illuminate\Support\Facades\Log::error("KB Cloudinary Upload Failed: " . $response->body());
+                        \Illuminate\Support\Facades\Log::error('KB Cloudinary Upload Failed: '.$response->body());
                     }
                 } catch (\Exception $e) {
-                    \Illuminate\Support\Facades\Log::error("KB Cloudinary Upload Error: " . $e->getMessage());
+                    \Illuminate\Support\Facades\Log::error('KB Cloudinary Upload Error: '.$e->getMessage());
                 }
             }
 
             // 3. Local Fallback
-            if (!$uploadedToCloud) {
+            if (! $uploadedToCloud) {
                 $path = $file->store('knowledge-base', 'public');
-                $sourceUrl = asset('storage/' . $path);
+                $sourceUrl = asset('storage/'.$path);
             }
         }
 
@@ -118,13 +118,14 @@ class KnowledgeBaseController extends Controller
 
         return response()->json([
             'success' => true,
-            'asset' => $asset
+            'asset' => $asset,
         ]);
     }
 
     public function destroy(KnowledgeBaseAsset $asset)
     {
         $asset->delete();
+
         return response()->json(['success' => true]);
     }
 }

@@ -59,7 +59,7 @@ class SocialPublishingServiceTest extends TestCase
     {
         $input = 'This is **bold** text';
         $result = $this->service->cleanMarkdownForSocial($input);
-        
+
         $this->assertEquals('This is bold text', $result);
     }
 
@@ -68,7 +68,7 @@ class SocialPublishingServiceTest extends TestCase
     {
         $input = 'This is *italic* text';
         $result = $this->service->cleanMarkdownForSocial($input);
-        
+
         $this->assertEquals('This is italic text', $result);
     }
 
@@ -77,7 +77,7 @@ class SocialPublishingServiceTest extends TestCase
     {
         $input = "# Header 1\n## Header 2\nNormal text";
         $result = $this->service->cleanMarkdownForSocial($input);
-        
+
         $this->assertStringContainsString('Header 1', $result);
         $this->assertStringNotContainsString('#', $result);
     }
@@ -87,7 +87,7 @@ class SocialPublishingServiceTest extends TestCase
     {
         $input = "Some text\n```code```\nMore text";
         $result = $this->service->cleanMarkdownForSocial($input);
-        
+
         $this->assertStringNotContainsString('```', $result);
     }
 
@@ -96,7 +96,7 @@ class SocialPublishingServiceTest extends TestCase
     {
         $input = 'This has `inline code` in it';
         $result = $this->service->cleanMarkdownForSocial($input);
-        
+
         $this->assertEquals('This has inline code in it', $result);
     }
 
@@ -105,7 +105,7 @@ class SocialPublishingServiceTest extends TestCase
     {
         $input = '   Some text with whitespace   ';
         $result = $this->service->cleanMarkdownForSocial($input);
-        
+
         $this->assertEquals('Some text with whitespace', $result);
     }
 }

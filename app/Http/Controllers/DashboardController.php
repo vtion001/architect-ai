@@ -2,17 +2,14 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Content;
-use App\Models\Research;
-use App\Models\KnowledgeBaseAsset;
-use App\Models\TokenAllocation;
 use App\Models\AuditLog;
+use App\Models\Content;
+use App\Models\KnowledgeBaseAsset;
+use App\Models\Research;
 use App\Models\Tenant;
-use Illuminate\Http\Request;
+use App\Services\TokenService;
 use Carbon\Carbon;
 use Illuminate\Support\Str;
-
-use App\Services\TokenService;
 
 class DashboardController extends Controller
 {
@@ -39,7 +36,7 @@ class DashboardController extends Controller
             $day = Carbon::now()->subDays($i);
             $intensityData[] = [
                 'label' => $day->format('D'),
-                'value' => AuditLog::where('tenant_id', $tenant->id)->whereDate('timestamp', $day->toDateString())->count()
+                'value' => AuditLog::where('tenant_id', $tenant->id)->whereDate('timestamp', $day->toDateString())->count(),
             ];
         }
 
@@ -62,10 +59,10 @@ class DashboardController extends Controller
             });
 
         return view('dashboard', compact(
-            'researchCount', 
-            'contentCount', 
-            'socialCount', 
-            'kbCount', 
+            'researchCount',
+            'contentCount',
+            'socialCount',
+            'kbCount',
             'tokenBalance',
             'gridStatus',
             'intensityData',
@@ -75,10 +72,19 @@ class DashboardController extends Controller
 
     protected function getModuleFromAction(string $action): string
     {
-        if (str_contains($action, 'research')) return 'Research Engine';
-        if (str_contains($action, 'content')) return 'Content Creator';
-        if (str_contains($action, 'social')) return 'Social Planner';
-        if (str_contains($action, 'user') || str_contains($action, 'access')) return 'IAM Gateway';
+        if (str_contains($action, 'research')) {
+            return 'Research Engine';
+        }
+        if (str_contains($action, 'content')) {
+            return 'Content Creator';
+        }
+        if (str_contains($action, 'social')) {
+            return 'Social Planner';
+        }
+        if (str_contains($action, 'user') || str_contains($action, 'access')) {
+            return 'IAM Gateway';
+        }
+
         return 'System';
     }
 }

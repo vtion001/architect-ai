@@ -8,7 +8,7 @@ use App\DTOs\ReportRequestData;
 
 /**
  * Proposal Generator
- * 
+ *
  * Specialized generator for professional business proposals with:
  * - Client-focused problem/solution structure
  * - Brand-to-client communication flow
@@ -17,7 +17,7 @@ use App\DTOs\ReportRequestData;
  * - Investment/pricing presentation
  * - Terms and conditions
  * - Research integration for market context
- * 
+ *
  * This generator creates persuasive business proposals that
  * position the brand as the solution provider for client needs.
  */
@@ -55,14 +55,14 @@ class ProposalGenerator extends BaseGenerator
         $roleDescription = $this->getRoleDescription();
         $taskDescription = $this->getTaskDescription();
         $documentType = $this->getDocumentType();
-        
+
         $dataIntegrity = $this->buildDataIntegrityInstruction();
         $coreDirectives = $this->buildCoreDirectives($dataIntegrity);
         $brandInstructions = $this->buildBrandInstructions($data->brandId, $data->template->value);
-        
+
         // Build proposal structure
         $structure = $this->buildProposalStructure($data);
-        
+
         return "You are an $roleDescription. 
                 Your task is to take RAW research data, INTERNAL knowledge base data, and RAW source content and transform them into a $taskDescription.
                 
@@ -93,39 +93,39 @@ class ProposalGenerator extends BaseGenerator
         $brandName = $brandData['brand']?->name ?? 'Service Provider';
 
         $structure = "\n[PROPOSAL STRUCTURE AND REQUIREMENTS]\n\n";
-        
+
         $structure .= "COMMUNICATION FLOW:\n";
         $structure .= "   - Proposal FROM: {$brandName} (The Brand/Service Provider)\n";
         $structure .= "   - Proposal FOR: {$data->recipientName} (The Client)\n";
         $structure .= "   - Address content TO the Client, FROM the Brand's perspective\n";
         $structure .= "   - Focus on solving the Client's needs and pain points\n\n";
-        
+
         $structure .= "REQUIRED SECTIONS (in this order):\n\n";
-        
+
         $structure .= "1. EXECUTIVE SUMMARY:\n";
         $structure .= "   - Brief overview of the proposed solution\n";
         $structure .= "   - Key benefits and outcomes for the client\n";
         $structure .= "   - 3-4 paragraphs maximum\n";
         $structure .= "   - Use <div class='callout'> for the main value proposition\n\n";
-        
+
         $structure .= "2. PROBLEM STATEMENT / CLIENT NEEDS:\n";
         $structure .= "   - Identify and articulate the client's challenges\n";
         $structure .= "   - Demonstrate understanding of their situation\n";
         $structure .= "   - Reference industry context from research data\n";
         $structure .= "   - Show empathy and insight\n\n";
-        
+
         $structure .= "3. PROPOSED SOLUTION:\n";
         $structure .= "   - Explain HOW your solution addresses each challenge\n";
         $structure .= "   - Highlight unique approach and methodology\n";
         $structure .= "   - Include relevant case studies or examples if available\n";
         $structure .= "   - Use <ul> lists for key solution components\n\n";
-        
+
         $structure .= "4. SCOPE OF WORK & DELIVERABLES:\n";
         $structure .= "   - Detailed breakdown of what will be delivered\n";
         $structure .= "   - Use <h3> for each major deliverable category\n";
         $structure .= "   - Include specific outputs, features, or services\n";
         $structure .= "   - Use tables if comparing multiple service tiers\n\n";
-        
+
         $structure .= "5. TIMELINE & MILESTONES:\n";
         $structure .= "   - Project phases with estimated durations\n";
         $structure .= "   - Key milestones and checkpoints\n";
@@ -134,39 +134,39 @@ class ProposalGenerator extends BaseGenerator
         $structure .= "       <thead><tr><th>Phase</th><th>Activities</th><th>Duration</th><th>Deliverable</th></tr></thead>\n";
         $structure .= "       <tbody>...</tbody>\n";
         $structure .= "     </table>\n\n";
-        
+
         $structure .= "6. PRICING / INVESTMENT:\n";
         $structure .= "   - Clear pricing structure (hourly, fixed, tiered)\n";
         $structure .= "   - Breakdown of costs by deliverable or phase\n";
         $structure .= "   - Payment terms and schedule\n";
         $structure .= "   - Use <table class='pricing-table'> for professional presentation\n";
         $structure .= "   - Include any discounts, packages, or add-ons\n\n";
-        
+
         $structure .= "7. WHY CHOOSE US / QUALIFICATIONS:\n";
         $structure .= "   - Brief overview of {$brandName}'s expertise\n";
         $structure .= "   - Relevant experience and credentials\n";
         $structure .= "   - Differentiators from competitors\n";
         $structure .= "   - Use bullet points for achievements\n\n";
-        
+
         $structure .= "8. TERMS & CONDITIONS:\n";
         $structure .= "   - Project assumptions and dependencies\n";
         $structure .= "   - Client responsibilities\n";
         $structure .= "   - Change order process\n";
         $structure .= "   - Acceptance criteria\n\n";
-        
+
         $structure .= "9. CALL TO ACTION / NEXT STEPS:\n";
         $structure .= "   - Clear instructions on how to proceed\n";
         $structure .= "   - Proposal validity period\n";
         $structure .= "   - Contact information for questions\n";
         $structure .= "   - Compelling reason to act now\n\n";
-        
+
         $structure .= "TONE AND STYLE:\n";
         $structure .= "   - Professional yet approachable\n";
         $structure .= "   - Client-focused (use 'you' and 'your')\n";
         $structure .= "   - Confident but not arrogant\n";
         $structure .= "   - Solution-oriented and benefit-driven\n";
         $structure .= "   - Use active voice and strong verbs\n\n";
-        
+
         $structure .= "FORMATTING BEST PRACTICES:\n";
         $structure .= "   - Use <h2> for main sections\n";
         $structure .= "   - Use <h3> for subsections\n";
@@ -174,7 +174,7 @@ class ProposalGenerator extends BaseGenerator
         $structure .= "   - Use tables for structured data (pricing, timeline)\n";
         $structure .= "   - Use bullet lists for features and benefits\n";
         $structure .= "   - Include white space for readability\n\n";
-        
+
         return $structure;
     }
 

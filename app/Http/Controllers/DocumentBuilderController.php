@@ -9,30 +9,30 @@ use App\Enums\FeatureType;
 use App\Enums\ReportTemplate;
 use App\Http\Requests\GenerateReportRequest;
 use App\Http\Requests\PreviewReportRequest;
-use App\Services\FeatureCreditService;
-use App\Services\ReportService;
-use App\Services\Report\TemplatePreviewService;
-use App\Services\ResumeParserService;
-use App\Services\CoverLetterDraftService;
-use App\Services\TokenService;
-use App\Models\Document;
 use App\Models\Brand;
+use App\Models\Document;
 use App\Models\Research;
 use App\Models\Tenant;
+use App\Services\CoverLetterDraftService;
+use App\Services\FeatureCreditService;
+use App\Services\Report\TemplatePreviewService;
+use App\Services\ReportService;
+use App\Services\ResumeParserService;
+use App\Services\TokenService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\View\View;
-use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Str;
+use Illuminate\View\View;
 
 /**
  * Document Builder Controller
- * 
+ *
  * Handles document generation and related file operations.
- * 
+ *
  * ARCHITECTURE NOTE: Preview rendering is DECOUPLED via TemplatePreviewService.
  * This ensures changes to this controller do NOT affect preview rendering.
- * 
+ *
  * Service delegation:
  * - TemplatePreviewService: ISOLATED preview rendering (decoupled)
  * - ResumeParserService: Resume parsing and AI extraction
@@ -60,8 +60,8 @@ class DocumentBuilderController extends Controller
         $brands = $this->getTenantBrands();
 
         return view('document-builder.document-builder', compact(
-            'templateCategories', 
-            'selectedResearch', 
+            'templateCategories',
+            'selectedResearch',
             'brands'
         ));
     }
@@ -95,6 +95,7 @@ class DocumentBuilderController extends Controller
 
         if ($validator->fails()) {
             Log::error('Resume Validation Failed', ['errors' => $validator->errors()->toArray()]);
+
             return response()->json([
                 'message' => 'Validation failed',
                 'errors' => $validator->errors(),
@@ -104,8 +105,9 @@ class DocumentBuilderController extends Controller
         try {
             $result = $this->resumeParser->parse($request->file('resume'));
 
-            if (!$result['success']) {
+            if (! $result['success']) {
                 Log::error('Resume Parsing Logic Failed', ['result' => $result]);
+
                 return response()->json($result, 422);
             }
 
@@ -113,11 +115,12 @@ class DocumentBuilderController extends Controller
         } catch (\Exception $e) {
             Log::error('Resume Parsing Exception', [
                 'message' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
+                'trace' => $e->getTraceAsString(),
             ]);
+
             return response()->json([
-                'success' => false, 
-                'message' => 'An unexpected error occurred parsing the resume.'
+                'success' => false,
+                'message' => 'An unexpected error occurred parsing the resume.',
             ], 500);
         }
     }
@@ -131,17 +134,17 @@ class DocumentBuilderController extends Controller
             'photo' => 'required|image|mimes:jpeg,png,jpg,webp|max:5120',
         ]);
 
-        if (!$request->hasFile('photo')) {
+        if (! $request->hasFile('photo')) {
             return response()->json(['success' => false, 'message' => 'Upload failed'], 400);
         }
 
         $file = $request->file('photo');
-        $filename = 'cv-' . time() . '-' . Str::random(10) . '.' . $file->getClientOriginalExtension();
+        $filename = 'cv-'.time().'-'.Str::random(10).'.'.$file->getClientOriginalExtension();
         $file->move(public_path('uploads/cv-photos'), $filename);
-        
+
         return response()->json([
             'success' => true,
-            'url' => asset('uploads/cv-photos/' . $filename)
+            'url' => asset('uploads/cv-photos/'.$filename),
         ]);
     }
 
@@ -152,9 +155,9 @@ class DocumentBuilderController extends Controller
     {
         try {
             $user = auth()->user();
-            
+
             // Check and consume feature credit for Document Builder
-            if (!$this->featureCreditService->canUseFeature($user, FeatureType::DOCUMENT_BUILDER)) {
+            if (! $this->featureCreditService->canUseFeature($user, FeatureType::DOCUMENT_BUILDER)) {
                 return response()->json([
                     'success' => false,
                     'error' => 'credit_exhausted',
@@ -170,32 +173,32 @@ class DocumentBuilderController extends Controller
             $tokenCost = 30;
 
             // Check & consume tokens
-            if (!$this->tokenService->consume(
-                $user, 
-                $tokenCost, 
-                'report_generation', 
+            if (! $this->tokenService->consume(
+                $user,
+                $tokenCost,
+                'report_generation',
                 ['topic' => $request->researchTopic ?? $request->analysisType ?? 'Report Generation']
             )) {
                 return response()->json([
                     'success' => false,
-                    'message' => "Insufficient tokens. Report architecture requires $tokenCost tokens."
+                    'message' => "Insufficient tokens. Report architecture requires $tokenCost tokens.",
                 ], 402);
             }
 
             $validated = $request->validated();
             $validated = $this->injectBrandContext($validated);
-            
+
             $data = ReportRequestData::fromArray($validated);
             $document = $this->createPendingDocument($request, $validated);
-            
+
             // Dispatch background job
             \App\Jobs\GenerateDocument::dispatch($document, auth()->user(), $data, $tokenCost);
-            
+
             return response()->json([
                 'success' => true,
                 'status' => 'processing',
                 'document_id' => $document->id,
-                'message' => 'Document generation started. You can navigate away - we\'ll save it to your Documents when ready.'
+                'message' => 'Document generation started. You can navigate away - we\'ll save it to your Documents when ready.',
             ]);
 
         } catch (\Exception $e) {
@@ -204,17 +207,17 @@ class DocumentBuilderController extends Controller
                 'file' => $e->getFile(),
                 'line' => $e->getLine(),
             ]);
-            
+
             return response()->json([
                 'success' => false,
-                'message' => 'Report generation failed: ' . $e->getMessage()
+                'message' => 'Report generation failed: '.$e->getMessage(),
             ], 500);
         }
     }
 
     /**
      * Generate preview HTML for a template.
-     * 
+     *
      * DECOUPLED: Uses TemplatePreviewService which is completely
      * isolated from document generation logic.
      */
@@ -224,19 +227,19 @@ class DocumentBuilderController extends Controller
         $template = ReportTemplate::from($validated['template']);
         $variant = $validated['variant'] ?? null;
         $brandId = $validated['brand_id'] ?? null;
-        
+
         try {
             $overrides = $this->buildPreviewOverrides($validated);
-            
+
             // Use isolated preview service (decoupled from generation)
             $html = $this->previewService->render($template, $variant, $brandId, $overrides);
-            
+
             return response()->json(['html' => $html, 'success' => true]);
         } catch (\Throwable $e) {
             return response()->json([
                 'html' => $this->getPreviewErrorHtml($e),
                 'success' => false,
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ]);
         }
     }
@@ -256,7 +259,7 @@ class DocumentBuilderController extends Controller
             $request->source_content
         );
 
-        if (!$result['success']) {
+        if (! $result['success']) {
             return response()->json($result, 500);
         }
 
@@ -272,7 +275,7 @@ class DocumentBuilderController extends Controller
      */
     private function getTemplateCategories(): array
     {
-        return array_map(fn(ReportTemplate $template) => [
+        return array_map(fn (ReportTemplate $template) => [
             'id' => $template->value,
             'name' => $template->label(),
             'thumbnail' => $template->thumbnail(),
@@ -287,10 +290,10 @@ class DocumentBuilderController extends Controller
      */
     private function getSelectedResearch(Request $request): ?Research
     {
-        if (!$request->has('research_id')) {
+        if (! $request->has('research_id')) {
             return null;
         }
-        
+
         return Research::find($request->research_id);
     }
 
@@ -300,6 +303,7 @@ class DocumentBuilderController extends Controller
     private function getTenantBrands()
     {
         $tenant = app(Tenant::class);
+
         return $tenant->brands()->get();
     }
 
@@ -313,22 +317,22 @@ class DocumentBuilderController extends Controller
         }
 
         $brand = Brand::find($validated['brand_id']);
-        if (!$brand) {
+        if (! $brand) {
             return $validated;
         }
 
         $brandContext = "\n\n[SYSTEM: STRICT BRAND IDENTITY ENFORCED]\n";
         $brandContext .= "Organization Name: {$brand->name}\n";
-        
-        if (!empty($brand->voice_profile['tone'])) {
+
+        if (! empty($brand->voice_profile['tone'])) {
             $brandContext .= "Tone of Voice: {$brand->voice_profile['tone']}\n";
         }
-        if (!empty($brand->contact_info['website'])) {
+        if (! empty($brand->contact_info['website'])) {
             $brandContext .= "Website: {$brand->contact_info['website']}\n";
         }
-        
-        $validated['prompt'] = ($validated['prompt'] ?? '') . $brandContext;
-        
+
+        $validated['prompt'] = ($validated['prompt'] ?? '').$brandContext;
+
         return $validated;
     }
 
@@ -343,7 +347,7 @@ class DocumentBuilderController extends Controller
         return Document::create([
             'tenant_id' => auth()->user()->tenant_id,
             'user_id' => auth()->id(),
-            'name' => Str::limit($baseName, 150) . ' (' . now()->format('M d, Y') . ')',
+            'name' => Str::limit($baseName, 150).' ('.now()->format('M d, Y').')',
             'type' => 'HTML',
             'category' => 'Reports',
             'status' => 'pending',
@@ -352,8 +356,8 @@ class DocumentBuilderController extends Controller
                 'template' => $request->template,
                 'variant' => $request->variant,
                 'research_topic' => $request->researchTopic,
-                'profile_photo_url' => $validated['profilePhotoUrl'] ?? null 
-            ]
+                'profile_photo_url' => $validated['profilePhotoUrl'] ?? null,
+            ],
         ]);
     }
 
@@ -362,18 +366,18 @@ class DocumentBuilderController extends Controller
      */
     private function generateDocumentName(GenerateReportRequest $request, string $templateLabel): string
     {
-        if (!empty($request->recipientName)) {
-            return $request->recipientName . ' - ' . $templateLabel;
+        if (! empty($request->recipientName)) {
+            return $request->recipientName.' - '.$templateLabel;
         }
-        
-        if (!empty($request->targetRole)) {
-            return $request->targetRole . ' - ' . $templateLabel;
+
+        if (! empty($request->targetRole)) {
+            return $request->targetRole.' - '.$templateLabel;
         }
-        
-        if (!empty($request->researchTopic)) {
-            return $request->researchTopic . ' - ' . $templateLabel;
+
+        if (! empty($request->researchTopic)) {
+            return $request->researchTopic.' - '.$templateLabel;
         }
-        
+
         return $request->analysisType ?? 'Generated Document';
     }
 
@@ -383,50 +387,50 @@ class DocumentBuilderController extends Controller
     private function buildPreviewOverrides(array $validated): array
     {
         $overrides = $validated['contractDetails'] ?? [];
-        
-        if (!empty($validated['recipientName'])) {
+
+        if (! empty($validated['recipientName'])) {
             $overrides['recipientName'] = $validated['recipientName'];
         }
-        if (!empty($validated['recipientTitle'])) {
+        if (! empty($validated['recipientTitle'])) {
             $overrides['recipientTitle'] = $validated['recipientTitle'];
         }
-        if (!empty($validated['senderName'])) {
+        if (! empty($validated['senderName'])) {
             $overrides['senderName'] = $validated['senderName'];
         }
-        if (!empty($validated['senderTitle'])) {
+        if (! empty($validated['senderTitle'])) {
             $overrides['senderTitle'] = $validated['senderTitle'];
         }
-        if (!empty($validated['companyAddress'])) {
+        if (! empty($validated['companyAddress'])) {
             $overrides['companyAddress'] = $validated['companyAddress'];
         }
-        if (!empty($validated['profilePhotoUrl'])) {
+        if (! empty($validated['profilePhotoUrl'])) {
             $overrides['profilePhotoUrl'] = $validated['profilePhotoUrl'];
         }
-        if (!empty($validated['targetRole'])) {
+        if (! empty($validated['targetRole'])) {
             $overrides['targetRole'] = $validated['targetRole'];
         }
 
         $contactInfo = [];
-        if (!empty($validated['email'])) {
+        if (! empty($validated['email'])) {
             $contactInfo['email'] = $validated['email'];
         }
-        if (!empty($validated['phone'])) {
+        if (! empty($validated['phone'])) {
             $contactInfo['phone'] = $validated['phone'];
         }
-        if (!empty($validated['location'])) {
+        if (! empty($validated['location'])) {
             $contactInfo['location'] = $validated['location'];
         }
-        if (!empty($validated['website'])) {
+        if (! empty($validated['website'])) {
             $contactInfo['website'] = $validated['website'];
         }
-        if (!empty($contactInfo)) {
+        if (! empty($contactInfo)) {
             $overrides['contactInfo'] = $contactInfo;
         }
 
-        if (!empty($validated['personalInfo']) && is_array($validated['personalInfo'])) {
+        if (! empty($validated['personalInfo']) && is_array($validated['personalInfo'])) {
             $overrides['personalInfo'] = $validated['personalInfo'];
         }
-        
+
         return $overrides;
     }
 
@@ -436,9 +440,9 @@ class DocumentBuilderController extends Controller
     private function getPreviewErrorHtml(\Throwable $e): string
     {
         return '<div style="padding: 40px; text-align: center; color: #666;">'
-            . '<h2>Template Preview Unavailable</h2>'
-            . '<p>The template view is not yet created for this variant.</p>'
-            . '<p class="text-xs text-red-400 mt-2">' . $e->getMessage() . '</p>'
-            . '</div>';
+            .'<h2>Template Preview Unavailable</h2>'
+            .'<p>The template view is not yet created for this variant.</p>'
+            .'<p class="text-xs text-red-400 mt-2">'.$e->getMessage().'</p>'
+            .'</div>';
     }
 }

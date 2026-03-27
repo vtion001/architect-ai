@@ -13,7 +13,7 @@ use Illuminate\Support\Facades\Http;
 
 /**
  * Brand Kit Controller.
- * 
+ *
  * Refactored to use CloudinaryService for file uploads (Service Layer Pattern).
  */
 class BrandController extends Controller
@@ -27,7 +27,7 @@ class BrandController extends Controller
     {
         $request->validate([
             'document' => 'required|file|mimes:pdf,txt,md|max:10240', // 10MB max
-            'type' => 'required|string|in:proposal,contract,executive-summary'
+            'type' => 'required|string|in:proposal,contract,executive-summary',
         ]);
 
         $file = $request->file('document');
@@ -50,11 +50,11 @@ class BrandController extends Controller
             $baseUrl = config('services.minimax.base_url', 'https://api.minimaxi.com/v1');
             $model = config('services.minimax.model', 'M2.7');
 
-            if (!$apiKey) {
+            if (! $apiKey) {
                 return response()->json(['success' => false, 'message' => 'MiniMax AI service not configured.'], 500);
             }
 
-            $response = Http::withToken($apiKey)->post($baseUrl . '/text/chatcompletion_v2', [
+            $response = Http::withToken($apiKey)->post($baseUrl.'/text/chatcompletion_v2', [
                 'model' => $model,
                 'messages' => [
                     [
@@ -68,27 +68,27 @@ class BrandController extends Controller
                         3. `legal_terms`: Any terms of payment, legal disclaimers, or 'Notes' (e.g., 'Terms of Payment: 50% down...').
                         4. `structure_instruction`: A short instruction on how the document is laid out (e.g., 'Intro -> Scope -> Pricing Table -> Terms').
 
-                        Return ONLY valid JSON."
+                        Return ONLY valid JSON.",
                     ],
                     [
                         'role' => 'user',
-                        'content' => "Extract the blueprint from this document text:\n\n" . substr($text, 0, 15000) // Truncate to avoid context limits
-                    ]
+                        'content' => "Extract the blueprint from this document text:\n\n".substr($text, 0, 15000), // Truncate to avoid context limits
+                    ],
                 ],
                 'max_completion_tokens' => 2000,
-                'temperature' => 0.3
+                'temperature' => 0.3,
             ]);
 
             if ($response->successful()) {
                 $data = $response->json('choices.0.message.content');
                 $decodedData = json_decode($data);
-                
+
                 // If decoding failed, try sanitizing the response
                 if ($decodedData === null && json_last_error() !== JSON_ERROR_NONE) {
                     $sanitizedData = $this->sanitizeUtf8($data);
                     $decodedData = json_decode($sanitizedData);
                 }
-                
+
                 return response()->json(['success' => true, 'data' => $decodedData]);
             }
 
@@ -102,7 +102,7 @@ class BrandController extends Controller
     public function scrape(Request $request)
     {
         $request->validate([
-            'url' => 'required|url'
+            'url' => 'required|url',
         ]);
 
         $url = $request->input('url');
@@ -110,7 +110,7 @@ class BrandController extends Controller
         try {
             // Fetch website content with a user-agent to avoid 403s
             $response = Http::withHeaders([
-                'User-Agent' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+                'User-Agent' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
             ])->timeout(10)->get($url);
 
             if ($response->failed()) {
@@ -118,11 +118,11 @@ class BrandController extends Controller
             }
 
             $html = $response->body();
-            
+
             // Basic text extraction: strip tags but try to keep some structure
             // Remove scripts and styles first
-            $html = preg_replace('/<script\b[^>]*>(.*?)<\/script>/is', "", $html);
-            $html = preg_replace('/<style\b[^>]*>(.*?)<\/style>/is', "", $html);
+            $html = preg_replace('/<script\b[^>]*>(.*?)<\/script>/is', '', $html);
+            $html = preg_replace('/<style\b[^>]*>(.*?)<\/style>/is', '', $html);
             $text = strip_tags($html);
             $text = preg_replace('/\s+/', ' ', $text); // Compress whitespace
             $text = substr(trim($text), 0, 15000); // Truncate for token limits
@@ -132,16 +132,16 @@ class BrandController extends Controller
             $baseUrl = config('services.minimax.base_url', 'https://api.minimaxi.com/v1');
             $model = config('services.minimax.model', 'M2.7');
 
-            if (!$apiKey) {
+            if (! $apiKey) {
                 return response()->json(['success' => false, 'message' => 'MiniMax AI service not configured.'], 500);
             }
 
-            $aiResponse = Http::withToken($apiKey)->post($baseUrl . '/text/chatcompletion_v2', [
+            $aiResponse = Http::withToken($apiKey)->post($baseUrl.'/text/chatcompletion_v2', [
                 'model' => $model,
                 'messages' => [
                     [
                         'role' => 'system',
-                        'content' => "You are a Brand Strategist AI.
+                        'content' => 'You are a Brand Strategist AI.
                         Analyze the provided website text and extract the Brand DNA.
 
                         Return a JSON object with these exact keys:
@@ -152,32 +152,34 @@ class BrandController extends Controller
                         - `voice_profile`: An object with `tone` (e.g., Professional, Playful), `personality` (adjectives), and `keywords` (comma-separated).
                         - `colors`: An object with `primary` (hex code) if mentioned or inferable (default to black/white if unsure).
 
-                        If specific fields are missing, make an educated guess based on the context."
+                        If specific fields are missing, make an educated guess based on the context.',
                     ],
                     [
                         'role' => 'user',
-                        'content' => "Analyze this website content:\n\n" . $text
-                    ]
+                        'content' => "Analyze this website content:\n\n".$text,
+                    ],
                 ],
                 'max_completion_tokens' => 2000,
-                'temperature' => 0.3
+                'temperature' => 0.3,
             ]);
 
             if ($aiResponse->successful()) {
                 $data = $aiResponse->json('choices.0.message.content');
+
                 return response()->json(['success' => true, 'data' => json_decode($data)]);
             }
 
             return response()->json(['success' => false, 'message' => 'AI analysis failed.'], 500);
 
         } catch (\Exception $e) {
-            return response()->json(['success' => false, 'message' => 'Scraping failed: ' . $e->getMessage()], 500);
+            return response()->json(['success' => false, 'message' => 'Scraping failed: '.$e->getMessage()], 500);
         }
     }
 
     public function index()
     {
         $brands = Auth::user()->tenant->brands()->orderBy('is_default', 'desc')->get();
+
         return view('brands.brands', compact('brands'));
     }
 
@@ -192,7 +194,6 @@ class BrandController extends Controller
                 }
             }
         }
-
 
         $validated = $request->validate([
             'name' => 'required|string|max:255',
@@ -210,7 +211,7 @@ class BrandController extends Controller
         ]);
 
         $tenant = Auth::user()->tenant;
-        
+
         // Handle logo upload to Cloudinary via service
         if ($request->hasFile('logo')) {
             $uploadResult = $this->cloudinaryService->upload($request->file('logo'), 'brands');
@@ -219,7 +220,7 @@ class BrandController extends Controller
                 $validated['logo_public_id'] = $uploadResult['public_id'];
             }
         }
-        
+
         // Remove the file from validated data (we only store the URL)
         unset($validated['logo']);
 
@@ -245,7 +246,6 @@ class BrandController extends Controller
             }
         }
 
-
         // Policy-based authorization
         $this->authorize('update', $brand);
 
@@ -270,14 +270,14 @@ class BrandController extends Controller
             if ($brand->logo_public_id) {
                 $this->cloudinaryService->delete($brand->logo_public_id);
             }
-            
+
             $uploadResult = $this->cloudinaryService->upload($request->file('logo'), 'brands');
             if ($uploadResult) {
                 $validated['logo_url'] = $uploadResult['url'];
                 $validated['logo_public_id'] = $uploadResult['public_id'];
             }
         }
-        
+
         // Remove the file from validated data
         unset($validated['logo']);
 
@@ -317,17 +317,17 @@ class BrandController extends Controller
     {
         // Detect encoding and convert to UTF-8
         $encoding = mb_detect_encoding($text, ['UTF-8', 'ISO-8859-1', 'Windows-1252', 'ASCII'], true);
-        
+
         if ($encoding && $encoding !== 'UTF-8') {
             $text = mb_convert_encoding($text, 'UTF-8', $encoding);
         }
 
         // Remove control characters except newlines and tabs
         $text = preg_replace('/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/u', '', $text);
-        
+
         // Use iconv to handle any remaining invalid sequences
         $cleaned = @iconv('UTF-8', 'UTF-8//TRANSLIT//IGNORE', $text);
-        
+
         if ($cleaned === false) {
             $cleaned = mb_convert_encoding($text, 'UTF-8', 'UTF-8');
         }

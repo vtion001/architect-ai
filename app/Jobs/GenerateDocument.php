@@ -21,6 +21,7 @@ class GenerateDocument implements ShouldQueue
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
     public $timeout = 300; // 5 minutes
+
     public $tries = 2; // Retry once on failure
 
     public function __construct(
@@ -40,10 +41,10 @@ class GenerateDocument implements ShouldQueue
 
         try {
             Log::info("Job processing report generation for Document ID: {$this->document->id}");
-            
+
             // Update status to processing
             $this->document->update(['status' => 'processing']);
-            
+
             // Execute Generation
             $html = $reportService->generateReportHtml($this->reportData);
 
@@ -57,20 +58,20 @@ class GenerateDocument implements ShouldQueue
             Log::info("Report generated successfully for Document ID: {$this->document->id}");
 
         } catch (\Throwable $e) {
-            Log::error("Report Generation Job Failed for Document ID {$this->document->id}: " . $e->getMessage(), [
-                'trace' => $e->getTraceAsString()
+            Log::error("Report Generation Job Failed for Document ID {$this->document->id}: ".$e->getMessage(), [
+                'trace' => $e->getTraceAsString(),
             ]);
-            
+
             // Refund tokens on failure
             $tokenService->grant($this->user->tenant, $this->tokenCost, 'refund_failed_report_generation');
-            
+
             $this->document->update([
                 'status' => 'failed',
                 'metadata' => array_merge($this->document->metadata ?? [], [
-                    'error' => $e->getMessage()
-                ])
+                    'error' => $e->getMessage(),
+                ]),
             ]);
-            
+
             throw $e;
         }
     }

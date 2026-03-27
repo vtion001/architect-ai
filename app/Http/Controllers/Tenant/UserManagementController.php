@@ -4,11 +4,10 @@ namespace App\Http\Controllers\Tenant;
 
 use App\Http\Controllers\Controller;
 use App\Models\Invitation;
-use App\Models\User;
 use App\Models\Role;
+use App\Models\User;
 use App\Services\AuthorizationService;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 
 class UserManagementController extends Controller
@@ -24,8 +23,8 @@ class UserManagementController extends Controller
         $stats = [
             'total_identities' => $users->count() + $invitations->count(),
             'active_sessions' => $users->where('last_login_at', '>=', now()->subDay())->count(),
-            'security_health' => $users->count() > 0 
-                ? round(($users->where('mfa_enabled', true)->count() / $users->count()) * 100) 
+            'security_health' => $users->count() > 0
+                ? round(($users->where('mfa_enabled', true)->count() / $users->count()) * 100)
                 : 100,
         ];
 
@@ -52,10 +51,10 @@ class UserManagementController extends Controller
         ]);
 
         $this->authService->audit(
-            auth()->user(), 
-            'user.invited', 
-            $invitation, 
-            'success', 
+            auth()->user(),
+            'user.invited',
+            $invitation,
+            'success',
             "Identity invitation dispatched to: {$request->email}"
         );
 
@@ -63,7 +62,7 @@ class UserManagementController extends Controller
         // For this prototype, the invite will show up in the UI.
         return response()->json([
             'message' => 'Invitation protocol initiated.',
-            'invitation' => $invitation
+            'invitation' => $invitation,
         ], 201);
     }
 

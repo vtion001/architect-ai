@@ -5,9 +5,9 @@ declare(strict_types=1);
 namespace Tests\Unit\View\Composers;
 
 use App\View\Composers\ContentViewerComposer;
-use Tests\TestCase;
 use Illuminate\View\View;
 use Mockery;
+use Tests\TestCase;
 
 /**
  * Unit tests for ContentViewerComposer.
@@ -19,7 +19,7 @@ class ContentViewerComposerTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->composer = new ContentViewerComposer();
+        $this->composer = new ContentViewerComposer;
     }
 
     /** @test */
@@ -43,17 +43,17 @@ class ContentViewerComposerTest extends TestCase
     {
         $content = (object) [
             'result' => "Post 1 content\n---\nPost 2 content\n---\nPost 3 content",
-            'options' => ['count' => 3]
+            'options' => ['count' => 3],
         ];
 
         $view = Mockery::mock(View::class);
         $view->shouldReceive('getData')->andReturn([
             'content' => $content,
-            'publishedIndexes' => []
+            'publishedIndexes' => [],
         ]);
         $view->shouldReceive('with')->withArgs(function ($key, $value) {
-            return $key === 'postsData' && 
-                   is_array($value) && 
+            return $key === 'postsData' &&
+                   is_array($value) &&
                    count($value) === 3;
         })->once();
 
@@ -65,16 +65,16 @@ class ContentViewerComposerTest extends TestCase
     {
         $content = (object) [
             'result' => "1. First post\n2. Second post\n3. Third post",
-            'options' => ['count' => 3]
+            'options' => ['count' => 3],
         ];
 
         $view = Mockery::mock(View::class);
         $view->shouldReceive('getData')->andReturn([
             'content' => $content,
-            'publishedIndexes' => []
+            'publishedIndexes' => [],
         ]);
         $view->shouldReceive('with')->withArgs(function ($key, $value) {
-            return $key === 'postsData' && 
+            return $key === 'postsData' &&
                    is_array($value);
         })->once();
 
@@ -86,24 +86,26 @@ class ContentViewerComposerTest extends TestCase
     {
         $content = (object) [
             'result' => "Post 1 content\n---\nPost 2 content\n---\n#hashtag1 #hashtag2",
-            'options' => ['count' => 2]
+            'options' => ['count' => 2],
         ];
 
         $view = Mockery::mock(View::class);
         $view->shouldReceive('getData')->andReturn([
             'content' => $content,
-            'publishedIndexes' => []
+            'publishedIndexes' => [],
         ]);
         $view->shouldReceive('with')->withArgs(function ($key, $value) {
             if ($key === 'postsData' && is_array($value)) {
                 // Both posts should contain the hashtags
                 foreach ($value as $post) {
-                    if (!str_contains($post['raw'], '#hashtag1')) {
+                    if (! str_contains($post['raw'], '#hashtag1')) {
                         return false;
                     }
                 }
+
                 return true;
             }
+
             return false;
         })->once();
 

@@ -6,7 +6,7 @@ return [
     | Developer Access
     |--------------------------------------------------------------------------
     |
-    | This email is granted "Developer" status, allowing observability across 
+    | This email is granted "Developer" status, allowing observability across
     | all tenants. Actions performed by this user are strictly audited.
     |
     */

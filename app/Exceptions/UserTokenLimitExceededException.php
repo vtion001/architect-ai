@@ -14,7 +14,7 @@ class UserTokenLimitExceededException extends Exception
     public function __construct(
         public readonly int $limit,
         public readonly int $used,
-        string $message = null
+        ?string $message = null
     ) {
         $message = $message ?? "You have reached your personal monthly token limit ({$limit}).";
         parent::__construct($message, 403);
@@ -30,7 +30,7 @@ class UserTokenLimitExceededException extends Exception
             'message' => $this->getMessage(),
             'limit' => $this->limit,
             'used' => $this->used,
-            'suggestion' => 'Ask your administrator to increase your monthly quota.'
+            'suggestion' => 'Ask your administrator to increase your monthly quota.',
         ], 403);
     }
 }

@@ -23,7 +23,7 @@ return [
         'starter' => [
             'name' => 'Starter',
             'description' => 'Perfect for getting started with AI-powered content creation.',
-            
+
             // Credit-based features (monthly limits)
             'credits' => [
                 'post_generator' => 3,
@@ -32,7 +32,7 @@ return [
                 'click_calendar' => 0,
                 'document_builder' => 1,
             ],
-            
+
             // Access-gated features (plan-locked)
             'access' => [
                 'ai_agents' => false,
@@ -40,7 +40,7 @@ return [
                 'brand_kits' => false,
                 'sub_accounts' => false,
             ],
-            
+
             // Token allocation (for AI processing)
             'monthly_tokens' => 5000,
         ],
@@ -48,7 +48,7 @@ return [
         'pro' => [
             'name' => 'Pro',
             'description' => 'Full access to all AI features with unlimited content generation.',
-            
+
             // Credit-based features (all unlimited)
             'credits' => [
                 'post_generator' => -1, // Unlimited
@@ -57,7 +57,7 @@ return [
                 'click_calendar' => -1,
                 'document_builder' => -1,
             ],
-            
+
             // Access-gated features (Pro unlocks AI features)
             'access' => [
                 'ai_agents' => true,
@@ -65,7 +65,7 @@ return [
                 'brand_kits' => true,
                 'sub_accounts' => false, // Still locked - Agency only
             ],
-            
+
             // Token allocation
             'monthly_tokens' => 25000,
         ],
@@ -73,7 +73,7 @@ return [
         'agency' => [
             'name' => 'Agency',
             'description' => 'Enterprise-grade features with client management and sub-accounts.',
-            
+
             // Credit-based features (all unlimited)
             'credits' => [
                 'post_generator' => -1,
@@ -82,7 +82,7 @@ return [
                 'click_calendar' => -1,
                 'document_builder' => -1,
             ],
-            
+
             // Access-gated features (All features unlocked)
             'access' => [
                 'ai_agents' => true,
@@ -90,10 +90,10 @@ return [
                 'brand_kits' => true,
                 'sub_accounts' => true,
             ],
-            
+
             // Token allocation
             'monthly_tokens' => 100000,
-            
+
             // Agency-specific limits
             'max_sub_accounts' => 10,
         ],
@@ -108,7 +108,7 @@ return [
     'reset' => [
         // When to reset credits (start of each month)
         'schedule' => 'monthly',
-        
+
         // Whether to carry over unused credits
         'carry_over' => false,
     ],

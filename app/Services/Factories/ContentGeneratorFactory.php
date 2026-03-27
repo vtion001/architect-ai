@@ -6,14 +6,14 @@ namespace App\Services\Factories;
 
 use App\Contracts\ContentGeneratorInterface;
 use App\Services\ContentGenerators\BlogPostGenerator;
+use App\Services\ContentGenerators\FrameworkCalendarGenerator;
 use App\Services\ContentGenerators\SocialPostGenerator;
 use App\Services\ContentGenerators\VideoScriptGenerator;
-use App\Services\ContentGenerators\FrameworkCalendarGenerator;
 use InvalidArgumentException;
 
 /**
  * Factory for creating content generators.
- * 
+ *
  * Follows the Factory Pattern to decouple creation logic from business logic.
  */
 class ContentGeneratorFactory
@@ -21,8 +21,8 @@ class ContentGeneratorFactory
     /**
      * Get the appropriate generator instance based on type.
      *
-     * @param string $type The generator type (post, blog, video, framework_calendar)
-     * @return ContentGeneratorInterface
+     * @param  string  $type  The generator type (post, blog, video, framework_calendar)
+     *
      * @throws InvalidArgumentException
      */
     public function make(string $type): ContentGeneratorInterface

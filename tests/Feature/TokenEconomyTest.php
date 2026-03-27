@@ -4,8 +4,6 @@ namespace Tests\Feature;
 
 use App\Models\Tenant;
 use App\Models\User;
-use App\Models\TokenLimit;
-use App\Models\TokenAllocation;
 use App\Services\TokenService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -28,7 +26,7 @@ class TokenEconomyTest extends TestCase
         $tenant = Tenant::create([
             'name' => 'Acme Corp',
             'slug' => 'acme',
-            'type' => 'agency'
+            'type' => 'agency',
         ]);
 
         // 2. Check balance
@@ -51,7 +49,7 @@ class TokenEconomyTest extends TestCase
 
         // 1. Consume within limits
         $this->tokenService->consume($user, 40, 'Test usage');
-        
+
         $this->assertEquals(4960, $this->tokenService->getBalance($tenant)); // 5000 - 40
         $this->assertEquals(40, $limit->fresh()->used);
 

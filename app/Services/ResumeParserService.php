@@ -7,11 +7,10 @@ namespace App\Services;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Str;
 
 /**
  * Resume Parser Service
- * 
+ *
  * Handles resume parsing and AI-powered data extraction.
  * Extracted from DocumentBuilderController for better separation of concerns.
  */
@@ -31,11 +30,11 @@ class ResumeParserService
         if ($extension === 'pdf') {
             return $this->pdfToTextService->extract($file->getPathname());
         }
-        
+
         if ($extension === 'docx') {
             return $this->extractDocxText($file->getPathname());
         }
-        
+
         // Fallback for text-based files
         return file_get_contents($file->getPathname());
     }
@@ -74,7 +73,7 @@ class ResumeParserService
         $baseUrl = config('services.minimax.base_url', 'https://api.minimax.io/v1');
         $model = config('services.minimax.model', 'minimax-m2.7');
 
-        if (!$apiKey) {
+        if (! $apiKey) {
             return [];
         }
 
@@ -83,27 +82,28 @@ class ResumeParserService
 
         for ($attempt = 0; $attempt <= $maxRetries; $attempt++) {
             try {
-                $response = Http::withToken($apiKey)->post($baseUrl . '/text/chatcompletion_v2', [
+                $response = Http::withToken($apiKey)->post($baseUrl.'/text/chatcompletion_v2', [
                     'model' => $model,
                     'messages' => [
                         [
                             'role' => 'system',
-                            'content' => $this->getExtractionPrompt($attempt > 0)
+                            'content' => $this->getExtractionPrompt($attempt > 0),
                         ],
                         [
                             'role' => 'user',
-                            'content' => "Resume Text:\n" . $truncatedText
-                        ]
+                            'content' => "Resume Text:\n".$truncatedText,
+                        ],
                     ],
                     'max_completion_tokens' => 4000,
-                    'temperature' => 0.3
+                    'temperature' => 0.3,
                 ]);
 
-                if (!$response->successful()) {
+                if (! $response->successful()) {
                     Log::warning('Resume extraction attempt failed', [
                         'attempt' => $attempt + 1,
-                        'status' => $response->status()
+                        'status' => $response->status(),
                     ]);
+
                     continue;
                 }
 
@@ -112,8 +112,9 @@ class ResumeParserService
                 // Validate JSON
                 if (empty($content)) {
                     Log::warning('Resume extraction returned empty content', [
-                        'attempt' => $attempt + 1
+                        'attempt' => $attempt + 1,
                     ]);
+
                     continue;
                 }
 
@@ -133,19 +134,20 @@ class ResumeParserService
 
                 Log::warning('Resume extraction invalid JSON', [
                     'attempt' => $attempt + 1,
-                    'content_preview' => substr($content, 0, 200)
+                    'content_preview' => substr($content, 0, 200),
                 ]);
 
             } catch (\Exception $e) {
                 Log::error('Resume extraction exception', [
                     'attempt' => $attempt + 1,
-                    'error' => $e->getMessage()
+                    'error' => $e->getMessage(),
                 ]);
             }
         }
 
         // All attempts failed, return empty array
         Log::error('Resume extraction failed after all retries');
+
         return [];
     }
 
@@ -217,7 +219,7 @@ class ResumeParserService
             'professional_summary', 'contact_info', 'personal_info',
             'work_experience', 'education', 'technical_skills', 'soft_skills',
             'languages_spoken', 'certifications', 'projects', 'awards',
-            'volunteer_experience', 'professional_affiliations', 'publications', 'patents'
+            'volunteer_experience', 'professional_affiliations', 'publications', 'patents',
         ];
 
         $cleaned = [];
@@ -229,11 +231,11 @@ class ResumeParserService
         $arrayKeys = [
             'work_experience', 'education', 'technical_skills', 'soft_skills',
             'languages_spoken', 'certifications', 'projects', 'awards',
-            'volunteer_experience', 'professional_affiliations', 'publications', 'patents'
+            'volunteer_experience', 'professional_affiliations', 'publications', 'patents',
         ];
 
         foreach ($arrayKeys as $key) {
-            if (isset($cleaned[$key]) && !is_array($cleaned[$key])) {
+            if (isset($cleaned[$key]) && ! is_array($cleaned[$key])) {
                 $cleaned[$key] = [];
             }
         }
@@ -299,18 +301,18 @@ RETRY INSTRUCTION: Your previous response was not valid JSON. Please return ONLY
     public function parse(UploadedFile $file): array
     {
         $text = $this->extractText($file);
-        
+
         if (empty(trim($text))) {
             return [
                 'success' => false,
-                'message' => 'Could not extract text from the document.'
+                'message' => 'Could not extract text from the document.',
             ];
         }
 
         return [
             'success' => true,
             'text' => $text,
-            'extracted_data' => $this->extractData($text)
+            'extracted_data' => $this->extractData($text),
         ];
     }
 }

@@ -4,7 +4,6 @@ namespace App\Http\Controllers;
 
 use App\Models\Waitlist;
 use Illuminate\Http\Request;
-use Illuminate\Support\Str;
 
 class LandingPageController extends Controller
 {
@@ -29,8 +28,8 @@ class LandingPageController extends Controller
                 'grid_status' => 'Initializing',
                 'last_protocol' => 'Syncing...',
             ];
-            
-            \Illuminate\Support\Facades\Log::warning('Landing page DB unavailable: ' . $e->getMessage());
+
+            \Illuminate\Support\Facades\Log::warning('Landing page DB unavailable: '.$e->getMessage());
         }
 
         return view('public.landing', compact('telemetry'));
@@ -54,7 +53,7 @@ class LandingPageController extends Controller
             'name' => 'nullable|string|max:255',
             'agency_name' => 'nullable|string|max:255',
         ], [
-            'email.unique' => 'This identity is already queued for the ArchitGrid beta.'
+            'email.unique' => 'This identity is already queued for the ArchitGrid beta.',
         ]);
 
         Waitlist::create([

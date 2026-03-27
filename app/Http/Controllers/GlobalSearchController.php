@@ -28,12 +28,12 @@ class GlobalSearchController extends Controller
                 ->where('name', 'like', "%{$query}%")
                 ->limit(3)
                 ->get()
-                ->map(fn($n) => [
+                ->map(fn ($n) => [
                     'title' => $n->name,
                     'type' => 'Workspace Node',
                     'icon' => 'grid',
                     'url' => route('tenant.switch', $n->id),
-                    'metadata' => 'Switch to ' . $n->slug
+                    'metadata' => 'Switch to '.$n->slug,
                 ]);
             $results = array_merge($results, $nodes->toArray());
         }
@@ -43,12 +43,12 @@ class GlobalSearchController extends Controller
             ->where('status', 'completed')
             ->limit(5)
             ->get()
-            ->map(fn($r) => [
+            ->map(fn ($r) => [
                 'title' => $r->title,
                 'type' => 'Research Report',
                 'icon' => 'brain',
                 'url' => route('research-engine.show', $r->id),
-                'metadata' => $r->created_at->diffForHumans()
+                'metadata' => $r->created_at->diffForHumans(),
             ]);
         $results = array_merge($results, $reports->toArray());
 
@@ -57,17 +57,17 @@ class GlobalSearchController extends Controller
             ->where('status', 'published')
             ->limit(5)
             ->get()
-            ->map(fn($c) => [
+            ->map(fn ($c) => [
                 'title' => $c->title,
                 'type' => 'Content Batch',
                 'icon' => 'pencil',
                 'url' => route('content-creator.show', $c->id),
-                'metadata' => strtoupper($c->type)
+                'metadata' => strtoupper($c->type),
             ]);
         $results = array_merge($results, $content->toArray());
 
         return response()->json([
-            'results' => array_slice($results, 0, 10)
+            'results' => array_slice($results, 0, 10),
         ]);
     }
 }

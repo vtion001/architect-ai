@@ -4,9 +4,7 @@ namespace Tests\Feature;
 
 use App\Models\Tenant;
 use App\Models\User;
-use App\Models\Role;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Foundation\Testing\WithoutMiddleware;
 use Tests\TestCase;
 
 class IAMAuthTest extends TestCase
@@ -35,7 +33,7 @@ class IAMAuthTest extends TestCase
 
         $this->assertDatabaseHas('tenants', ['slug' => 'test-agency']);
         $this->assertDatabaseHas('users', ['email' => 'owner@test.com']);
-        
+
         $user = User::where('email', 'owner@test.com')->first();
         $this->assertTrue($user->roles()->where('name', 'Agency Owner')->exists());
     }
