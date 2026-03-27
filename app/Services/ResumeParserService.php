@@ -64,39 +64,233 @@ class ResumeParserService
 
     /**
      * Extract structured data from resume text using AI.
+     *
+     * Includes retry logic and JSON validation to handle cases where
+     * the model doesn't return valid JSON on the first attempt.
      */
     public function extractData(string $text): array
     {
-        $apiKey = config('services.openai.key');
+        $apiKey = config('services.minimax.key');
+        $baseUrl = config('services.minimax.base_url', 'https://api.minimax.io/v1');
+        $model = config('services.minimax.model', 'minimax-m2.7');
+
         if (!$apiKey) {
             return [];
         }
 
-        try {
-            $response = Http::withToken($apiKey)->post('https://api.openai.com/v1/chat/completions', [
-                'model' => 'gpt-4o',
-                'messages' => [
-                    [
-                        'role' => 'system',
-                        'content' => $this->getExtractionPrompt()
-                    ],
-                    [
-                        'role' => 'user',
-                        'content' => "Resume Text:\n" . substr($text, 0, 10000)
-                    ]
-                ],
-                'response_format' => ['type' => 'json_object']
-            ]);
+        $maxRetries = 2;
+        $truncatedText = substr($text, 0, 10000);
 
-            if ($response->successful()) {
+        for ($attempt = 0; $attempt <= $maxRetries; $attempt++) {
+            try {
+                $response = Http::withToken($apiKey)->post($baseUrl . '/text/chatcompletion_v2', [
+                    'model' => $model,
+                    'messages' => [
+                        [
+                            'role' => 'system',
+                            'content' => $this->getExtractionPrompt($attempt > 0)
+                        ],
+                        [
+                            'role' => 'user',
+                            'content' => "Resume Text:\n" . $truncatedText
+                        ]
+                    ],
+                    'max_completion_tokens' => 4000,
+                    'temperature' => 0.3
+                ]);
+
+                if (!$response->successful()) {
+                    Log::warning('Resume extraction attempt failed', [
+                        'attempt' => $attempt + 1,
+                        'status' => $response->status()
+                    ]);
+                    continue;
+                }
+
                 $content = $response->json('choices.0.message.content');
-                return json_decode($content, true) ?? [];
+
+                // Validate JSON
+                if (empty($content)) {
+                    Log::warning('Resume extraction returned empty content', [
+                        'attempt' => $attempt + 1
+                    ]);
+                    continue;
+                }
+
+                // Try to parse as JSON directly
+                $data = json_decode($content, true);
+
+                if (json_last_error() === JSON_ERROR_NONE && is_array($data)) {
+                    return $this->validateAndCleanData($data);
+                }
+
+                // If not valid JSON, try to extract JSON from response
+                $extractedData = $this->extractJsonFromResponse($content);
+
+                if ($extractedData !== null) {
+                    return $this->validateAndCleanData($extractedData);
+                }
+
+                Log::warning('Resume extraction invalid JSON', [
+                    'attempt' => $attempt + 1,
+                    'content_preview' => substr($content, 0, 200)
+                ]);
+
+            } catch (\Exception $e) {
+                Log::error('Resume extraction exception', [
+                    'attempt' => $attempt + 1,
+                    'error' => $e->getMessage()
+                ]);
             }
-        } catch (\Exception $e) {
-            Log::error('Resume extraction failed: ' . $e->getMessage());
         }
 
+        // All attempts failed, return empty array
+        Log::error('Resume extraction failed after all retries');
         return [];
+    }
+
+    /**
+     * Extract JSON from response that may contain extra text.
+     */
+    protected function extractJsonFromResponse(string $content): ?array
+    {
+        // Strategy 1: Try direct parse first
+        $data = json_decode($content, true);
+        if (json_last_error() === JSON_ERROR_NONE && is_array($data)) {
+            return $data;
+        }
+
+        // Strategy 2: Try to find and extract JSON object
+        // Find the first { and last } to get potential JSON
+        $firstBrace = strpos($content, '{');
+        $lastBrace = strrpos($content, '}');
+
+        if ($firstBrace !== false && $lastBrace !== false && $lastBrace > $firstBrace) {
+            $potentialJson = substr($content, $firstBrace, $lastBrace - $firstBrace + 1);
+            $data = json_decode($potentialJson, true);
+            if (json_last_error() === JSON_ERROR_NONE && is_array($data)) {
+                return $data;
+            }
+        }
+
+        // Strategy 3: Remove markdown code blocks
+        $cleaned = preg_replace('/```json\s*/', '', $content);
+        $cleaned = preg_replace('/```\s*/', '', $cleaned);
+        $cleaned = trim($cleaned);
+
+        // Try parsing cleaned version
+        $data = json_decode($cleaned, true);
+        if (json_last_error() === JSON_ERROR_NONE && is_array($data)) {
+            return $data;
+        }
+
+        // Strategy 4: Extract from markdown code block
+        if (preg_match('/```[\s\S]*?```/', $content, $matches)) {
+            $block = trim($matches[0], '`');
+            $block = preg_replace('/^json\s*/', '', $block);
+            $block = trim($block);
+
+            // Try to find JSON in the block
+            $firstBrace = strpos($block, '{');
+            $lastBrace = strrpos($block, '}');
+            if ($firstBrace !== false && $lastBrace !== false && $lastBrace > $firstBrace) {
+                $block = substr($block, $firstBrace, $lastBrace - $firstBrace + 1);
+            }
+
+            $data = json_decode($block, true);
+            if (json_last_error() === JSON_ERROR_NONE && is_array($data)) {
+                return $data;
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Validate and clean extracted data.
+     */
+    protected function validateAndCleanData(array $data): array
+    {
+        // Ensure all expected top-level keys exist
+        $expectedKeys = [
+            'full_name', 'title', 'email', 'phone', 'location', 'website',
+            'professional_summary', 'contact_info', 'personal_info',
+            'work_experience', 'education', 'technical_skills', 'soft_skills',
+            'languages_spoken', 'certifications', 'projects', 'awards',
+            'volunteer_experience', 'professional_affiliations', 'publications', 'patents'
+        ];
+
+        $cleaned = [];
+        foreach ($expectedKeys as $key) {
+            $cleaned[$key] = $data[$key] ?? null;
+        }
+
+        // Ensure arrays are actually arrays
+        $arrayKeys = [
+            'work_experience', 'education', 'technical_skills', 'soft_skills',
+            'languages_spoken', 'certifications', 'projects', 'awards',
+            'volunteer_experience', 'professional_affiliations', 'publications', 'patents'
+        ];
+
+        foreach ($arrayKeys as $key) {
+            if (isset($cleaned[$key]) && !is_array($cleaned[$key])) {
+                $cleaned[$key] = [];
+            }
+        }
+
+        return $cleaned;
+    }
+
+    /**
+     * Get the AI extraction prompt with optional retry instruction.
+     */
+    protected function getExtractionPrompt(bool $isRetry = false): string
+    {
+        $basePrompt = 'You are an HR Data Extraction Specialist with expertise in comprehensive resume parsing.
+
+CRITICAL INSTRUCTION: Extract 100% of resume content with ZERO DATA LOSS. Every detail matters for job matching.
+
+IMPORTANT: You MUST return ONLY valid JSON. No markdown, no code blocks, no explanation. Just pure JSON.
+
+Extract the following information into a structured JSON object:
+
+{
+  "full_name": "Candidate full name",
+  "title": "Current or most recent job title",
+  "email": "Email address",
+  "phone": "Phone number",
+  "location": "City/State/Country",
+  "website": "Portfolio, LinkedIn, or GitHub URL",
+  "professional_summary": "Complete professional summary (verbatim)",
+  "contact_info": {"email": "", "phone": "", "location": "", "address": "", "website": "", "linkedin": ""},
+  "personal_info": {"age": null, "dob": null, "gender": null, "civil_status": null, "nationality": null, "languages": []},
+  "work_experience": [{"company": "", "title": "", "dates": "", "location": "", "achievements": [], "technologies": []}],
+  "education": [{"degree": "", "institution": "", "year": "", "gpa": null, "honors": ""}],
+  "technical_skills": [],
+  "soft_skills": [],
+  "languages_spoken": [],
+  "certifications": [{"name": "", "issuer": "", "date": "", "credential_id": ""}],
+  "projects": [{"name": "", "description": "", "technologies": [], "impact": ""}],
+  "awards": [],
+  "volunteer_experience": [],
+  "professional_affiliations": [],
+  "publications": [],
+  "patents": []
+}
+
+CRITICAL RULES:
+1. Return ONLY the JSON object - nothing else
+2. If a field is not found, use null or empty array []
+3. Preserve ALL numbers, metrics, and dates exactly as stated
+4. Maintain chronological order for work and education';
+
+        if ($isRetry) {
+            $basePrompt .= '
+
+RETRY INSTRUCTION: Your previous response was not valid JSON. Please return ONLY a valid JSON object with no markdown formatting, no code blocks, and no additional text.';
+        }
+
+        return $basePrompt;
     }
 
     /**
@@ -118,87 +312,5 @@ class ResumeParserService
             'text' => $text,
             'extracted_data' => $this->extractData($text)
         ];
-    }
-
-    /**
-     * Get the AI extraction prompt.
-     */
-    protected function getExtractionPrompt(): string
-    {
-        return <<<'PROMPT'
-You are an HR Data Extraction Specialist with expertise in comprehensive resume parsing.
-
-CRITICAL INSTRUCTION: Extract 100% of resume content with ZERO DATA LOSS. Every detail matters for job matching.
-
-Extract the following information from the resume text into a structured JSON object:
-
-**BASIC INFORMATION:**
-- `full_name`: Candidate's full name
-- `title`: Current or most recent job title
-- `email`: Email address
-- `phone`: Phone number
-- `location`: City/State/Country
-- `website`: Portfolio, LinkedIn, or GitHub URL
-- `professional_summary`: Complete professional summary/objective (verbatim)
-
-**CONTACT INFORMATION (if present):**
-- `contact_info`: object containing `email`, `phone`, `location`, `address`, `website`, `linkedin`
-
-**PERSONAL DETAILS (if present):**
-- `personal_info`: object containing `age`, `dob`, `gender`, `civil_status`, `nationality`, `height`, `weight`, `place_of_birth`, `religion`, `languages`, `city`, `alternate_phone`
-
-**WORK EXPERIENCE (COMPLETE & DETAILED):**
-- `work_experience`: array of objects, each with:
-  - `company`: Company/organization name
-  - `title`: Job title/position
-  - `dates`: Employment period (e.g., "Jan 2020 - Present")
-  - `location`: Company location (if mentioned)
-  - `achievements`: array of ALL bullet points/achievements with metrics
-  - `technologies`: array of technologies/tools used (if mentioned)
-
-**EDUCATION:**
-- `education`: array of objects with:
-  - `degree`: Degree/certification name
-  - `institution`: School/university name
-  - `year`: Graduation year or period
-  - `gpa`: GPA if mentioned
-  - `honors`: Any honors/achievements
-
-**SKILLS & COMPETENCIES:**
-- `technical_skills`: array of all technical skills (programming languages, tools, frameworks)
-- `soft_skills`: array of soft skills (leadership, communication, etc.)
-- `languages_spoken`: array of languages with proficiency levels
-
-**CERTIFICATIONS & LICENSES:**
-- `certifications`: array of objects with:
-  - `name`: Certification name
-  - `issuer`: Issuing organization
-  - `date`: Date obtained or expiry
-  - `credential_id`: ID if provided
-
-**PROJECTS & ACHIEVEMENTS:**
-- `projects`: array of personal/professional projects with:
-  - `name`: Project name
-  - `description`: What it does/achieved
-  - `technologies`: Tech stack used
-  - `impact`: Metrics/outcomes
-- `awards`: array of awards, publications, conferences, recognitions
-
-**ADDITIONAL SECTIONS (if present):**
-- `volunteer_experience`: Volunteer work
-- `professional_affiliations`: Memberships in professional organizations
-- `publications`: Research papers, articles, books
-- `patents`: Patent information
-
-IMPORTANT RULES:
-1. Extract EVERY detail, no matter how small
-2. Preserve ALL metrics, numbers, and quantifiable achievements
-3. Maintain exact phrasing for accomplishments (don't summarize)
-4. Include ALL technologies, tools, and skills mentioned
-5. If a section doesn't exist, return empty array/null, don't omit the field
-6. Maintain chronological order for work experience and education
-
-Return only valid JSON with NO additional commentary.
-PROMPT;
     }
 }

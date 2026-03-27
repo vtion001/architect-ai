@@ -6,6 +6,7 @@ namespace Tests\Unit\Services;
 
 use App\Services\BrandResolverService;
 use App\Models\Brand;
+use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
 /**
@@ -13,6 +14,8 @@ use Tests\TestCase;
  */
 class BrandResolverServiceTest extends TestCase
 {
+    use RefreshDatabase;
+
     private BrandResolverService $service;
 
     protected function setUp(): void

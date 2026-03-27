@@ -5,14 +5,14 @@ declare(strict_types=1);
 namespace App\Services\Generators;
 
 use App\DTOs\ReportRequestData;
+use App\Services\AI\MiniMaxClient;
 use App\Services\BrandResolverService;
 use App\Services\Report\SampleContentProvider;
-use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 
 /**
  * Abstract Base Generator
- * 
+ *
  * Provides common functionality for all document generators.
  * Implements the Template Method pattern where subclasses override
  * specific methods to customize generation behavior.
@@ -21,33 +21,31 @@ abstract class BaseGenerator implements DocumentGeneratorInterface
 {
     /**
      * Constructor
-     * 
+     *
      * @param BrandResolverService $brandResolverService Service for brand voice and guidelines
      * @param SampleContentProvider $sampleContentProvider Service for fallback sample content
+     * @param MiniMaxClient $miniMaxClient AI client for content generation
      */
     public function __construct(
         protected BrandResolverService $brandResolverService,
-        protected SampleContentProvider $sampleContentProvider
+        protected SampleContentProvider $sampleContentProvider,
+        protected MiniMaxClient $miniMaxClient
     ) {}
 
     /**
-     * Generate document content using OpenAI API.
-     * 
+     * Generate document content using MiniMax AI API.
+     *
      * This is the main template method that orchestrates generation:
      * 1. Build system prompt (template-specific instructions)
      * 2. Build user prompt (context + content)
-     * 3. Call OpenAI API
+     * 3. Call MiniMax AI API
      * 4. Sanitize output
      * 5. Return clean HTML or fallback to sample content
      */
     public function generate(ReportRequestData $data, ?string $kbContext = null, ?string $researchData = null): string
     {
-        $apiKey = config('services.openrouter.key');
-        $model = config('services.openrouter.resume_model', 'arcee/arcee-trinity-large-preview');
-        $baseUrl = config('services.openrouter.base_url', 'https://openrouter.ai/api/v1/chat/completions');
-
-        if (!$apiKey) {
-            Log::warning('OpenRouter API key not configured - using sample content');
+        if (!$this->miniMaxClient->isConfigured()) {
+            Log::warning('MiniMax API key not configured - using sample content');
             return $this->getFallbackContent($data);
         }
 
@@ -55,31 +53,26 @@ abstract class BaseGenerator implements DocumentGeneratorInterface
             $systemPrompt = $this->buildSystemPrompt($data);
             $userPrompt = $this->buildUserPrompt($data, $kbContext, $researchData);
 
-            $response = Http::withToken($apiKey)
-                ->timeout(120)
-                ->post($baseUrl, [
-                    'model' => $model,
-                    'messages' => [
-                        [
-                            'role' => 'system',
-                            'content' => $systemPrompt
-                        ],
-                        [
-                            'role' => 'user',
-                            'content' => $userPrompt
-                        ],
-                    ],
-                    'temperature' => $this->getTemperature(),
-                ]);
+            $messages = [
+                ['role' => 'system', 'content' => $systemPrompt],
+                ['role' => 'user', 'content' => $userPrompt],
+            ];
 
-            if ($response->successful()) {
-                $rawResult = $response->json('choices.0.message.content');
-                return $this->sanitizeOutput($rawResult);
+            $options = [
+                'temperature' => $this->getTemperature(),
+                'max_tokens' => 4000,
+                'timeout' => 120,
+            ];
+
+            $response = $this->miniMaxClient->chat($messages, $options);
+
+            if ($response['success']) {
+                return $this->sanitizeOutput($response['message']);
             }
 
-            Log::error('OpenRouter API error: ' . $response->body());
+            Log::error('MiniMax API error', ['error' => $response['error'] ?? 'Unknown']);
         } catch (\Exception $e) {
-            Log::error('OpenRouter generation error: ' . $e->getMessage());
+            Log::error('MiniMax generation error: ' . $e->getMessage());
         }
 
         // Fallback to sample content

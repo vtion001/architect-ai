@@ -46,25 +46,28 @@ class BrandController extends Controller
             }
 
             // AI Analysis
-            $apiKey = config('services.openai.key');
+            $apiKey = config('services.minimax.key');
+            $baseUrl = config('services.minimax.base_url', 'https://api.minimaxi.com/v1');
+            $model = config('services.minimax.model', 'M2.7');
+
             if (!$apiKey) {
-                return response()->json(['success' => false, 'message' => 'AI service not configured.'], 500);
+                return response()->json(['success' => false, 'message' => 'MiniMax AI service not configured.'], 500);
             }
 
-            $response = Http::withToken($apiKey)->post('https://api.openai.com/v1/chat/completions', [
-                'model' => 'gpt-4o', // Use a smart model for extraction
+            $response = Http::withToken($apiKey)->post($baseUrl . '/text/chatcompletion_v2', [
+                'model' => $model,
                 'messages' => [
                     [
                         'role' => 'system',
-                        'content' => "You are a Legal & Compliance Extraction AI. 
+                        'content' => "You are a Legal & Compliance Extraction AI.
                         Your job is to read a raw business document (Proposal, Contract, etc.) and extract strict structural templates for a Brand Kit.
-                        
+
                         Extract the following 4 fields into a JSON object:
                         1. `boilerplate_intro`: The standard opening greeting, company pride statement, or mission (e.g., 'We would like to thank you...').
                         2. `scope_of_work_template`: The static definitions of services (e.g., 'A. SOIL TREATMENT...'). Keep the headers and descriptions verbatim.
                         3. `legal_terms`: Any terms of payment, legal disclaimers, or 'Notes' (e.g., 'Terms of Payment: 50% down...').
                         4. `structure_instruction`: A short instruction on how the document is laid out (e.g., 'Intro -> Scope -> Pricing Table -> Terms').
-                        
+
                         Return ONLY valid JSON."
                     ],
                     [
@@ -72,7 +75,8 @@ class BrandController extends Controller
                         'content' => "Extract the blueprint from this document text:\n\n" . substr($text, 0, 15000) // Truncate to avoid context limits
                     ]
                 ],
-                'response_format' => ['type' => 'json_object']
+                'max_completion_tokens' => 2000,
+                'temperature' => 0.3
             ]);
 
             if ($response->successful()) {
@@ -124,19 +128,22 @@ class BrandController extends Controller
             $text = substr(trim($text), 0, 15000); // Truncate for token limits
 
             // AI Analysis
-            $apiKey = config('services.openai.key');
+            $apiKey = config('services.minimax.key');
+            $baseUrl = config('services.minimax.base_url', 'https://api.minimaxi.com/v1');
+            $model = config('services.minimax.model', 'M2.7');
+
             if (!$apiKey) {
-                return response()->json(['success' => false, 'message' => 'AI service not configured.'], 500);
+                return response()->json(['success' => false, 'message' => 'MiniMax AI service not configured.'], 500);
             }
 
-            $aiResponse = Http::withToken($apiKey)->post('https://api.openai.com/v1/chat/completions', [
-                'model' => 'gpt-4o',
+            $aiResponse = Http::withToken($apiKey)->post($baseUrl . '/text/chatcompletion_v2', [
+                'model' => $model,
                 'messages' => [
                     [
                         'role' => 'system',
-                        'content' => "You are a Brand Strategist AI. 
+                        'content' => "You are a Brand Strategist AI.
                         Analyze the provided website text and extract the Brand DNA.
-                        
+
                         Return a JSON object with these exact keys:
                         - `name`: The likely brand name.
                         - `tagline`: A short slogan found on the site.
@@ -144,7 +151,7 @@ class BrandController extends Controller
                         - `industry`: The business sector (e.g., Technology, Healthcare).
                         - `voice_profile`: An object with `tone` (e.g., Professional, Playful), `personality` (adjectives), and `keywords` (comma-separated).
                         - `colors`: An object with `primary` (hex code) if mentioned or inferable (default to black/white if unsure).
-                        
+
                         If specific fields are missing, make an educated guess based on the context."
                     ],
                     [
@@ -152,7 +159,8 @@ class BrandController extends Controller
                         'content' => "Analyze this website content:\n\n" . $text
                     ]
                 ],
-                'response_format' => ['type' => 'json_object']
+                'max_completion_tokens' => 2000,
+                'temperature' => 0.3
             ]);
 
             if ($aiResponse->successful()) {

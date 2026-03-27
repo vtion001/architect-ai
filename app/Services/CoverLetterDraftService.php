@@ -20,18 +20,20 @@ class CoverLetterDraftService
      */
     public function draft(string $targetRole, string $sourceContent): array
     {
-        $apiKey = config('services.openai.key');
-        
+        $apiKey = config('services.minimax.key');
+        $baseUrl = config('services.minimax.base_url', 'https://api.minimaxi.com/v1');
+        $model = config('services.minimax.model', 'M2.7');
+
         if (!$apiKey) {
             return [
                 'success' => false,
-                'message' => 'AI not configured'
+                'message' => 'MiniMax AI not configured'
             ];
         }
 
         try {
-            $response = Http::withToken($apiKey)->post('https://api.openai.com/v1/chat/completions', [
-                'model' => 'gpt-4o',
+            $response = Http::withToken($apiKey)->post($baseUrl . '/text/chatcompletion_v2', [
+                'model' => $model,
                 'messages' => [
                     [
                         'role' => 'system',
@@ -41,7 +43,9 @@ class CoverLetterDraftService
                         'role' => 'user',
                         'content' => "TARGET ROLE:\n{$targetRole}\n\nCANDIDATE CV:\n{$sourceContent}"
                     ]
-                ]
+                ],
+                'max_completion_tokens' => 2000,
+                'temperature' => 0.7
             ]);
 
             if ($response->successful()) {

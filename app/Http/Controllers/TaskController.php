@@ -150,26 +150,30 @@ class TaskController extends Controller
         ]);
 
         try {
-            $apiKey = config('services.openai.key');
+            $apiKey = config('services.minimax.key');
+            $baseUrl = config('services.minimax.base_url', 'https://api.minimaxi.com/v1');
+            $model = config('services.minimax.model', 'M2.7');
+
             if (!$apiKey) {
-                return response()->json(['message' => 'AI service not configured'], 503);
+                return response()->json(['message' => 'MiniMax AI service not configured'], 503);
             }
 
             $response = Http::withToken($apiKey)
                 ->timeout(30)
-                ->post('https://api.openai.com/v1/chat/completions', [
-                    'model' => config('services.openai.model', 'gpt-4o-mini'),
+                ->post($baseUrl . '/text/chatcompletion_v2', [
+                    'model' => $model,
                     'messages' => [
                         [
-                            'role' => 'system', 
+                            'role' => 'system',
                             'content' => 'You are a productivity expert. Analyze the user request and generate a concise but descriptive title for the project/task, and then break it down into concrete, actionable steps. Return ONLY a valid JSON object with two keys: "title" (string) and "steps" (array of strings). Do not include markdown formatting.'
                         ],
                         [
-                            'role' => 'user', 
+                            'role' => 'user',
                             'content' => $validated['content']
                         ],
                     ],
                     'temperature' => 0.7,
+                    'max_completion_tokens' => 1000,
                 ]);
 
             if ($response->successful()) {
@@ -177,7 +181,7 @@ class TaskController extends Controller
                 // Clean up any markdown blocks if the model ignores instruction
                 $content = str_replace(['```json', '```'], '', $content);
                 $data = json_decode(trim($content), true);
-                
+
                 // Backward compatibility / Fallback
                 if (!isset($data['title']) || !isset($data['steps'])) {
                     if (is_array($data) && array_is_list($data)) {
@@ -196,7 +200,7 @@ class TaskController extends Controller
                 }
 
                 return response()->json([
-                    'success' => true, 
+                    'success' => true,
                     'title' => $data['title'],
                     'steps' => $data['steps']
                 ]);

@@ -6,6 +6,7 @@ use App\Models\Tenant;
 use App\Models\User;
 use App\Models\Role;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Foundation\Testing\WithoutMiddleware;
 use Tests\TestCase;
 
 class IAMAuthTest extends TestCase
@@ -16,6 +17,8 @@ class IAMAuthTest extends TestCase
     {
         parent::setUp();
         $this->seed(\Database\Seeders\IAMSeeder::class);
+        // Disable throttling middleware for auth tests to avoid cache pollution
+        $this->withoutMiddleware(\Illuminate\Routing\Middleware\ThrottleRequests::class);
     }
 
     public function test_agency_registration_creates_tenant_and_owner()

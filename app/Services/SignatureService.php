@@ -18,7 +18,7 @@ class SignatureService
 
     public function __construct()
     {
-        $this->apiKey = config('services.hellosign.api_key', '');
+        $this->apiKey = config('services.hellosign.api_key') ?? '';
         $this->testMode = config('services.hellosign.test_mode', true);
     }
 

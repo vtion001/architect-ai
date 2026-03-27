@@ -1,6 +1,11 @@
 <?php
 
 return [
+    'minimax' => [
+        'key' => env('MINIMAX_API_KEY'),
+        'model' => env('MINIMAX_MODEL', 'minimax-m2.7'),
+        'base_url' => env('MINIMAX_BASE_URL', 'https://api.minimax.io/v1'),
+    ],
     'openrouter' => [
         'key' => env('OPENROUTER_API_KEY'),
         'resume_model' => env('OPENROUTER_RESUME_MODEL', 'arcee/arcee-trinity-large-preview'),

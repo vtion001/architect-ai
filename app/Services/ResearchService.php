@@ -16,18 +16,18 @@ class ResearchService
     public function __construct(
         protected KnowledgeBaseService $knowledgeBaseService
     ) {
-        $this->apiKey = config('services.openrouter.key');
-        $this->model = config('services.openrouter.chat_model', 'cognitivecomputations/gpt-oss-120b');
-        $this->baseUrl = config('services.openrouter.base_url', 'https://openrouter.ai/api/v1/chat/completions');
+        $this->apiKey = config('services.minimax.key');
+        $this->model = config('services.minimax.model', 'M2.7');
+        $this->baseUrl = config('services.minimax.base_url', 'https://api.minimaxi.com/v1');
     }
 
     /**
-     * Perform deep research on a topic using OpenRouter (GPT-OSS-120B).
+     * Perform deep research on a topic using MiniMax.
      */
     public function performResearch(string $topic): string
     {
         if (!$this->apiKey) {
-            return "Research for: $topic (OpenRouter API key not configured).";
+            return "Research for: $topic (MiniMax API key not configured).";
         }
 
         // 1. RAG: Fetch relevant internal knowledge base assets
@@ -39,7 +39,7 @@ class ResearchService
 
         $response = \Http::withToken($this->apiKey)
             ->timeout(180)
-            ->post($this->baseUrl, [
+            ->post($this->baseUrl . '/text/chatcompletion_v2', [
                 'model' => $this->model,
                 'messages' => [
                     [
@@ -51,15 +51,15 @@ class ResearchService
                         'content' => $enhancedTopic
                     ]
                 ],
-                'max_tokens' => 8000,
+                'max_completion_tokens' => 8000,
                 'temperature' => 0.5,
             ]);
 
         if ($response->successful()) {
             return $response->json('choices.0.message.content') ?? '';
         }
-        \Log::error('OpenRouter research error: ' . $response->body());
-        return "Research failed: OpenRouter request failed.";
+        \Log::error('MiniMax research error: ' . $response->body());
+        return "Research failed: MiniMax request failed.";
     }
 
     // Removed OpenAI fallback logic.
@@ -77,17 +77,17 @@ class ResearchService
     // Removed Gemini model logic.
 
     /**
-     * Generate social media topic suggestions using Gemini.
+     * Generate social media topic suggestions using MiniMax.
      */
     public function suggestSocialMediaTopics(string $topic): string
     {
         if (!$this->apiKey) {
-            return "OpenRouter API key missing.";
+            return "MiniMax API key missing.";
         }
 
         $response = \Http::withToken($this->apiKey)
             ->timeout(30)
-            ->post($this->baseUrl, [
+            ->post($this->baseUrl . '/text/chatcompletion_v2', [
                 'model' => $this->model,
                 'messages' => [
                     [
@@ -100,13 +100,13 @@ class ResearchService
                     ]
                 ],
                 'temperature' => 0.8,
-                'max_tokens' => 500,
+                'max_completion_tokens' => 500,
             ]);
 
         if ($response->successful()) {
             return $response->json('choices.0.message.content') ?? "No suggestions generated.";
         }
-        \Log::error('OpenRouter suggestion error: ' . $response->body());
+        \Log::error('MiniMax suggestion error: ' . $response->body());
         return "Error generating suggestions. Please try again later.";
     }
 
@@ -121,7 +121,7 @@ class ResearchService
 
         $response = \Http::withToken($this->apiKey)
             ->timeout(30)
-            ->post($this->baseUrl, [
+            ->post($this->baseUrl . '/text/chatcompletion_v2', [
                 'model' => $this->model,
                 'messages' => [
                     [
@@ -134,7 +134,7 @@ class ResearchService
                     ]
                 ],
                 'temperature' => 0.7,
-                'max_tokens' => 500,
+                'max_completion_tokens' => 500,
             ]);
 
         if ($response->successful()) {

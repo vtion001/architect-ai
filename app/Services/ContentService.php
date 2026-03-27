@@ -2,27 +2,20 @@
 
 namespace App\Services;
 
+use App\Services\AI\MiniMaxClient;
 use App\Services\Factories\ContentGeneratorFactory;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 
 class ContentService
 {
-    protected ?string $apiKey;
-
-    protected string $model;
-
-    protected string $baseUrl;
-
     protected ?string $hikerApiKey;
 
     public function __construct(
         protected ContentGeneratorFactory $factory,
-        protected KnowledgeBaseService $knowledgeBaseService
+        protected KnowledgeBaseService $knowledgeBaseService,
+        protected MiniMaxClient $miniMaxClient
     ) {
-        $this->apiKey = config('services.openrouter.key');
-        $this->model = config('services.openrouter.content_model', 'zhipu-ai/glm-4.5-air');
-        $this->baseUrl = config('services.openrouter.base_url', 'https://openrouter.ai/api/v1/chat/completions');
         $this->hikerApiKey = config('services.hiker_api.key');
     }
 
@@ -34,28 +27,30 @@ class ContentService
             $context = ($context ? $context."\n\n" : '')."EXTERNAL KNOWLEDGE BASE DATA:\n".$kbContext;
         }
 
-        // Compose prompt for OpenRouter GLM-4.5 Air
+        // Compose prompt for MiniMax
         $prompt = $topic;
         if ($context) {
             $prompt .= "\n".$context;
         }
 
-        $response = \Http::withToken($this->apiKey)
-            ->timeout(120)
-            ->post($this->baseUrl, [
-                'model' => $this->model,
-                'messages' => [
-                    ['role' => 'system', 'content' => 'You are a professional content creator.'],
-                    ['role' => 'user', 'content' => $prompt],
-                ],
-                'temperature' => $options['temperature'] ?? 0.8,
-                'max_tokens' => $options['max_tokens'] ?? 4000,
-            ]);
+        $messages = [
+            ['role' => 'system', 'content' => 'You are a professional content creator.'],
+            ['role' => 'user', 'content' => $prompt],
+        ];
 
-        if ($response->successful()) {
-            return $response->json('choices.0.message.content') ?? '';
+        $chatOptions = [
+            'temperature' => $options['temperature'] ?? 0.8,
+            'max_tokens' => $options['max_tokens'] ?? 4000,
+            'timeout' => 120,
+        ];
+
+        $response = $this->miniMaxClient->chat($messages, $chatOptions);
+
+        if ($response['success']) {
+            return $response['message'] ?? '';
         }
 
+        Log::error('ContentService: MiniMax generation failed', ['error' => $response['error'] ?? 'Unknown']);
         return 'Content generation failed.';
     }
 

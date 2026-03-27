@@ -9,21 +9,21 @@ use App\Models\AiAgent;
 use App\Models\AgentConversation;
 use App\Models\Brand;
 use App\Models\User;
-use App\Services\AI\OpenAIClient;
+use App\Services\AI\MiniMaxClient;
 use App\Services\AI\PromptBuilder;
 use Illuminate\Support\Facades\Log;
 
 /**
  * AI Chat Processing Service
- * 
+ *
  * Processes AI chat messages for agent conversations.
- * 
+ *
  * ARCHITECTURE:
- * - Uses OpenAIClient for API calls
+ * - Uses MiniMaxClient for API calls
  * - Uses PromptBuilder for prompt construction
  * - Uses TokenService for token management
  * - Uses ResearchService for RAG context
- * 
+ *
  * DECOUPLED FROM:
  * - UI components (ai-chat-widget.blade.php)
  * - Job dispatching (ProcessAiChatMessage job)
@@ -31,7 +31,7 @@ use Illuminate\Support\Facades\Log;
 class AiChatProcessingService
 {
     public function __construct(
-        protected OpenAIClient $aiClient,
+        protected MiniMaxClient $aiClient,
         protected PromptBuilder $promptBuilder,
         protected TokenService $tokenService,
         protected ResearchService $researchService
@@ -166,10 +166,8 @@ class AiChatProcessingService
      */
     protected function selectModel(AiAgent $agent, string $mode, ?string $imageUrl): string
     {
-        if ($mode === 'thinking' || $imageUrl) {
-            return 'gpt-4o';
-        }
-        return $agent->model ?? config('services.openai.model', 'gpt-4o-mini');
+        // MiniMax M2.7 is used for all chat interactions
+        return config('services.minimax.model', 'M2.7');
     }
 
     /**

@@ -23,13 +23,13 @@ class KnowledgeBaseService
 
     /**
      * Retrieve relevant context using Hybrid Search (Vector + SQL Fallback).
-     * 
+     *
      * This is the primary method for RAG context retrieval across the application.
      */
     public function getContext(string $query, int $limit = 3, float $minRelevance = 0.65): ?string
     {
         $tenant = app(Tenant::class);
-        if (!$tenant || empty($query)) {
+        if (!$tenant || empty($query) || !$tenant->id) {
             return null;
         }
 
@@ -148,5 +148,28 @@ class KnowledgeBaseService
         }
 
         return $content;
+    }
+
+    /**
+     * Format knowledge base assets into a context string.
+     *
+     * @param array $assets Array of asset objects with title and content
+     * @return string|null Formatted context string or null if empty
+     */
+    public function formatContext(array $assets): ?string
+    {
+        if (empty($assets)) {
+            return null;
+        }
+
+        $parts = ["[KNOWLEDGE BASE CONTEXT]"];
+
+        foreach ($assets as $asset) {
+            $title = $asset->title ?? 'Untitled';
+            $content = $asset->content ?? '';
+            $parts[] = "--- SOURCE: {$title} ---\n{$content}";
+        }
+
+        return implode("\n\n", $parts);
     }
 }

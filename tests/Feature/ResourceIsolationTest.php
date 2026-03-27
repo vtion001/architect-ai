@@ -23,10 +23,10 @@ class ResourceIsolationTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        
-        // Setup two distinct tenants
-        $this->tenant1 = Tenant::factory()->create(['name' => 'Tenant 1']);
-        $this->tenant2 = Tenant::factory()->create(['name' => 'Tenant 2']);
+
+        // Setup two distinct tenants with pro plan (required for ai_agents feature)
+        $this->tenant1 = Tenant::factory()->create(['name' => 'Tenant 1', 'plan' => 'pro']);
+        $this->tenant2 = Tenant::factory()->create(['name' => 'Tenant 2', 'plan' => 'pro']);
 
         $this->user1 = User::factory()->create(['tenant_id' => $this->tenant1->id]);
         $this->user2 = User::factory()->create(['tenant_id' => $this->tenant2->id]);
