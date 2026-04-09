@@ -1,6 +1,12 @@
 <?php
 
 return [
+    'openai' => [
+        'key' => env('OPENAI_API_KEY'),
+        'model' => env('OPENAI_MODEL', 'gpt-4o-mini'),
+        'embedding_model' => env('OPENAI_EMBEDDING_MODEL', 'text-embedding-3-small'),
+    ],
+
     'minimax' => [
         'key' => env('MINIMAX_API_KEY'),
         'model' => env('MINIMAX_MODEL', 'minimax-m2.7'),

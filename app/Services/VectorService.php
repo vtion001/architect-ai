@@ -17,7 +17,7 @@ class VectorService
 
     protected string $collection = 'knowledge_base';
 
-    protected int $dimension = 768; // Gemini embedding-001
+    protected int $dimension = 1536; // OpenAI text-embedding-3-small
 
     // Config
     protected ?string $apiKey;
@@ -30,7 +30,7 @@ class VectorService
         $transport = (new Builder)->build($config);
         $this->client = new Qdrant($transport);
 
-        $this->apiKey = config('services.gemini.key');
+        $this->apiKey = config('services.openai.key');
     }
 
     public function ensureCollection(): void
@@ -67,29 +67,28 @@ class VectorService
         }
 
         try {
-            $response = Http::timeout(30)
+            $embeddingModel = config('services.openai.embedding_model', 'text-embedding-3-small');
+
+            $response = Http::withToken($this->apiKey)
+                ->timeout(30)
                 ->retry(3, 10000, function ($exception, $request) {
                     return $exception->response->status() === 429;
                 })
-                ->post("https://generativelanguage.googleapis.com/v1beta/models/embedding-001:embedContent?key={$this->apiKey}", [
-                    'model' => 'models/embedding-001',
-                    'content' => [
-                        'parts' => [
-                            ['text' => $text],
-                        ],
-                    ],
+                ->post('https://api.openai.com/v1/embeddings', [
+                    'model' => $embeddingModel,
+                    'input' => $text,
                 ]);
 
             if ($response->successful()) {
-                return $response->json('embedding.values');
+                return $response->json('data.0.embedding');
             }
 
-            Log::error('Gemini Embedding Error: '.$response->body());
+            Log::error('OpenAI Embedding Error: '.$response->body());
         } catch (\Exception $e) {
-            Log::error('Gemini Embedding Exception: '.$e->getMessage());
+            Log::error('OpenAI Embedding Exception: '.$e->getMessage());
         }
 
-        return null; // or fallback to OpenAI
+        return null;
     }
 
     public function upsert(string $id, string $content, array $payload = []): bool
