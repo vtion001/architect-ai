@@ -99,12 +99,41 @@ class ContentService
         return $this->knowledgeBaseService->getContext($topic);
     }
 
-    // Image generation via OpenRouter is not yet implemented. Placeholder for future support.
+    // Image generation via OpenAI DALL-E
     public function generateImage(string $prompt, string $format = 'realistic', array $options = []): ?string
     {
-        Log::warning('Image generation via OpenRouter is not implemented.');
+        $apiKey = config('services.openai.key');
+        if (!$apiKey) {
+            Log::error('OpenAI API key not configured for image generation.');
+            return null;
+        }
 
-        return null;
+        // Build format-specific prompt
+        $enhancedPrompt = $this->buildImagePrompt($prompt, $format, $options);
+
+        try {
+            $response = Http::withToken($apiKey)
+                ->timeout(120)
+                ->post('https://api.openai.com/v1/images/generations', [
+                    'model' => 'dall-e-3',
+                    'prompt' => $enhancedPrompt,
+                    'n' => 1,
+                    'size' => '1024x1024',
+                    'quality' => 'standard',
+                ]);
+
+            if ($response->successful()) {
+                $url = $response->json('data.0.url');
+                Log::info('Image generated via DALL-E: ' . $url);
+                return $url;
+            }
+
+            Log::error('DALL-E image generation failed: ' . $response->body());
+            return null;
+        } catch (\Throwable $e) {
+            Log::error('DALL-E image generation error: ' . $e->getMessage());
+            return null;
+        }
     }
 
     /**

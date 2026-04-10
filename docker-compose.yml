@@ -78,8 +78,6 @@ services:
         environment:
             MYSQL_ROOT_PASSWORD: archpass123
             MYSQL_DATABASE: architect_ai
-            MYSQL_USER: root
-            MYSQL_PASSWORD: archpass123
         volumes:
             - ./docker/mysql/data:/var/lib/mysql
         networks:

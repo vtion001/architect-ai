@@ -47,7 +47,7 @@ Route::prefix('auth')->group(function () {
     Route::post('join/{token}', [\App\Http\Controllers\Auth\InvitationController::class, 'accept']);
 
     Route::post('register-agency', [AuthController::class, 'registerAgency'])->middleware('throttle:3,60'); // 3 agencies per hour
-    Route::post('login', [AuthController::class, 'login'])->middleware('throttle:5,15'); // 5 attempts per 15 mins
+    Route::post('login', [AuthController::class, 'login'])->middleware('throttle:60,1'); // 60 attempts per 1 min
     Route::post('logout', function () {
         auth()->logout();
 
@@ -57,7 +57,7 @@ Route::prefix('auth')->group(function () {
     // MFA Challenge/Setup (Auth only, no mfa middleware)
     Route::middleware('auth')->group(function () {
         Route::get('mfa/challenge', [\App\Http\Controllers\Auth\MfaController::class, 'challenge'])->name('mfa.challenge');
-        Route::post('mfa/verify', [\App\Http\Controllers\Auth\MfaController::class, 'verify'])->middleware('throttle:5,15')->name('mfa.verify');
+        Route::post('mfa/verify', [\App\Http\Controllers\Auth\MfaController::class, 'verify'])->middleware('throttle:60,1')->name('mfa.verify');
         Route::get('mfa/setup', [\App\Http\Controllers\Auth\MfaController::class, 'setup'])->name('mfa.setup');
         Route::post('mfa/enable', [\App\Http\Controllers\Auth\MfaController::class, 'enable'])->name('mfa.enable');
     });
@@ -158,8 +158,11 @@ Route::middleware(['auth', 'tenant', 'mfa', 'session_security'])->group(function
     Route::post('/content-creator/bulk-schedule', [ContentCreatorController::class, 'bulkSchedule'])->name('content-creator.bulk-schedule');
 
     Route::post('/content-creator/suggestions', [ContentCreatorController::class, 'getSuggestions'])->name('content-creator.suggestions');
+    Route::post('/content-creator/generate-blog-body', [ContentCreatorController::class, 'generateBlogBody'])->name('content-creator.generate-blog-body');
+    Route::post('/content-creator/generate-image-prompt', [ContentCreatorController::class, 'generateImagePrompt'])->name('content-creator.generate-image-prompt');
     Route::post('/content-creator/refine', [ContentCreatorController::class, 'refineContext'])->name('content-creator.refine');
     Route::post('/content-creator/upload-media', [ContentCreatorController::class, 'uploadMedia'])->name('content-creator.upload-media');
+    Route::post('/content-creator/upload-featured-image', [ContentCreatorController::class, 'uploadFeaturedImage'])->name('content-creator.upload-featured-image');
     Route::post('/content-creator/generate-media', [ContentCreatorController::class, 'generateMedia'])->middleware('throttle:5,1')->name('content-creator.generate-media');
     Route::post('/content-creator/regenerate', [ContentCreatorController::class, 'regenerate'])->middleware('throttle:10,1')->name('content-creator.regenerate');
     Route::post('/content-creator/publish', [ContentCreatorController::class, 'publish'])->name('content-creator.publish');

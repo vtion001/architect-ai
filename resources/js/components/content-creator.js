@@ -28,9 +28,32 @@ document.addEventListener('alpine:init', () => {
 
         // Blog specific
         keywords: '',
+        seoSuggestions: [],
+        isLoadingSeoSuggestions: false,
+        lastAutoSeoTopic: null,
         structure: 'Standard',
         isBatchMode: false,
         featuredImageType: 'ai',
+        featuredImageUrl: '',
+        blogSuggestionKeyword: '',
+        blogSuggestions: [],
+        isLoadingBlogSuggestions: false,
+        blogBody: '',
+        isGeneratingBlogBody: false,
+
+        // Image Creator Modal State
+        showImageCreatorModal: false,
+        imageFormat: 'realistic',
+        imagePrompt: '',
+        posterText: '',
+        selectedAssetUrl: null,
+        mediaAssets: [],
+        isLoadingAssets: false,
+
+        // Featured Image Upload State
+        isUploadingFeaturedImage: false,
+        featuredImageUploadError: '',
+        isDraggingFeaturedImage: false,
 
         // Video specific - Core
         videoStyle: 'UGC',
@@ -133,6 +156,22 @@ document.addEventListener('alpine:init', () => {
                 if (value === 'blog') this.type = 'blog-post';
                 if (value === 'video') this.type = 'video';
                 if (value === 'framework') this.type = 'framework_calendar';
+                // Auto-fetch SEO when switching to blog if topic exists
+                if (value === 'blog' && this.topic && this.topic.length >= 3) {
+                    this.fetchSeoSuggestions();
+                }
+            });
+
+            // Auto-fetch SEO keywords when topic changes in blog mode
+            let seoDebounceTimer = null;
+            this.$watch('topic', (value) => {
+                if (this.generator !== 'blog') return;
+                clearTimeout(seoDebounceTimer);
+                if (!value || value.length < 3) return;
+
+                seoDebounceTimer = setTimeout(() => {
+                    this.fetchSeoSuggestions();
+                }, 800);
             });
         },
 
@@ -171,6 +210,179 @@ document.addEventListener('alpine:init', () => {
                     console.error(err);
                     this.suggestions = 'Error fetching suggestions.';
                     this.isLoadingSuggestions = false;
+                });
+        },
+
+        fetchBlogSuggestions() {
+            if (!this.blogSuggestionKeyword || this.isLoadingBlogSuggestions) return;
+            this.isLoadingBlogSuggestions = true;
+            this.blogSuggestions = [];
+
+            fetch('/content-creator/suggestions', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+                },
+                body: JSON.stringify({ topic: this.blogSuggestionKeyword, type: 'blog_topics' })
+            })
+                .then(res => res.json())
+                .then(data => {
+                    // Parse suggestions - handle both array and string formats
+                    let parsed = [];
+                    if (Array.isArray(data.suggestions)) {
+                        parsed = data.suggestions;
+                    } else if (typeof data.suggestions === 'string' && data.suggestions.startsWith('[')) {
+                        try {
+                            parsed = JSON.parse(data.suggestions);
+                        } catch (e) {
+                            // Split by newlines or numbered patterns
+                            const lines = data.suggestions.split('\n').filter(l => l.trim());
+                            parsed = lines.map(line => {
+                                const clean = line.replace(/^\d+[\.\)]\s*/, '').trim();
+                                return { title: clean, description: 'AI-generated suggestion' };
+                            });
+                        }
+                    } else if (typeof data.suggestions === 'string') {
+                        // Parse numbered list format: "1. Title - Description"
+                        const lines = data.suggestions.split('\n').filter(l => l.trim() && /^\d/.test(l.trim()));
+                        parsed = lines.map(line => {
+                            const match = line.match(/^\d+[\.\)]\s*(.+?)(?:\s*[-–—]\s*(.+))?$/);
+                            if (match) {
+                                return {
+                                    title: match[1].trim(),
+                                    description: match[2]?.trim() || 'AI-generated suggestion'
+                                };
+                            }
+                            return { title: line.replace(/^\d+[\.\)]\s*/, '').trim(), description: 'AI-generated suggestion' };
+                        });
+                    }
+
+                    // Ensure we have 3-5 suggestions
+                    if (parsed.length === 0) {
+                        parsed = [
+                            { title: 'Top 10 ' + this.blogSuggestionKeyword + ' Tips for Beginners', description: 'Comprehensive guide covering essential strategies and best practices', category: 'How-to' },
+                            { title: 'The Ultimate Guide to ' + this.blogSuggestionKeyword, description: 'In-depth resource for mastering this topic from basics to advanced', category: 'Guide' },
+                            { title: this.blogSuggestionKeyword + ' Mistakes to Avoid in 2024', description: 'Common pitfalls and how to sidestep them effectively', category: 'Tips' },
+                            { title: 'Why ' + this.blogSuggestionKeyword + ' Matters for Your Business', description: 'Explore the impact and benefits for professionals', category: 'Analysis' },
+                            { title: this.blogSuggestionKeyword + ' vs Alternatives: Which is Right for You?', description: 'Compare options to make informed decisions', category: 'Comparison' }
+                        ];
+                    }
+
+                    this.blogSuggestions = parsed.slice(0, 5);
+                    this.isLoadingBlogSuggestions = false;
+                })
+                .catch(err => {
+                    console.error(err);
+                    this.blogSuggestions = [
+                        { title: 'Error loading suggestions. Please try again.', description: '', category: '' }
+                    ];
+                    this.isLoadingBlogSuggestions = false;
+                });
+        },
+
+        fetchSeoSuggestions() {
+            if (!this.topic && !this.blogSuggestionKeyword) {
+                return;
+            }
+            // Skip if already fetched for this exact topic
+            if (this.topic && this.topic === this.lastAutoSeoTopic && this.keywords) {
+                return;
+            }
+            if (this.isLoadingSeoSuggestions) return;
+            this.isLoadingSeoSuggestions = true;
+            this.seoSuggestions = [];
+
+            const searchTerm = this.topic || this.blogSuggestionKeyword;
+            const isAutoFetch = !this.blogSuggestionKeyword && this.topic === searchTerm;
+
+            if (isAutoFetch) {
+                this.lastAutoSeoTopic = this.topic;
+            }
+
+            fetch('/content-creator/suggestions', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+                },
+                body: JSON.stringify({ topic: searchTerm, type: 'seo_keywords' })
+            })
+                .then(res => res.json())
+                .then(data => {
+                    let parsed = [];
+                    if (Array.isArray(data.suggestions)) {
+                        parsed = data.suggestions;
+                    } else if (typeof data.suggestions === 'string') {
+                        parsed = data.suggestions.split(/[,,\n]+/).map(s => s.trim()).filter(s => s.length > 2);
+                    }
+                    if (parsed.length === 0) {
+                        parsed = [
+                            searchTerm + ' guide',
+                            searchTerm + ' tips',
+                            'best ' + searchTerm,
+                            searchTerm + ' strategies',
+                            searchTerm + ' for beginners'
+                        ];
+                    }
+                    const keywords = parsed.slice(0, 8);
+
+                    if (isAutoFetch) {
+                        this.keywords = keywords.join(', ');
+                        this.seoSuggestions = [];
+                    } else {
+                        this.seoSuggestions = keywords;
+                    }
+                    this.isLoadingSeoSuggestions = false;
+                })
+                .catch(err => {
+                    console.error(err);
+                    this.seoSuggestions = [];
+                    this.isLoadingSeoSuggestions = false;
+                });
+        },
+
+        appendKeyword(kw) {
+            if (this.keywords && !this.keywords.endsWith(',')) {
+                this.keywords += ', ';
+            }
+            this.keywords += kw;
+        },
+
+        generateBlogBody() {
+            if (!this.topic) {
+                alert('Please enter a blog topic first.');
+                return;
+            }
+            if (this.isGeneratingBlogBody) return;
+            this.isGeneratingBlogBody = true;
+
+            fetch('/content-creator/generate-blog-body', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json',
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+                },
+                body: JSON.stringify({
+                    topic: this.topic,
+                    keywords: this.keywords
+                })
+            })
+                .then(res => res.json())
+                .then(data => {
+                    if (data.success && data.body) {
+                        this.blogBody = data.body;
+                    } else {
+                        alert(data.message || 'Failed to generate blog body.');
+                    }
+                })
+                .catch(err => {
+                    console.error(err);
+                    alert('Error generating blog body. Please try again.');
+                })
+                .finally(() => {
+                    this.isGeneratingBlogBody = false;
                 });
         },
 
@@ -230,6 +442,7 @@ document.addEventListener('alpine:init', () => {
                 aspect_ratio: this.aspectRatio,
                 generation_duration: this.videoDuration,
                 blog_keywords: this.keywords,
+                blog_body: this.blogBody,
                 blog_structure: this.structure,
                 is_batch_mode: this.isBatchMode,
                 featured_image_type: this.featuredImageType,
@@ -427,6 +640,170 @@ document.addEventListener('alpine:init', () => {
                 })
                 .finally(() => {
                     this.isBulkScheduling = false;
+                });
+        },
+
+        generateFeaturedImage() {
+            // Use blog body to generate an AI image prompt, then generate the image
+            if (this.isGenerating) return;
+
+            const hasBlogBody = this.blogBody && this.blogBody.length > 50;
+            const hasTopic = this.topic && this.topic.length >= 3;
+
+            if (!hasTopic) {
+                alert('Please enter a blog topic first.');
+                return;
+            }
+
+            if (hasBlogBody) {
+                // First generate an image prompt from the blog body using OpenAI
+                this.isGenerating = true;
+                fetch('/content-creator/generate-image-prompt', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+                    },
+                    body: JSON.stringify({
+                        topic: this.topic,
+                        blog_body: this.blogBody
+                    })
+                })
+                .then(res => res.json())
+                .then(data => {
+                    if (data.success && data.prompt) {
+                        this.imagePrompt = data.prompt;
+                    } else {
+                        // Fallback to topic-based prompt
+                        this.imagePrompt = this.topic + ' - professional blog featured image, cinematic style';
+                    }
+                    this.featuredImageType = 'ai';
+                    this.generateAdvancedImage();
+                })
+                .catch(err => {
+                    console.error('Image prompt error:', err);
+                    this.imagePrompt = this.topic + ' - professional blog featured image, cinematic style';
+                    this.featuredImageType = 'ai';
+                    this.generateAdvancedImage();
+                });
+            } else {
+                // No blog body, use topic directly
+                this.imagePrompt = this.topic + ' - professional blog featured image, cinematic style';
+                this.featuredImageType = 'ai';
+                this.generateAdvancedImage();
+            }
+        },
+
+        openImageCreator() {
+            this.imagePrompt = this.topic || '';
+            this.showImageCreatorModal = true;
+            this.loadMediaAssets();
+        },
+
+        loadMediaAssets() {
+            if (this.isLoadingAssets) return;
+            this.isLoadingAssets = true;
+            fetch('/media-assets')
+                .then(res => res.json())
+                .then(data => { this.mediaAssets = data.assets || []; })
+                .catch(err => console.error('Failed to load assets:', err))
+                .finally(() => { this.isLoadingAssets = false; });
+        },
+
+        generateAdvancedImage() {
+            if (!this.imagePrompt.trim()) {
+                alert('Please enter a prompt for the image.');
+                return;
+            }
+
+            this.isGenerating = true;
+            this.showImageCreatorModal = false;
+
+            const payload = {
+                prompt: this.imagePrompt,
+                format: this.imageFormat,
+                poster_text: this.imageFormat === 'poster' ? this.posterText : null,
+                reference_asset_url: this.imageFormat === 'asset-reference' ? this.selectedAssetUrl : null,
+                brand_id: this.imageFormat === 'poster' ? this.selectedBrandId : null
+            };
+
+            fetch('/content-creator/generate-media', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json',
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+                },
+                body: JSON.stringify(payload)
+            })
+                .then(res => res.json())
+                .then(data => {
+                    if (data.success) {
+                        this.featuredImageUrl = data.url;
+                    } else {
+                        alert(data.message || 'Generation failed');
+                    }
+                })
+                .catch(err => {
+                    console.error(err);
+                    alert('Generation error. Please try again.');
+                })
+                .finally(() => {
+                    this.isGenerating = false;
+                });
+        },
+
+        handleFeaturedImageUpload(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            this.uploadFeaturedImage(file);
+        },
+
+        handleFeaturedImageDrop(event) {
+            this.isDraggingFeaturedImage = false;
+            const file = event.dataTransfer.files[0];
+            if (!file) return;
+            if (!file.type.startsWith('image/')) {
+                this.featuredImageUploadError = 'Please upload an image file (PNG, JPG, WEBP)';
+                return;
+            }
+            if (file.size > 10 * 1024 * 1024) {
+                this.featuredImageUploadError = 'File size must be less than 10MB';
+                return;
+            }
+            this.featuredImageUploadError = '';
+            this.uploadFeaturedImage(file);
+        },
+
+        uploadFeaturedImage(file) {
+            this.isUploadingFeaturedImage = true;
+            this.featuredImageUploadError = '';
+
+            const formData = new FormData();
+            formData.append('image', file);
+            formData.append('type', 'featured');
+
+            fetch('/content-creator/upload-featured-image', {
+                method: 'POST',
+                headers: {
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+                },
+                body: formData
+            })
+                .then(res => res.json())
+                .then(data => {
+                    if (data.success) {
+                        this.featuredImageUrl = data.url;
+                    } else {
+                        this.featuredImageUploadError = data.message || 'Upload failed';
+                    }
+                })
+                .catch(err => {
+                    console.error(err);
+                    this.featuredImageUploadError = 'Upload failed. Please try again.';
+                })
+                .finally(() => {
+                    this.isUploadingFeaturedImage = false;
                 });
         }
     }));

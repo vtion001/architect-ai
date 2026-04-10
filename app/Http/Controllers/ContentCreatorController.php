@@ -195,7 +195,73 @@ class ContentCreatorController extends Controller
             ]);
         }
 
-        // Standard Case: Async Job (Post, Blog)
+        // Blog Generation Case - Synchronous with Preview
+        if ($request->input('generator') === 'blog') {
+            Log::info('[ContentCreator] Blog generation requested', [
+                'user_id' => auth()->id(),
+                'topic' => $request->input('topic'),
+            ]);
+
+            $content = Content::create([
+                'title' => $request->input('topic'),
+                'topic' => $request->input('topic'),
+                'type' => 'blog',
+                'context' => $context,
+                'status' => 'generating',
+                'options' => $options,
+            ]);
+
+            try {
+                $generatedText = $this->contentService->generateText(
+                    $request->input('topic'),
+                    'blog',
+                    $context,
+                    $options
+                );
+
+                // Process Results (Title extraction, Word count)
+                $lines = collect(explode("\n", trim($generatedText)))
+                    ->map(fn ($l) => trim($l))
+                    ->filter(fn ($l) => ! empty($l) && ! preg_match('/^-{3,}$/', $l))
+                    ->values();
+
+                $firstLine = $lines->first() ?? $request->input('topic');
+                $title = str_replace(['#', '*', '='], '', $firstLine);
+                if (strlen($title) > 100) {
+                    $title = substr($title, 0, 97).'...';
+                }
+
+                $wordCount = str_word_count(strip_tags($generatedText));
+
+                $content->update([
+                    'title' => $title,
+                    'result' => $generatedText,
+                    'word_count' => $wordCount,
+                    'status' => 'published',
+                ]);
+
+                Log::info('[ContentCreator] Blog generated successfully', ['content_id' => $content->id]);
+
+                return response()->json([
+                    'success' => true,
+                    'content' => $content->fresh(),
+                    'preview' => $generatedText,
+                    'message' => 'Blog generated successfully.',
+                ]);
+            } catch (\Throwable $e) {
+                Log::error('[ContentCreator] Blog generation failed: '.$e->getMessage());
+
+                $this->tokenService->grant(auth()->user()->tenant, $tokenCost, 'refund_failed_generation');
+                $content->update(['status' => 'failed']);
+
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Blog generation failed: '.$e->getMessage(),
+                ], 500);
+            }
+        }
+
+        // Standard Case: Async Job (Post)
         $content = Content::create([
             'title' => $request->input('topic'),
             'topic' => $request->input('topic'),
@@ -423,24 +489,186 @@ class ContentCreatorController extends Controller
 
     public function getSuggestions(Request $request)
     {
-        $request->validate([
-            'topic' => 'required|string|min:3',
-        ]);
+        try {
+            $request->validate([
+                'topic' => 'required|string|min:3',
+            ]);
 
-        $suggestions = $this->researchService->suggestSocialMediaTopics($request->topic);
+            $type = $request->input('type', 'social');
 
-        $tenant = app(\App\Models\Tenant::class);
-        $kbCount = KnowledgeBaseAsset::where('tenant_id', $tenant->id)
-            ->where(function ($q) use ($request) {
-                $q->where('title', 'like', "%{$request->topic}%")
-                    ->orWhere('content', 'like', "%{$request->topic}%");
-            })
-            ->count();
+            if ($type === 'seo_keywords') {
+                $suggestions = $this->researchService->suggestSeoKeywords($request->topic);
+            } elseif ($type === 'blog_topics') {
+                $suggestions = $this->researchService->suggestBlogTopics($request->topic);
+            } else {
+                $suggestions = $this->researchService->suggestSocialMediaTopics($request->topic);
+            }
 
-        return response()->json([
-            'suggestions' => $suggestions,
-            'kb_count' => $kbCount,
-        ]);
+            $kbCount = 0;
+            try {
+                $tenant = auth()->user()?->tenant;
+                if ($tenant && $tenant->id) {
+                    $kbCount = KnowledgeBaseAsset::where('tenant_id', $tenant->id)
+                        ->where(function ($q) use ($request) {
+                            $q->where('title', 'like', "%{$request->topic}%")
+                                ->orWhere('content', 'like', "%{$request->topic}%");
+                        })
+                        ->count();
+                }
+            } catch (\Throwable $e) {
+                // Silently ignore KB count errors
+            }
+
+            return response()->json([
+                'suggestions' => $suggestions,
+                'kb_count' => $kbCount,
+            ]);
+        } catch (\Throwable $e) {
+            Log::error('Suggestions error: ' . $e->getMessage());
+            return response()->json([
+                'suggestions' => [],
+                'kb_count' => 0,
+                'error' => 'Failed to generate suggestions. Please try again.'
+            ], 500);
+        }
+    }
+
+    public function generateBlogBody(Request $request)
+    {
+        try {
+            $request->validate([
+                'topic' => 'required|string|min:3',
+            ]);
+
+            $keywords = $request->input('keywords', '');
+            $topic = $request->topic;
+
+            // Use OpenAI to generate blog body content if configured
+            if (config('services.openai.key')) {
+                $prompt = "You are an expert SEO blog content writer. Generate a complete, SEO-optimized blog post body based on the following:\n\nTopic: $topic\nKeywords: $keywords\n\nRequirements:\n- Write 800-1200 words\n- Include the keywords naturally throughout\n- Use proper heading structure (H2, H3)\n- Make it engaging and informative\n- Include a compelling introduction and conclusion\n- DO NOT include the title/headline (that will be added separately)\n- Just write the body content, ready to publish\n\nStart writing the blog post body now:";
+
+                $response = \Http::withToken(config('services.openai.key'))
+                    ->timeout(120)
+                    ->post('https://api.openai.com/v1/chat/completions', [
+                        'model' => config('services.openai.model', 'gpt-4o-mini'),
+                        'messages' => [
+                            ['role' => 'system', 'content' => 'You are an expert SEO blog content writer.'],
+                            ['role' => 'user', 'content' => $prompt],
+                        ],
+                        'max_tokens' => 4000,
+                        'temperature' => 0.7,
+                    ]);
+
+                if ($response->successful()) {
+                    $body = $response->json('choices.0.message.content', '');
+                    // Return raw markdown (no HTML conversion)
+                    return response()->json([
+                        'success' => true,
+                        'body' => trim($body),
+                    ]);
+                }
+
+                Log::error('Blog body generation failed: '.$response->body());
+            }
+
+            // Fallback: Generate a placeholder body when API is not configured
+            $fallbackBody = $this->generateFallbackBlogBody($topic, $keywords);
+            return response()->json([
+                'success' => true,
+                'body' => $fallbackBody,
+            ]);
+        } catch (\Throwable $e) {
+            Log::error('Blog body error: '.$e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to generate blog body. Please try again.',
+            ], 500);
+        }
+    }
+
+    public function generateImagePrompt(Request $request)
+    {
+        try {
+            $request->validate([
+                'blog_body' => 'required|string|min:50',
+            ]);
+
+            $blogBody = $request->input('blog_body');
+            $topic = $request->input('topic', 'blog featured image');
+
+            // Use OpenAI to generate an image prompt from the blog body
+            if (config('services.openai.key')) {
+                $prompt = "Based on the following blog content, generate a detailed, vivid image generation prompt that would create a compelling featured image for this blog post.\n\nBlog Topic: {$topic}\n\nBlog Content:\n{$blogBody}\n\nRequirements:\n- Create a prompt that is 2-3 sentences long\n- Describe a visually striking scene that represents the blog content\n- Use cinematic, photography-style language\n- Include lighting, composition, and mood details\n- DO NOT include any text or words in the image\n- Make it suitable for a blog featured image (16:9 aspect ratio recommended)\n\nOnly output the image prompt, nothing else:";
+
+                $response = \Http::withToken(config('services.openai.key'))
+                    ->timeout(60)
+                    ->post('https://api.openai.com/v1/chat/completions', [
+                        'model' => config('services.openai.model', 'gpt-4o-mini'),
+                        'messages' => [
+                            ['role' => 'system', 'content' => 'You are an expert at creating image generation prompts for AI image generators like DALL-E, Midjourney, and Stable Diffusion.'],
+                            ['role' => 'user', 'content' => $prompt],
+                        ],
+                        'max_tokens' => 500,
+                        'temperature' => 0.7,
+                    ]);
+
+                if ($response->successful()) {
+                    $imagePrompt = $response->json('choices.0.message.content', '');
+                    return response()->json([
+                        'success' => true,
+                        'prompt' => trim($imagePrompt),
+                    ]);
+                }
+
+                Log::error('Image prompt generation failed: '.$response->body());
+            }
+
+            // Fallback: Generate a basic prompt from topic
+            $fallbackPrompt = "A compelling featured image representing: {$topic}. Cinematic photography style, dramatic lighting, professional quality, suitable for blog header.";
+            return response()->json([
+                'success' => true,
+                'prompt' => $fallbackPrompt,
+            ]);
+        } catch (\Throwable $e) {
+            Log::error('Image prompt error: '.$e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to generate image prompt. Please try again.',
+            ], 500);
+        }
+    }
+
+    private function generateFallbackBlogBody(string $topic, string $keywords): string
+    {
+        $keywordList = $keywords ? implode(', ', explode(',', $keywords)) : 'blogging, content creation';
+        return <<<HTML
+<h2>Introduction</h2>
+<p>Welcome to our comprehensive guide on <strong>{$topic}</strong>. In today's rapidly evolving landscape, understanding this topic has become essential for anyone looking to stay ahead of the curve. Whether you're a beginner just getting started or an experienced professional looking to refine your knowledge, this article will provide you with valuable insights and practical strategies.</p>
+
+<h2>Understanding the Basics of {$topic}</h2>
+<p>Before we dive deeper into advanced strategies, it's crucial to establish a solid foundation. {$topic} encompasses a wide range of concepts and techniques that, when mastered, can dramatically transform your approach and results.</p>
+<p>Key areas to understand include:</p>
+<ul>
+<li>The fundamental principles that underpin {$topic}</li>
+<li>Common challenges and how to overcome them</li>
+<li>Best practices used by industry leaders</li>
+<li>Tools and resources to accelerate your progress</li>
+</ul>
+
+<h2>Advanced Strategies for {$topic}</h2>
+<p>Once you have a grasp of the fundamentals, it's time to level up your skills. Here are some advanced techniques that can help you achieve exceptional results:</p>
+
+<h3>Strategy 1: Data-Driven Decision Making</h3>
+<p>Modern {$topic} requires a strategic approach backed by data. By analyzing key metrics and trends, you can make informed decisions that drive measurable improvements.</p>
+
+<h3>Strategy 2: Continuous Learning and Adaptation</h3>
+<p>The landscape of {$topic} is constantly evolving. Stay current with the latest developments and be willing to adapt your strategies accordingly.</p>
+
+<h2>Conclusion</h2>
+<p>In conclusion, mastering {$topic} requires dedication, continuous learning, and a willingness to implement best practices. Start applying these insights today, and you'll be well on your way to achieving your goals.</p>
+
+<p><em>This blog post was generated based on keywords: {$keywordList}. For full AI-powered content generation, please configure your MiniMax API key.</em></p>
+HTML;
     }
 
     public function refineContext(Request $request)
@@ -512,6 +740,84 @@ class ContentCreatorController extends Controller
                 'url' => $url,
                 'message' => 'Uploaded locally.',
             ]);
+        }
+
+        return response()->json(['success' => false, 'message' => 'No file uploaded'], 400);
+    }
+
+    public function uploadFeaturedImage(Request $request)
+    {
+        $request->validate([
+            'image' => 'required|file|mimes:jpeg,png,jpg,gif,webp|max:10240',
+        ]);
+
+        if ($request->hasFile('image')) {
+            $file = $request->file('image');
+
+            $cloudName = config('services.cloudinary.cloud_name');
+            $apiKey = config('services.cloudinary.api_key');
+            $apiSecret = config('services.cloudinary.api_secret');
+
+            if ($cloudName && $apiKey && $apiSecret) {
+                try {
+                    $timestamp = time();
+                    $params = ['timestamp' => $timestamp];
+                    ksort($params);
+                    $signParts = [];
+                    foreach ($params as $key => $value) {
+                        $signParts[] = "$key=$value";
+                    }
+                    $signString = implode('&', $signParts).$apiSecret;
+                    $signature = sha1($signString);
+
+                    $response = Http::attach(
+                        'file',
+                        file_get_contents($file->getRealPath()),
+                        $file->getClientOriginalName()
+                    )->post("https://api.cloudinary.com/v1_1/$cloudName/auto/upload", [
+                        'api_key' => $apiKey,
+                        'timestamp' => $timestamp,
+                        'signature' => $signature,
+                    ]);
+
+                    if ($response->successful()) {
+                        $url = $response->json()['secure_url'];
+
+                        // Save to media assets
+                        MediaAsset::create([
+                            'tenant_id' => auth()->user()->tenant_id,
+                            'user_id' => auth()->id(),
+                            'name' => 'Featured Image: '.Str::limit($file->getClientOriginalName(), 30),
+                            'url' => $url,
+                            'type' => 'image',
+                            'source' => 'upload',
+                        ]);
+
+                        return response()->json(['success' => true, 'url' => $url]);
+                    } else {
+                        Log::error('Cloudinary upload failed: '.$response->status());
+                    }
+                } catch (\Exception $e) {
+                    Log::error('Cloudinary exception: '.$e->getMessage());
+                }
+            }
+
+            // Fallback to local storage
+            $filename = \Illuminate\Support\Str::random(40).'.'.$file->getClientOriginalExtension();
+            $file->move(public_path('uploads/content-media'), $filename);
+            $url = '/uploads/content-media/'.$filename;
+
+            // Save to media assets
+            MediaAsset::create([
+                'tenant_id' => auth()->user()->tenant_id,
+                'user_id' => auth()->id(),
+                'name' => 'Featured Image: '.Str::limit($file->getClientOriginalName(), 30),
+                'url' => $url,
+                'type' => 'image',
+                'source' => 'upload_local',
+            ]);
+
+            return response()->json(['success' => true, 'url' => $url]);
         }
 
         return response()->json(['success' => false, 'message' => 'No file uploaded'], 400);

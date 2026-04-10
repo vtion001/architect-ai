@@ -14,7 +14,7 @@ use Illuminate\Support\Facades\Route;
 */
 Route::prefix('auth')->group(function () {
     Route::post('register-agency', [AuthController::class, 'registerAgency'])->middleware('throttle:3,60');
-    Route::post('login', [AuthController::class, 'login'])->middleware('throttle:5,15');
+    Route::post('login', [AuthController::class, 'login'])->middleware('throttle:60,1');
 });
 
 /*

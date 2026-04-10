@@ -22,16 +22,41 @@ class AuthController extends Controller
         $request->validate([
             'email' => 'required|email',
             'password' => 'required',
-            'slug' => 'required|exists:tenants,slug', // Tenant slug required context
+            'slug' => ['nullable', 'string', function ($attribute, $value, $fail) {
+                if (!empty($value) && !Tenant::where('slug', $value)->exists()) {
+                    $fail('The selected workspace does not exist.');
+                }
+            }],
         ]);
 
-        $tenant = Tenant::where('slug', $request->slug)->firstOrFail();
-
-        // 1. Check credentials scoped to this tenant
+        $slug = $request->input('slug');
+        
+        // Find user by email first (without tenant scope)
         $user = User::withoutGlobalScope('tenant')
             ->where('email', $request->email)
-            ->where('tenant_id', $tenant->id)
             ->first();
+
+        // If slug provided, verify it matches user's tenant
+        if ($slug) {
+            $tenant = Tenant::where('slug', $slug)->first();
+            if (!$tenant) {
+                throw ValidationException::withMessages([
+                    'slug' => ['The selected workspace does not exist.'],
+                ]);
+            }
+            if (!$user || $user->tenant_id !== $tenant->id) {
+                throw ValidationException::withMessages([
+                    'email' => ['Invalid credentials for this workspace.'],
+                ]);
+            }
+        } elseif ($user) {
+            // No slug provided - use user's default tenant
+            $tenant = $user->tenant;
+        } else {
+            throw ValidationException::withMessages([
+                'email' => ['Invalid credentials.'],
+            ]);
+        }
 
         if (! $user || ! Hash::check($request->password, $user->password)) {
             throw ValidationException::withMessages([

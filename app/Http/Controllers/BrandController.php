@@ -127,49 +127,59 @@ class BrandController extends Controller
             $text = preg_replace('/\s+/', ' ', $text); // Compress whitespace
             $text = substr(trim($text), 0, 15000); // Truncate for token limits
 
-            // AI Analysis
-            $apiKey = config('services.minimax.key');
-            $baseUrl = config('services.minimax.base_url', 'https://api.minimaxi.com/v1');
-            $model = config('services.minimax.model', 'M2.7');
+            // AI Analysis - Use OpenAI or MiniMax
+            $systemPrompt = 'You are a Brand Strategist AI.
+Analyze the provided website text and extract the Brand DNA.
 
-            if (! $apiKey) {
-                return response()->json(['success' => false, 'message' => 'MiniMax AI service not configured.'], 500);
+Return a JSON object with these exact keys:
+- `name`: The likely brand name.
+- `tagline`: A short slogan found on the site.
+- `description`: A 2-3 sentence summary of what they do.
+- `industry`: The business sector (e.g., Technology, Healthcare).
+- `voice_profile`: An object with `tone` (e.g., Professional, Playful), `personality` (adjectives), and `keywords` (comma-separated).
+- `colors`: An object with `primary` (hex code) if mentioned or inferable (default to black/white if unsure).
+
+If specific fields are missing, make an educated guess based on the context.';
+
+            $userPrompt = "Analyze this website content:\n\n".$text;
+
+            // AI Analysis - OpenAI only
+            $openaiKey = config('services.openai.key');
+
+            if (!$openaiKey) {
+                return response()->json(['success' => false, 'message' => 'OpenAI API key not configured. Please set OPENAI_API_KEY.'], 500);
             }
 
-            $aiResponse = Http::withToken($apiKey)->post($baseUrl.'/text/chatcompletion_v2', [
-                'model' => $model,
+            $aiResponse = Http::withToken($openaiKey)->post('https://api.openai.com/v1/chat/completions', [
+                'model' => config('services.openai.model', 'gpt-4o-mini'),
                 'messages' => [
-                    [
-                        'role' => 'system',
-                        'content' => 'You are a Brand Strategist AI.
-                        Analyze the provided website text and extract the Brand DNA.
-
-                        Return a JSON object with these exact keys:
-                        - `name`: The likely brand name.
-                        - `tagline`: A short slogan found on the site.
-                        - `description`: A 2-3 sentence summary of what they do.
-                        - `industry`: The business sector (e.g., Technology, Healthcare).
-                        - `voice_profile`: An object with `tone` (e.g., Professional, Playful), `personality` (adjectives), and `keywords` (comma-separated).
-                        - `colors`: An object with `primary` (hex code) if mentioned or inferable (default to black/white if unsure).
-
-                        If specific fields are missing, make an educated guess based on the context.',
-                    ],
-                    [
-                        'role' => 'user',
-                        'content' => "Analyze this website content:\n\n".$text,
-                    ],
+                    ['role' => 'system', 'content' => $systemPrompt],
+                    ['role' => 'user', 'content' => $userPrompt],
                 ],
-                'max_completion_tokens' => 2000,
+                'max_tokens' => 2000,
                 'temperature' => 0.3,
             ]);
 
             if ($aiResponse->successful()) {
                 $data = $aiResponse->json('choices.0.message.content');
 
-                return response()->json(['success' => true, 'data' => json_decode($data)]);
+                if (empty($data)) {
+                    return response()->json(['success' => false, 'message' => 'AI returned empty response. Please try again.'], 500);
+                }
+
+                // Strip markdown code blocks if present (e.g., ```json ... ```)
+                $data = preg_replace('/^```json\s*/', '', trim($data));
+                $data = preg_replace('/\s*```$/', '', $data);
+
+                $parsed = json_decode($data, true);
+                if (json_last_error() !== JSON_ERROR_NONE) {
+                    return response()->json(['success' => false, 'message' => 'Failed to parse AI response. Please try again.'], 500);
+                }
+
+                return response()->json(['success' => true, 'data' => $parsed]);
             }
 
-            return response()->json(['success' => false, 'message' => 'AI analysis failed.'], 500);
+            return response()->json(['success' => false, 'message' => 'AI analysis failed: ' . $aiResponse->body()], 500);
 
         } catch (\Exception $e) {
             return response()->json(['success' => false, 'message' => 'Scraping failed: '.$e->getMessage()], 500);

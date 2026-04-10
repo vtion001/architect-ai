@@ -73,19 +73,46 @@
                 <h4 class="text-xs font-black text-primary uppercase tracking-wider">Suggested Blog Topics</h4>
             </div>
             <div class="flex gap-2">
-                <input type="text" 
-                       placeholder="Enter keyword for blog topic suggestions (e.g., 'home improvement', 'fitness')" 
+                <input type="text"
+                       x-model="blogSuggestionKeyword"
+                       @keydown.enter.prevent="fetchBlogSuggestions()"
+                       placeholder="Enter keyword for blog topic suggestions (e.g., 'home improvement', 'fitness')"
                        class="flex-1 h-12 rounded-lg border border-primary/20 bg-white/50 px-4 text-xs italic focus:ring-1 focus:ring-primary">
-                <button class="h-12 px-6 rounded-lg bg-white border border-primary/30 text-primary text-[10px] font-black uppercase tracking-widest flex items-center gap-2 hover:bg-primary/5">
-                    <i data-lucide="search" class="w-3.5 h-3.5"></i>
+                <button @click="fetchBlogSuggestions()"
+                        :disabled="isLoadingBlogSuggestions"
+                        class="h-12 px-6 rounded-lg bg-white border border-primary/30 text-primary text-[10px] font-black uppercase tracking-widest flex items-center gap-2 hover:bg-primary/5 disabled:opacity-50">
+                    <template x-if="!isLoadingBlogSuggestions">
+                        <i data-lucide="search" class="w-3.5 h-3.5"></i>
+                    </template>
+                    <template x-if="isLoadingBlogSuggestions">
+                        <i data-lucide="loader-2" class="w-3.5 h-3.5 animate-spin"></i>
+                    </template>
                     Get Suggestions
                 </button>
             </div>
             <p class="text-[10px] text-muted-foreground font-medium italic opacity-70">
                 Enter a keyword to get AI-generated blog topic suggestions related to your search. Leave blank to see general trending topics.
             </p>
-            <div class="text-center py-4 text-[10px] text-muted-foreground italic border-t border-primary/10">
+            <div class="text-center py-4 text-[10px] text-muted-foreground italic border-t border-primary/10"
+                 x-show="!blogSuggestions || blogSuggestions.length === 0">
                 Enter a keyword to get AI-generated suggestions or enter a topic manually below.
+            </div>
+            <div class="space-y-2 border-t border-primary/10 pt-4" x-show="blogSuggestions && blogSuggestions.length > 0">
+                <template x-for="(suggestion, index) in blogSuggestions" :key="index">
+                    <div @click="topic = suggestion.title; blogSuggestions = []"
+                         class="flex items-start gap-3 p-3 rounded-lg bg-white/50 hover:bg-white cursor-pointer border border-transparent hover:border-primary/20 transition-all">
+                        <i data-lucide="file-text" class="w-4 h-4 text-primary shrink-0 mt-0.5"></i>
+                        <div class="flex-1 min-w-0">
+                            <p class="text-xs font-bold text-foreground truncate" x-text="suggestion.title"></p>
+                            <p class="text-[10px] text-muted-foreground mt-1 line-clamp-2" x-text="suggestion.description"></p>
+                            <div class="flex gap-2 mt-2">
+                                <span class="text-[9px] font-black uppercase tracking-wider text-primary/70" x-text="suggestion.category || 'General'"></span>
+                                <span class="text-[9px] font-black uppercase tracking-wider text-muted-foreground" x-show="suggestion.search_volume" x-text="suggestion.search_volume"></span>
+                            </div>
+                        </div>
+                        <i data-lucide="plus-circle" class="w-4 h-4 text-primary/50 hover:text-primary shrink-0"></i>
+                    </div>
+                </template>
             </div>
         </div>
 
@@ -107,19 +134,88 @@
                 <label class="text-[10px] font-black uppercase tracking-widest text-foreground italic">
                     SEO Keywords (comma-separated)
                 </label>
-                <input x-model="keywords" type="text" 
-                       placeholder="e.g., AI content creation, social media marketing, viral posts" 
-                       class="w-full h-14 bg-muted/20 border border-border rounded-xl px-5 text-sm font-medium focus:ring-1 focus:ring-primary">
+                <div class="flex gap-2">
+                    <input x-model="keywords" type="text"
+                           @input="lastAutoSeoTopic = null"
+                           placeholder="e.g., AI content creation, social media marketing, viral posts"
+                           class="flex-1 h-14 bg-muted/20 border border-border rounded-xl px-5 text-sm font-medium focus:ring-1 focus:ring-primary">
+                    <button @click="fetchSeoSuggestions()"
+                            :disabled="isLoadingSeoSuggestions"
+                            class="h-14 px-5 rounded-xl bg-white border border-border text-primary text-[10px] font-black uppercase tracking-widest flex items-center gap-2 hover:bg-muted/50 disabled:opacity-50">
+                        <template x-if="!isLoadingSeoSuggestions">
+                            <div class="flex items-center gap-2">
+                                <i data-lucide="sparkles" class="w-4 h-4"></i>
+                                <span>Sugggest</span>
+                            </div>
+                        </template>
+                        <template x-if="isLoadingSeoSuggestions">
+                            <div class="flex items-center gap-2">
+                                <i data-lucide="loader-2" class="w-4 h-4 animate-spin"></i>
+                            </div>
+                        </template>
+                    </button>
+                </div>
+                <div x-show="seoSuggestions && seoSuggestions.length > 0" class="mt-2 p-3 bg-muted/30 border border-border rounded-lg">
+                    <div class="flex items-center justify-between mb-2">
+                        <span class="text-[10px] font-bold text-muted-foreground">Suggested keywords:</span>
+                        <button @click="seoSuggestions = []" class="text-[9px] text-muted-foreground hover:text-foreground">Clear</button>
+                    </div>
+                    <div class="flex flex-wrap gap-2">
+                        <template x-for="(kw, idx) in seoSuggestions" :key="idx">
+                            <button @click="appendKeyword(kw)"
+                                    class="px-3 py-1.5 text-[10px] font-medium bg-white border border-primary/20 rounded-full hover:bg-primary/5 hover:border-primary/40 transition-colors"
+                                    x-text="kw"></button>
+                        </template>
+                    </div>
+                </div>
                 <p class="text-[10px] text-muted-foreground font-medium italic">Optional: Add keywords you want to rank for (comma-separated)</p>
+            </div>
+
+            <div class="space-y-3">
+                <div class="flex items-center justify-between">
+                    <label class="text-[10px] font-black uppercase tracking-widest text-foreground italic flex items-center gap-1">
+                        Blog Post Body
+                    </label>
+                    <button @click="generateBlogBody()"
+                            :disabled="isGeneratingBlogBody || !topic"
+                            class="h-14 px-5 rounded-xl bg-white border border-border text-primary text-[10px] font-black uppercase tracking-widest flex items-center gap-2 hover:bg-muted/50 disabled:opacity-50">
+                        <template x-if="!isGeneratingBlogBody">
+                            <div class="flex items-center gap-2">
+                                <i data-lucide="sparkles" class="w-4 h-4"></i>
+                                <span>Generate Body</span>
+                            </div>
+                        </template>
+                        <template x-if="isGeneratingBlogBody">
+                            <div class="flex items-center gap-2">
+                                <i data-lucide="loader-2" class="w-4 h-4 animate-spin"></i>
+                                <span>Generating...</span>
+                            </div>
+                        </template>
+                    </button>
+                </div>
+                <textarea x-model="blogBody"
+                          rows="8"
+                          placeholder="Enter your blog post content here, or leave blank to auto-generate the full post..."
+                          class="w-full bg-muted/20 border border-border rounded-xl px-5 py-4 text-sm font-medium focus:ring-1 focus:ring-primary resize-none"></textarea>
+                <p class="text-[10px] text-muted-foreground font-medium italic">
+                    Optional: Paste an existing draft or notes. Leave blank to generate a complete SEO-optimized blog post.
+                </p>
             </div>
         </div>
 
         {{-- Featured Image Selection --}}
         <div class="bg-muted/10 border border-border rounded-xl p-6 space-y-4">
-            <h4 class="text-[10px] font-black uppercase tracking-widest text-foreground">Featured Image</h4>
+            <div class="flex items-center justify-between">
+                <h4 class="text-[10px] font-black uppercase tracking-widest text-foreground">Featured Image</h4>
+                <div x-show="featuredImageType === 'ai'" class="flex items-center gap-2">
+                    <span class="text-[9px] font-bold text-purple-600 uppercase tracking-wider">Banana Pro</span>
+                    <span class="text-[9px] text-muted-foreground">//</span>
+                    <span class="text-[9px] font-bold text-muted-foreground uppercase tracking-wider">OpenAI</span>
+                </div>
+            </div>
             <div class="flex gap-12">
                 <label class="flex items-center gap-3 cursor-pointer group">
-                    <input type="radio" value="ai" x-model="featuredImageType" 
+                    <input type="radio" value="ai" x-model="featuredImageType"
                            class="w-4 h-4 text-primary focus:ring-primary border-border">
                     <div class="flex items-center gap-2">
                         <i data-lucide="wand-2" class="w-4 h-4 text-muted-foreground group-hover:text-primary"></i>
@@ -127,7 +223,7 @@
                     </div>
                 </label>
                 <label class="flex items-center gap-3 cursor-pointer group">
-                    <input type="radio" value="manual" x-model="featuredImageType" 
+                    <input type="radio" value="manual" x-model="featuredImageType"
                            class="w-4 h-4 text-primary focus:ring-primary border-border">
                     <div class="flex items-center gap-2">
                         <i data-lucide="upload" class="w-4 h-4 text-muted-foreground group-hover:text-primary"></i>
@@ -135,9 +231,66 @@
                     </div>
                 </label>
             </div>
-            <p class="text-[10px] text-muted-foreground font-medium italic opacity-70">
-                An AI-generated featured image will be created automatically based on your blog topic.
-            </p>
+            <div x-show="featuredImageType === 'ai'">
+                <button @click="generateFeaturedImage()"
+                        class="w-full h-14 px-5 rounded-xl bg-white border border-border text-primary text-[10px] font-black uppercase tracking-widest flex items-center justify-center gap-2 hover:bg-muted/50">
+                    <i data-lucide="sparkles" class="w-4 h-4"></i>
+                    <span>Generate Featured Image</span>
+                </button>
+                <p class="text-[10px] text-muted-foreground font-medium italic opacity-70 mt-2">
+                    AI generates an image prompt from your blog content, then creates the featured image.
+                </p>
+                <div x-show="featuredImageUrl" class="mt-4 p-3 bg-primary/5 rounded-xl border border-primary/20">
+                    <div class="flex items-center gap-3">
+                        <img :src="featuredImageUrl" class="w-16 h-16 rounded-lg object-cover">
+                        <div class="flex-1">
+                            <p class="text-[10px] font-black uppercase text-primary tracking-widest mb-1">Image Ready</p>
+                            <p class="text-[10px] text-muted-foreground italic">Your featured image has been generated.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div x-show="featuredImageType === 'manual'" class="space-y-3">
+                <div x-show="!featuredImageUrl"
+                     class="relative border-2 border-dashed border-border rounded-xl p-8 text-center hover:border-primary/50 transition-colors cursor-pointer"
+                     :class="{ 'border-red-400': featuredImageUploadError }"
+                     @click="$refs.featuredImageInput.click()"
+                     @dragover.prevent="isDraggingFeaturedImage = true"
+                     @dragleave.prevent="isDraggingFeaturedImage = false"
+                     @drop.prevent="handleFeaturedImageDrop($event)">
+                    <input type="file"
+                           x-ref="featuredImageInput"
+                           @change="handleFeaturedImageUpload($event)"
+                           accept="image/*"
+                           class="hidden">
+                    <div class="flex flex-col items-center gap-3">
+                        <i data-lucide="upload" class="w-10 h-10 text-muted-foreground"></i>
+                        <div>
+                            <p class="text-sm font-bold text-foreground">Click to upload or drag and drop</p>
+                            <p class="text-[10px] text-muted-foreground mt-1">PNG, JPG, WEBP up to 10MB</p>
+                        </div>
+                    </div>
+                </div>
+                <div x-show="isUploadingFeaturedImage" class="flex items-center justify-center py-4">
+                    <div class="flex items-center gap-3">
+                        <i data-lucide="loader-2" class="w-5 h-5 animate-spin text-primary"></i>
+                        <span class="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Uploading...</span>
+                    </div>
+                </div>
+                <div x-show="featuredImageUrl && featuredImageType === 'manual'" class="p-3 bg-primary/5 rounded-xl border border-primary/20">
+                    <div class="flex items-center gap-3">
+                        <img :src="featuredImageUrl" class="w-16 h-16 rounded-lg object-cover">
+                        <div class="flex-1">
+                            <p class="text-[10px] font-black uppercase text-primary tracking-widest mb-1">Image Uploaded</p>
+                            <p class="text-[10px] text-muted-foreground italic">Your featured image is ready.</p>
+                        </div>
+                        <button @click="featuredImageUrl = ''" class="w-8 h-8 rounded-lg hover:bg-red-50 flex items-center justify-center transition-colors">
+                            <i data-lucide="trash-2" class="w-4 h-4 text-red-500"></i>
+                        </button>
+                    </div>
+                </div>
+                <p x-show="featuredImageUploadError" class="text-[10px] text-red-500 font-bold" x-text="featuredImageUploadError"></p>
+            </div>
         </div>
 
         {{-- Shared Parameters --}}
@@ -211,5 +364,8 @@
                 </template>
             </div>
         </div>
+
+        {{-- Banana Pro Image Creator Modal --}}
+        @include('content-creator.partials.post-card.modals.image-creator-modal')
     </div>
 </div>

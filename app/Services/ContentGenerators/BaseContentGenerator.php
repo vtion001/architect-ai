@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Services\ContentGenerators;
 
 use App\Contracts\ContentGeneratorInterface;
-use Illuminate\Support\Facades\Http;
+use App\Services\AI\OpenAIClient;
 
 /**
  * Base class for content generators.
@@ -19,42 +19,40 @@ use Illuminate\Support\Facades\Http;
  */
 abstract class BaseContentGenerator implements ContentGeneratorInterface
 {
-    protected string $apiKey;
-
-    protected string $model;
-
-    protected string $baseUrl;
+    protected OpenAIClient $openAIClient;
 
     public function __construct()
     {
-        $this->apiKey = config('services.openrouter.key');
-        $this->model = config('services.openrouter.content_model', 'zhipu-ai/glm-4.5-air');
-        $this->baseUrl = config('services.openrouter.base_url', 'https://openrouter.ai/api/v1/chat/completions');
+        $this->openAIClient = app(OpenAIClient::class);
     }
 
     /**
-     * Generate content using OpenRouter GLM-4.5 Air.
+     * Generate content using OpenAI.
      */
     public function generate(string $topic, ?string $context = null, array $options = []): string
     {
         $systemPrompt = $this->getSystemPrompt($options);
         $userPrompt = $this->getUserPrompt($topic, $context, $options);
 
-        $response = Http::withToken($this->apiKey)
-            ->timeout($options['timeout'] ?? 120)
-            ->post($this->baseUrl, [
-                'model' => $options['model'] ?? $this->model,
-                'messages' => [
-                    ['role' => 'system', 'content' => $systemPrompt],
-                    ['role' => 'user', 'content' => $userPrompt],
-                ],
-                'temperature' => $options['temperature'] ?? 0.8,
-                'max_tokens' => $options['max_tokens'] ?? 4000,
-                'response_format' => $options['response_format'] ?? null,
-            ]);
+        $messages = [
+            ['role' => 'system', 'content' => $systemPrompt],
+            ['role' => 'user', 'content' => $userPrompt],
+        ];
 
-        if ($response->successful()) {
-            $message = $response->json('choices.0.message.content') ?? '';
+        $chatOptions = [
+            'temperature' => $options['temperature'] ?? 0.8,
+            'max_tokens' => $options['max_tokens'] ?? 4000,
+            'timeout' => $options['timeout'] ?? 120,
+        ];
+
+        if (isset($options['model'])) {
+            $chatOptions['model'] = $options['model'];
+        }
+
+        $response = $this->openAIClient->chat($messages, $chatOptions);
+
+        if ($response['success']) {
+            $message = $response['message'] ?? '';
         } else {
             $message = 'Content generation failed.';
         }
@@ -65,6 +63,20 @@ abstract class BaseContentGenerator implements ContentGeneratorInterface
         }
 
         return $message;
+    }
+
+    /**
+     * Get humanization instructions based on tone.
+     */
+    protected function getHumanizeInstruction(string $tone = 'Professional'): string
+    {
+        return "STRICT HUMANIZATION GUIDELINES:
+- Write like a real person sharing valuable insights, not an AI following a prompt.
+- Use natural sentence variety (mix short and long sentences).
+- Use contractions (e.g., 'don't', 'it's', 'we're') to sound conversational.
+- Avoid AI 'tells' and clichés: Do NOT use words like 'delve', 'unlock', 'embark', 'comprehensive', 'in today's digital landscape', 'step into', 'step into the world', or 'tapestry'.
+- Use active voice and focus on a direct connection with the reader.
+- Inject a bit of personality and warmth while maintaining the '{$tone}' tone.";
     }
 
     /**
