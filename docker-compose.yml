@@ -6,14 +6,27 @@ services:
         image: architect-ai-app
         container_name: architect-ai-app
         restart: unless-stopped
-        working_dir: /var/www
+        working_dir: /var/www/html
         environment:
-            PHP_UPLOAD_MAX_FILESIZE: 100M
-            PHP_POST_MAX_SIZE: 100M
             PHP_MEMORY_LIMIT: 256M
+            APP_URL: http://localhost:8081
+            NGINX_WEBROOT: /var/www/html/public
+            NGINX_PORT: 8080
+            NGINX_CLIENT_MAX_BODY_SIZE: 100M
+            HEALTHCHECK_PATH: /healthcheck
+            PHP_PM: dynamic
+            PHP_PM_MAX_CHILDREN: 8
+            PHP_PM_START_SERVERS: 2
+            PHP_PM_MIN_SPARE_SERVERS: 2
+            PHP_PM_MAX_SPARE_SERVERS: 4
+            PHP_OPCACHE_ENABLE: 0
+            SKIP_LAZY_OVERRIDE: "true"
+        env_file:
+            - .env.docker
         volumes:
-            - ./:/var/www
-            - ./docker/php/uploads.ini:/usr/local/etc/php/conf.d/uploads.ini
+            - ./:/var/www/html
+            - ./docker/php/php-fpm-pool.conf:/usr/local/etc/php-fpm.d/zzz-override.conf:ro
+            - architect-storage:/var/www/html/storage
         networks:
             - architect-network
 
@@ -24,30 +37,38 @@ services:
         image: architect-ai-app
         container_name: architect-ai-queue
         restart: unless-stopped
-        working_dir: /var/www
-        command: php artisan queue:work --tries=3 --timeout=600
+        working_dir: /var/www/html
+        command: ["php", "artisan", "queue:work", "--tries=3", "--timeout=600"]
         environment:
             PHP_MEMORY_LIMIT: 512M
+            SKIP_LAZY_OVERRIDE: "true"
+        env_file:
+            - .env.docker
         volumes:
-            - ./:/var/www
-            - ./docker/php/uploads.ini:/usr/local/etc/php/conf.d/uploads.ini
+            - ./:/var/www/html
+            - ./docker/php/php-fpm-pool.conf:/usr/local/etc/php-fpm.d/zzz-override.conf:ro
+            - architect-storage:/var/www/html/storage
         networks:
             - architect-network
         depends_on:
             - app
             - db
             - qdrant
+
     web:
         image: nginx:alpine
         container_name: architect-ai-web
         restart: unless-stopped
         ports:
-            - "8000:80"
+            - "8081:80"
         volumes:
-            - ./:/var/www
-            - ./docker/nginx/conf.d/:/etc/nginx/conf.d/
+            - ./:/var/www/html:ro
+            - ./docker/nginx/conf.d/:/etc/nginx/conf.d/:ro
+            - architect-storage:/var/www/html/storage:ro
         networks:
             - architect-network
+        depends_on:
+            - app
 
     db:
         image: mysql:8.0
@@ -79,3 +100,6 @@ services:
 networks:
     architect-network:
         driver: bridge
+
+volumes:
+    architect-storage:

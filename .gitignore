@@ -17,6 +17,7 @@
 .env
 .env.backup
 .env.production
+.env.docker
 .phpunit.result.cache
 docker-compose.override.yml
 user.ini

@@ -66,14 +66,31 @@ Tenant (agency/account)
   └── User → Role → Permission
 ```
 
-The `tenant` middleware automatically scopes queries to the current tenant. Models use the `BelongsToTenant` trait.
+Multi-tenancy is implemented via `TenantMiddleware` which handles:
+- **Session hot-swap context**: Allows switching between sub-accounts via `session('current_tenant_id')`
+- **Domain-based resolution**: Custom domains mapped via `Tenant.metadata->custom_domain`
+- **Slug-based resolution**: Tenant identified by `X-Tenant-Slug` header or route parameter
+- **Isolation verification**: Cross-tenant access is blocked and audited
+
+Models use `tenant_id` foreign key with global scopes for automatic query scoping.
 
 ### AI Service Layer
 
 **Primary:** MiniMax (`app/Services/AI/MiniMaxClient.php`)
 **Fallback:** OpenAI, OpenRouter, Perplexity
 
-The `AiChatProcessingService` handles context-aware conversations with conversation history stored in `agent_conversations` table.
+**Chat Processing Pipeline:**
+```
+AiChatProcessingService
+  ├── TokenService (consume/check tokens)
+  ├── PromptBuilder (build system prompt, format messages)
+  ├── ResearchService (RAG context from knowledge base)
+  └── MiniMaxClient (API calls)
+```
+
+- `AiChatProcessingService` handles context-aware conversations with conversation history stored in `agent_conversations` table
+- Token consumption happens BEFORE AI calls; refunds on failure
+- Brand context injected via `BrandResolverService`
 
 ### Document Generation (Refactored)
 
@@ -134,7 +151,7 @@ Commands: `RefillGridTokens`, `RefillUserQuotas` (scheduled)
 
 | Enum | Location | Purpose |
 |------|----------|---------|
-| `FeatureType` | `app/Enums/FeatureType.php` | Content, Research, Documents |
+| `FeatureType` | `app/Enums/FeatureType.php` | Content, Research, Documents (used for token allocations) |
 | `PlanType` | `app/Enums/PlanType.php` | Token-based plans |
 | `ReportTemplate` | `app/Enums/ReportTemplate.php` | CV, Cover Letter, Proposal, Contract, 7 Report types |
 
@@ -156,7 +173,7 @@ All configured via `config/services.php` and `.env`:
 app/
 ├── Console/Commands/       # Artisan commands (scheduled tasks, migrations)
 ├── Contracts/              # Interface definitions
-├── DTOs/                   # Data Transfer Objects
+├── DTOs/                   # Data Transfer Objects (ChatProcessingResult, ReportRequestData)
 ├── Enums/                  # FeatureType, PlanType, ReportTemplate
 ├── Http/Controllers/       # Laravel controllers
 │   ├── Auth/               # Auth, MFA, Invitation, Tenant, Developer
@@ -165,7 +182,7 @@ app/
 ├── Jobs/                   # Queue jobs (GenerateContent, RenderVideo, etc.)
 ├── Middleware/             # Tenant, MFA, SessionSecurity, CheckPermission
 ├── Models/                 # Eloquent models (Tenant, User, Content, Document, etc.)
-├── Observers/              # Model observers for side effects
+├── Observers/              # Model observers for side effects (AiAgent, Content, Tenant)
 └── Services/               # Business logic
     ├── AI/                 # MiniMaxClient, OpenAIClient, PromptBuilder
     ├── ContentGenerators/  # Blog, Social, Video, Calendar generators
