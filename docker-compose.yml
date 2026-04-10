@@ -74,13 +74,12 @@ services:
         image: mysql:8.0
         container_name: architect-ai-db
         restart: unless-stopped
+        command: --default-authentication-plugin=mysql_native_password
         environment:
-            MYSQL_DATABASE: ${DB_DATABASE}
-            MYSQL_ROOT_PASSWORD: ${DB_PASSWORD}
-            MYSQL_PASSWORD: ${DB_PASSWORD}
-            MYSQL_USER: ${DB_USERNAME}
-            SERVICE_TAGS: dev
-            SERVICE_NAME: mysql
+            MYSQL_ROOT_PASSWORD: archpass123
+            MYSQL_DATABASE: architect_ai
+            MYSQL_USER: root
+            MYSQL_PASSWORD: archpass123
         volumes:
             - ./docker/mysql/data:/var/lib/mysql
         networks:
