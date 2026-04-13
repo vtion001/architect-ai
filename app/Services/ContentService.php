@@ -2,7 +2,7 @@
 
 namespace App\Services;
 
-use App\Services\AI\MiniMaxClient;
+use App\Services\AI\OpenAIClient;
 use App\Services\Factories\ContentGeneratorFactory;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
@@ -14,7 +14,7 @@ class ContentService
     public function __construct(
         protected ContentGeneratorFactory $factory,
         protected KnowledgeBaseService $knowledgeBaseService,
-        protected MiniMaxClient $miniMaxClient
+        protected OpenAIClient $openAIClient
     ) {
         $this->hikerApiKey = config('services.hiker_api.key');
     }
@@ -27,7 +27,7 @@ class ContentService
             $context = ($context ? $context."\n\n" : '')."EXTERNAL KNOWLEDGE BASE DATA:\n".$kbContext;
         }
 
-        // Compose prompt for MiniMax
+        // Compose prompt for OpenAI
         $prompt = $topic;
         if ($context) {
             $prompt .= "\n".$context;
@@ -44,13 +44,13 @@ class ContentService
             'timeout' => 120,
         ];
 
-        $response = $this->miniMaxClient->chat($messages, $chatOptions);
+        $response = $this->openAIClient->chat($messages, $chatOptions);
 
         if ($response['success']) {
             return $response['message'] ?? '';
         }
 
-        Log::error('ContentService: MiniMax generation failed', ['error' => $response['error'] ?? 'Unknown']);
+        Log::error('ContentService: OpenAI generation failed', ['error' => $response['error'] ?? 'Unknown']);
 
         return 'Content generation failed.';
     }

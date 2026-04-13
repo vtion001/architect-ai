@@ -7,7 +7,10 @@ use Illuminate\Support\Facades\Log;
 use Qdrant\Config;
 use Qdrant\Http\Builder;
 use Qdrant\Models\PointStruct;
+use Qdrant\Models\Request\CreateCollection;
+use Qdrant\Models\Request\SearchRequest;
 use Qdrant\Models\Request\VectorParams;
+use Qdrant\Models\PointsStruct;
 use Qdrant\Models\VectorStruct;
 use Qdrant\Qdrant;
 
@@ -36,7 +39,7 @@ class VectorService
     public function ensureCollection(): void
     {
         try {
-            $response = $this->client->collections()->get($this->collection);
+            $response = $this->client->collections($this->collection)->info();
             if (! isset($response['result'])) {
                 $this->createCollection();
             }
@@ -50,7 +53,8 @@ class VectorService
     {
         try {
             $vectorParams = new VectorParams($this->dimension, VectorParams::DISTANCE_COSINE);
-            $this->client->collections()->create($this->collection, $vectorParams);
+            $createCollection = (new CreateCollection())->addVector($vectorParams);
+            $this->client->collections($this->collection)->create($createCollection);
             Log::info("Qdrant collection '{$this->collection}' created.");
         } catch (\Exception $e) {
             Log::error('Failed to create Qdrant collection: '.$e->getMessage());
@@ -58,7 +62,7 @@ class VectorService
     }
 
     /**
-     * Generate embedding using Gemini API
+     * Generate embedding using OpenAI API
      */
     public function embed(string $text): ?array
     {
@@ -102,13 +106,16 @@ class VectorService
         $this->ensureCollection();
 
         $point = new PointStruct(
-            id: $id, // Qdrant requires UUID or Int. If $id is UUID string, pass it directly.
+            id: $id,
             vector: new VectorStruct($vector),
             payload: array_merge(['content' => $content], $payload)
         );
 
+        $pointsStruct = new PointsStruct();
+        $pointsStruct->addPoint($point);
+
         try {
-            $this->client->points()->upsert($this->collection, [$point]);
+            $this->client->collections($this->collection)->points()->upsert($pointsStruct);
 
             return true;
         } catch (\Exception $e) {
@@ -126,14 +133,11 @@ class VectorService
         }
 
         try {
-            // Note: search method signature might vary by client version
-            // For hkulekci/qdrant v0.5+: use search points
-            $results = $this->client->points()->search(
-                $this->collection,
-                new VectorStruct($vector),
-                $limit,
-                ['with_payload' => true]
-            );
+            $searchRequest = (new SearchRequest(new VectorStruct($vector)))
+                ->setLimit($limit)
+                ->setWithPayload(true);
+
+            $results = $this->client->collections($this->collection)->points()->search($searchRequest);
 
             return $results['result'] ?? [];
         } catch (\Exception $e) {
