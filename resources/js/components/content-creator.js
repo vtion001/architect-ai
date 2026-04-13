@@ -35,6 +35,7 @@ document.addEventListener('alpine:init', () => {
         isBatchMode: false,
         featuredImageType: 'ai',
         featuredImageUrl: '',
+        showImagePreview: false,
         blogSuggestionKeyword: '',
         blogSuggestions: [],
         isLoadingBlogSuggestions: false,
@@ -54,6 +55,7 @@ document.addEventListener('alpine:init', () => {
         isUploadingFeaturedImage: false,
         featuredImageUploadError: '',
         isDraggingFeaturedImage: false,
+        isGeneratingFeaturedImage: false,
 
         // Video specific - Core
         videoStyle: 'UGC',
@@ -645,7 +647,7 @@ document.addEventListener('alpine:init', () => {
 
         generateFeaturedImage() {
             // Use blog body to generate an AI image prompt, then generate the image
-            if (this.isGenerating) return;
+            if (this.isGenerating || this.isGeneratingFeaturedImage) return;
 
             const hasBlogBody = this.blogBody && this.blogBody.length > 50;
             const hasTopic = this.topic && this.topic.length >= 3;
@@ -654,6 +656,8 @@ document.addEventListener('alpine:init', () => {
                 alert('Please enter a blog topic first.');
                 return;
             }
+
+            this.isGeneratingFeaturedImage = true;
 
             if (hasBlogBody) {
                 // First generate an image prompt from the blog body using OpenAI
@@ -750,6 +754,7 @@ document.addEventListener('alpine:init', () => {
                 })
                 .finally(() => {
                     this.isGenerating = false;
+                    this.isGeneratingFeaturedImage = false;
                 });
         },
 

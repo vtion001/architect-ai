@@ -36,12 +36,16 @@ Services: `app` (Laravel), `queue` (background jobs), `web` (nginx), `db` (MySQL
 php artisan serve                    # Start dev server
 php artisan queue:work               # Run queue worker
 npm run dev                          # Vite dev server
-npm run build                        # Production build
+npm run build                        # Production build (runs `rm -f public/hot && vite build`)
+npm run type-check                   # tsc --noEmit (TypeScript check)
 
 # Code Quality
-./vendor/bin/pint                    # Laravel Pint (code style)
-./vendor/bin/pest                    # Run tests
-./vendor/bin/pest --filter=TestName # Run specific test
+./vendor/bin/pint                         # Laravel Pint (code style)
+./vendor/bin/phpunit                      # Run all tests (PHPUnit 10.5)
+./vendor/bin/phpunit --filter=TestName   # Run a single test by name
+./vendor/bin/phpunit --testsuite=Feature # Run only Feature or Unit suite
+
+# Tests run against SQLite in-memory (see phpunit.xml) — no MySQL/Qdrant needed.
 
 # Database
 php artisan migrate                  # Run migrations
@@ -190,9 +194,10 @@ app/
     └── [Feature]Service    # VectorService, ReportService, ResearchService, etc.
 
 routes/
-├── api.php      # API routes (auth, content, research)
-├── web.php      # Web routes (session auth)
-└── console.php  # Scheduled commands
+├── api.php       # API routes (auth, content, research)
+├── api-docs.php  # API documentation routes (Stoplight Elements)
+├── web.php       # Web routes (session auth)
+└── console.php   # Scheduled commands
 ```
 
 ---

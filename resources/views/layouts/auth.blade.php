@@ -57,7 +57,6 @@
         @vite(['resources/css/app.css', 'resources/js/app.js'])
         <script src="https://unpkg.com/lucide@latest"></script>
         <script src="https://unpkg.com/alpinejs" defer></script>
-        <script src="https://cdn.tailwindcss.com"></script>
     </head>
     <body class="antialiased text-slate-200">
         <div class="min-h-screen flex flex-col items-center justify-center p-6 relative overflow-hidden">

@@ -14,7 +14,11 @@ export default defineConfig(({ command, mode }) => {
                     'resources/css/elements.css',
                     'resources/js/elements.js'
                 ],
-                refresh: true,
+                refresh: [
+                    'app/Http/Controllers/**/*.php',
+                    'resources/views/**/*.blade.php',
+                    'routes/**/*.php',
+                ],
             }),
         ],
 
@@ -39,16 +43,41 @@ export default defineConfig(({ command, mode }) => {
             chunkSizeWarningLimit: 500,
         },
 
-        // Dev server
+        // Dev server - proxy to Docker nginx for backend routes only
         server: {
             host: '0.0.0.0',
-            port: 5173,
+            port: 5175,
             strictPort: false,
             allowedHosts: true,
             hmr: process.env.VITE_HMR_HOST
                 ? { host: process.env.VITE_HMR_HOST }
                 : command === 'serve' ? { host: 'localhost' } : false,
             cors: true,
+            proxy: {
+                // Proxy API routes to Laravel backend
+                '/api': {
+                    target: 'http://localhost:8081',
+                    changeOrigin: true,
+                    secure: false,
+                },
+                // Proxy auth routes to Laravel backend
+                '/auth': {
+                    target: 'http://localhost:8081',
+                    changeOrigin: true,
+                    secure: false,
+                },
+                // Proxy other web routes that need PHP processing
+                '/dashboard': {
+                    target: 'http://localhost:8081',
+                    changeOrigin: true,
+                    secure: false,
+                },
+                '/admin': {
+                    target: 'http://localhost:8081',
+                    changeOrigin: true,
+                    secure: false,
+                },
+            },
         },
 
         // Base path for production

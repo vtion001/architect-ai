@@ -206,8 +206,19 @@
         {{-- Featured Image Selection --}}
         <div class="bg-muted/10 border border-border rounded-xl p-6 space-y-4">
             <div class="flex items-center justify-between">
-                <h4 class="text-[10px] font-black uppercase tracking-widest text-foreground">Featured Image</h4>
-                <div x-show="featuredImageType === 'ai'" class="flex items-center gap-2">
+                <div class="flex items-center gap-3">
+                    <h4 class="text-[10px] font-black uppercase tracking-widest text-foreground">Featured Image</h4>
+                    <div x-show="isGeneratingFeaturedImage"
+                         class="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-purple-600/10 border border-purple-600/30"
+                         style="display: none;">
+                        <span class="relative flex h-2 w-2">
+                            <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-purple-500 opacity-75"></span>
+                            <span class="relative inline-flex rounded-full h-2 w-2 bg-purple-600"></span>
+                        </span>
+                        <span class="text-[9px] font-black text-purple-600 uppercase tracking-widest">Generating</span>
+                    </div>
+                </div>
+                <div x-show="featuredImageType === 'ai' && !isGeneratingFeaturedImage" class="flex items-center gap-2">
                     <span class="text-[9px] font-bold text-purple-600 uppercase tracking-wider">Banana Pro</span>
                     <span class="text-[9px] text-muted-foreground">//</span>
                     <span class="text-[9px] font-bold text-muted-foreground uppercase tracking-wider">OpenAI</span>
@@ -233,20 +244,38 @@
             </div>
             <div x-show="featuredImageType === 'ai'">
                 <button @click="generateFeaturedImage()"
-                        class="w-full h-14 px-5 rounded-xl bg-white border border-border text-primary text-[10px] font-black uppercase tracking-widest flex items-center justify-center gap-2 hover:bg-muted/50">
-                    <i data-lucide="sparkles" class="w-4 h-4"></i>
-                    <span>Generate Featured Image</span>
+                        :disabled="isGeneratingFeaturedImage"
+                        :class="isGeneratingFeaturedImage ? 'opacity-60 cursor-not-allowed' : 'hover:bg-muted/50'"
+                        class="w-full h-14 px-5 rounded-xl bg-white border border-border text-primary text-[10px] font-black uppercase tracking-widest flex items-center justify-center gap-2 transition-opacity">
+                    <template x-if="!isGeneratingFeaturedImage">
+                        <i data-lucide="sparkles" class="w-4 h-4"></i>
+                    </template>
+                    <template x-if="isGeneratingFeaturedImage">
+                        <i data-lucide="loader-2" class="w-4 h-4 animate-spin"></i>
+                    </template>
+                    <span x-text="isGeneratingFeaturedImage ? 'Generating Featured Image...' : 'Generate Featured Image'"></span>
                 </button>
-                <p class="text-[10px] text-muted-foreground font-medium italic opacity-70 mt-2">
+                <p x-show="!isGeneratingFeaturedImage" class="text-[10px] text-muted-foreground font-medium italic opacity-70 mt-2">
                     AI generates an image prompt from your blog content, then creates the featured image.
+                </p>
+                <p x-show="isGeneratingFeaturedImage" class="text-[10px] text-purple-600 font-bold italic mt-2" style="display: none;">
+                    Crafting prompt and rendering your image — this can take 10–30 seconds.
                 </p>
                 <div x-show="featuredImageUrl" class="mt-4 p-3 bg-primary/5 rounded-xl border border-primary/20">
                     <div class="flex items-center gap-3">
-                        <img :src="featuredImageUrl" class="w-16 h-16 rounded-lg object-cover">
+                        <button @click="showImagePreview = true" class="relative group cursor-pointer">
+                            <img :src="featuredImageUrl" class="w-16 h-16 rounded-lg object-cover">
+                            <div class="absolute inset-0 bg-black/50 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                <i data-lucide="maximize-2" class="w-5 h-5 text-white"></i>
+                            </div>
+                        </button>
                         <div class="flex-1">
                             <p class="text-[10px] font-black uppercase text-primary tracking-widest mb-1">Image Ready</p>
                             <p class="text-[10px] text-muted-foreground italic">Your featured image has been generated.</p>
                         </div>
+                        <button @click="showImagePreview = true" class="w-8 h-8 rounded-lg hover:bg-primary/10 flex items-center justify-center transition-colors">
+                            <i data-lucide="eye" class="w-4 h-4 text-primary"></i>
+                        </button>
                     </div>
                 </div>
             </div>
@@ -279,11 +308,19 @@
                 </div>
                 <div x-show="featuredImageUrl && featuredImageType === 'manual'" class="p-3 bg-primary/5 rounded-xl border border-primary/20">
                     <div class="flex items-center gap-3">
-                        <img :src="featuredImageUrl" class="w-16 h-16 rounded-lg object-cover">
+                        <button @click="showImagePreview = true" class="relative group cursor-pointer">
+                            <img :src="featuredImageUrl" class="w-16 h-16 rounded-lg object-cover">
+                            <div class="absolute inset-0 bg-black/50 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                <i data-lucide="maximize-2" class="w-5 h-5 text-white"></i>
+                            </div>
+                        </button>
                         <div class="flex-1">
                             <p class="text-[10px] font-black uppercase text-primary tracking-widest mb-1">Image Uploaded</p>
                             <p class="text-[10px] text-muted-foreground italic">Your featured image is ready.</p>
                         </div>
+                        <button @click="showImagePreview = true" class="w-8 h-8 rounded-lg hover:bg-primary/10 flex items-center justify-center transition-colors">
+                            <i data-lucide="eye" class="w-4 h-4 text-primary"></i>
+                        </button>
                         <button @click="featuredImageUrl = ''" class="w-8 h-8 rounded-lg hover:bg-red-50 flex items-center justify-center transition-colors">
                             <i data-lucide="trash-2" class="w-4 h-4 text-red-500"></i>
                         </button>
@@ -367,5 +404,24 @@
 
         {{-- Banana Pro Image Creator Modal --}}
         @include('content-creator.partials.post-card.modals.image-creator-modal')
+
+        {{-- Featured Image Preview Modal --}}
+        <div x-show="showImagePreview"
+             x-transition:enter="transition ease-out duration-200"
+             x-transition:enter-start="opacity-0"
+             x-transition:enter-end="opacity-100"
+             x-transition:leave="transition ease-in duration-150"
+             x-transition:leave-start="opacity-100"
+             x-transition:leave-end="opacity-0"
+             class="fixed inset-0 z-50 flex items-center justify-center p-4"
+             @keydown.escape.window="showImagePreview = false">
+            <div class="absolute inset-0 bg-black/80 backdrop-blur-sm" @click="showImagePreview = false"></div>
+            <div class="relative z-10 max-w-4xl max-h-[90vh] w-full">
+                <button @click="showImagePreview = false" class="absolute -top-10 right-0 w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center transition-colors">
+                    <i data-lucide="x" class="w-5 h-5 text-white"></i>
+                </button>
+                <img :src="featuredImageUrl" class="w-full h-auto max-h-[85vh] object-contain rounded-lg shadow-2xl">
+            </div>
+        </div>
     </div>
 </div>
