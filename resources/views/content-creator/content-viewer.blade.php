@@ -11,25 +11,30 @@
     // Pre-process posts data for JavaScript
     $rawResult = trim($content->result ?? '');
     
-    // Improved regex to handle various newline formats and common separators (---, ***, ___)
-    // Using 'm' flag to treat as multiple lines, making start/end line anchors reliable
-    $rawSegments = preg_split('/^\s*[-*_]{3,}\s*$/m', $rawResult);
-    
-    // Fallback 1: Numbered list split (e.g. "1. ", "2. ")
-    if (count($rawSegments) < ($content->options['count'] ?? 1)) {
-        // Only split by numbers that are at the start of a line
-        $numberedSplit = preg_split('/^\s*\d+\.\s+/m', $rawResult);
-        $numberedSplit = array_values(array_filter(array_map('trim', $numberedSplit)));
-        if (count($numberedSplit) >= ($content->options['count'] ?? 1)) {
-            $rawSegments = $numberedSplit;
+    // Blog posts should not be split - they are single cohesive pieces of content
+    if ($content->type === 'blog') {
+        $rawSegments = [$rawResult];
+    } else {
+        // Improved regex to handle various newline formats and common separators (---, ***, ___)
+        // Using 'm' flag to treat as multiple lines, making start/end line anchors reliable
+        $rawSegments = preg_split('/^\s*[-*_]{3,}\s*$/m', $rawResult);
+        
+        // Fallback 1: Numbered list split (e.g. "1. ", "2. ")
+        if (count($rawSegments) < ($content->options['count'] ?? 1)) {
+            // Only split by numbers that are at the start of a line
+            $numberedSplit = preg_split('/^\s*\d+\.\s+/m', $rawResult);
+            $numberedSplit = array_values(array_filter(array_map('trim', $numberedSplit)));
+            if (count($numberedSplit) >= ($content->options['count'] ?? 1)) {
+                $rawSegments = $numberedSplit;
+            }
         }
-    }
-
-    // Fallback 2: Double newline split
-    if (count($rawSegments) < ($content->options['count'] ?? 1)) {
-        $newlineSplit = preg_split('/\R{2,}/', $rawResult);
-        if (count($newlineSplit) >= ($content->options['count'] ?? 1)) {
-            $rawSegments = $newlineSplit;
+        
+        // Fallback 2: Double newline split
+        if (count($rawSegments) < ($content->options['count'] ?? 1)) {
+            $newlineSplit = preg_split('/\R{2,}/', $rawResult);
+            if (count($newlineSplit) >= ($content->options['count'] ?? 1)) {
+                $rawSegments = $newlineSplit;
+            }
         }
     }
 
@@ -60,6 +65,8 @@
         
         $cleanText = preg_replace('/^#+\s+/m', '', $finalPostContent);
         $cleanText = str_replace(['*', '`'], '', $cleanText);
+        
+        // Blog posts: output plain text with preserved formatting
         $cleanHtml = nl2br(e($cleanText));
         
         $postsData[] = [
@@ -163,7 +170,46 @@
                 handleUpload(event) { const file = event.target.files[0]; if (!file) return; this.isUploading = true; if (file.type.startsWith('image/')) { this.compressImage(file, (blob) => { this.performUpload(blob, file.name); }); } else { this.performUpload(file, file.name); } },
                 performUpload(blob, name) { const fd = new FormData(); fd.append('file', blob, name); fetch('/content-creator/upload-media', { method: 'POST', body: fd, headers: { 'X-CSRF-TOKEN': cfg.csrfToken, 'Accept': 'application/json' } }).then(async res => { if (!res.ok) { if (res.status === 413) throw new Error('File too large.'); return res.json(); } return res.json(); }).then(data => { if (data.success) { this.imageUrl = data.url; this.showMediaOptions = false; } else alert(data.message || 'Upload failed'); }).catch(err => { console.error(err); alert(err.message || 'Upload error'); }).finally(() => { this.isUploading = false; }); },
                 compressImage(file, cb) { const r = new FileReader(); r.readAsDataURL(file); r.onload = (e) => { const img = new Image(); img.src = e.target.result; img.onload = () => { const c = document.createElement('canvas'); const MAX = 1920; let w = img.width, h = img.height; if (w > h) { if (w > MAX) { h *= MAX / w; w = MAX; } } else { if (h > MAX) { w *= MAX / h; h = MAX; } } c.width = w; c.height = h; c.getContext('2d').drawImage(img, 0, 0, w, h); c.toBlob((blob) => { cb(blob); }, 'image/jpeg', 0.8); }; }; },
-                openImageCreator() { let cp = this.rawContent.replace(/#\w+/g, '').replace(/\n+/g, ' ').trim().substring(0, 300); this.imagePrompt = cp; this.posterText = cp.substring(0, 80); this.showImageCreatorModal = true; this.showMediaOptions = false; if (this.mediaAssets.length === 0) this.loadMediaAssets(); },
+                openImageCreator() {
+                    // Extract a meaningful image prompt from blog content
+                    let content = this.rawContent;
+                    let imagePrompt = '';
+                    let posterText = '';
+                    
+                    // Get first line as potential title/topic
+                    const lines = content.split('\n').filter(l => l.trim());
+                    let title = lines[0] || '';
+                    // Clean title - remove markdown headers and numbering
+                    title = title.replace(/^#+\s*/, '').replace(/^\d+\.\s*/, '').trim();
+                    
+                    // Extract key themes by removing numbered list items and getting main concepts
+                    let mainContent = content
+                        .replace(/#\w+/g, '') // Remove hashtags
+                        .replace(/\n\d+\.\s*[^\n]*/g, '') // Remove numbered list items
+                        .replace(/\n+/g, ' ')
+                        .replace(/\s+/g, ' ')
+                        .trim();
+                    
+                    // Build a descriptive image prompt
+                    if (title) {
+                        imagePrompt = title;
+                        if (mainContent.length > 0) {
+                            imagePrompt += ' - ' + mainContent.substring(0, 200);
+                        }
+                    } else {
+                        imagePrompt = mainContent.substring(0, 300);
+                    }
+                    
+                    // Limit lengths
+                    imagePrompt = imagePrompt.substring(0, 500);
+                    posterText = title ? title.substring(0, 80) : imagePrompt.substring(0, 80);
+                    
+                    this.imagePrompt = imagePrompt;
+                    this.posterText = posterText;
+                    this.showImageCreatorModal = true;
+                    this.showMediaOptions = false;
+                    if (this.mediaAssets.length === 0) this.loadMediaAssets();
+                },
                 loadMediaAssets() { this.isLoadingAssets = true; fetch('/media-assets?limit=20', { headers: { 'Accept': 'application/json', 'X-CSRF-TOKEN': cfg.csrfToken } }).then(res => res.json()).then(data => { this.mediaAssets = data.assets || []; }).catch(err => console.error(err)).finally(() => { this.isLoadingAssets = false; }); },
                 generateAdvancedImage() { if (!this.imagePrompt.trim()) { alert('Please enter a prompt.'); return; } this.isGenerating = true; this.showImageCreatorModal = false; fetch('/content-creator/generate-media', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Accept': 'application/json', 'X-CSRF-TOKEN': cfg.csrfToken }, body: JSON.stringify({ prompt: this.imagePrompt, format: this.imageFormat, poster_text: this.imageFormat === 'poster' ? this.posterText : null, reference_asset_url: this.imageFormat === 'asset-reference' ? this.selectedAssetUrl : null, brand_id: this.imageFormat === 'poster' ? this.selectedBrandId : null }) }).then(res => res.json()).then(data => { if (data.success) { this.imageUrl = data.url; this.showMediaOptions = false; } else alert(data.message || 'Generation failed'); }).catch(err => { console.error(err); alert('Generation error.'); }).finally(() => { this.isGenerating = false; }); },
                 generateImage() { this.openImageCreator(); },

@@ -159,26 +159,41 @@ class ContentService
      */
     protected function buildRealisticPrompt(string $prompt): string
     {
-        return "Create a photorealistic image capturing the essence of: $prompt.
+        return "Create a photograph that looks like it was captured by a professional human photographer on location.
 
-SUBJECT DETAILS:
-- Authentic interaction and natural posture appropriate for the subject.
-- Lifelike expressions, engaged characteristics, and professional styling.
+SUBJECT:
+- Authentic moment captured, not posed or staged
+- Genuine human expressions, micro-emotions, and natural interaction
+- Real people with natural features, not retouched models
+- Documentary-style authenticity
 
-ENVIRONMENT:
-- Lighting: Natural, soft, slightly imperfect to add realism (e.g., simulated golden hour or window light).
-- Atmosphere: High-end editorial, documentary, or candid lifestyle vibe.
+TECHNICAL EXECUTION:
+- Camera: Professional full-frame camera (Canon EOS R5, Sony A7R V, or Nikon Z8)
+- Lens: 50mm f/1.4 - classic portrait lens with beautiful optical character
+- Shot at ISO 400-800 for natural film-like grain
+- Shallow depth of field with organic bokeh from f/1.4 aperture
+- Real shallow perspective distortion natural to 50mm focal length
+- Sharp focus on subject with smooth falloff to background
 
-TECHNICAL SPECS:
-- Camera: Simulated full-frame DSLR/Mirrorless quality.
-- Lens: 35mm or 50mm f/1.8 for natural depth of field and organic bokeh.
-- Style: Professional photography, sharp focus on primary subject with natural skin textures.
-
-QUALITY KEYWORDS:
-Photorealistic, 8K, high resolution, sharp focus, professional photography, natural lighting, authentic, lifelike, detailed textures, cinematic lighting.
+AUTHENTICITY MARKERS:
+- Subtle film grain texture (like Kodak Portra 400 or Fuji Pro 400H)
+- Natural lens vignette, not heavy post-processing
+- Warm, accurate skin-tone color science
+- Real location lighting: window light, open shade, or golden hour
+- Evidence of actual on-site shooting, not studio setup
+- Slight imperfections that prove human capture
 
 AVOID:
-Artificial, CGI, illustration, cartoon, painting, unrealistic proportions, oversaturation, anime style, 'perfect' stock photo vibes, plastic-looking skin.";
+- Artificial, CGI, illustration, cartoon, or painting styles
+- Portrait-mode phone aesthetic with fake blur
+- HDR oversharpening or excessive clarity
+- Digital AI smoothness and plastic-looking skin
+- 'AI generated' perfection - oversaturated, oversharpened
+- Perfect stock photo vibe with fake smiles
+- Unrealistic proportions or plastic features
+- Anime or illustration style
+
+The result should be indistinguishable from a genuine photograph taken by an experienced photographer using professional equipment.";
     }
 
     /**

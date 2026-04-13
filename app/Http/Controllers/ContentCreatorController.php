@@ -883,7 +883,7 @@ HTML;
                 'source' => $source,
                 'prompt' => $request->prompt,
                 'metadata' => [
-                    'generator' => 'Banana Pro AI',
+                    'generator' => 'DALL-E 3',
                     'format' => $format,
                     'timestamp' => now()->toIso8601String(),
                 ],

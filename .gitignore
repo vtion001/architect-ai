@@ -30,3 +30,8 @@ user.ini
 .gemini/
 gha-creds-*.json
 .agent/
+
+# Backups
+/backups/
+*.sql
+*.sql.gz

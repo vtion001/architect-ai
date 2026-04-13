@@ -219,9 +219,7 @@
                     </div>
                 </div>
                 <div x-show="featuredImageType === 'ai' && !isGeneratingFeaturedImage" class="flex items-center gap-2">
-                    <span class="text-[9px] font-bold text-purple-600 uppercase tracking-wider">Banana Pro</span>
-                    <span class="text-[9px] text-muted-foreground">//</span>
-                    <span class="text-[9px] font-bold text-muted-foreground uppercase tracking-wider">OpenAI</span>
+                    <span class="text-[9px] font-bold text-purple-600 uppercase tracking-wider">DALL-E 3</span>
                 </div>
             </div>
             <div class="flex gap-12">
