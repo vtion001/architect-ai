@@ -3,8 +3,13 @@
     "type": "module",
     "scripts": {
         "dev": "vite",
-        "build": "rm -f public/hot && vite build",
-        "type-check": "tsc --noEmit"
+        "build": "vite build",
+        "type-check": "tsc --noEmit",
+        "lh": "lighthouse http://localhost:8081/dashboard --output=html --output-path=./reports/lh-dashboard.html --chrome-flags=\"--headless\" --preset=desktop",
+        "lh:mobile": "lighthouse http://localhost:8081/dashboard --output=html --output-path=./reports/lh-dashboard-mobile.html --chrome-flags=\"--headless\" --preset=mobile",
+        "lh:ci": "lhci autorun",
+        "lh:server": "npx http-server ./reports -p 8082",
+        "analyze": "vite build --mode analyze"
     },
     "devDependencies": {
         "@playwright/test": "^1.59.1",
@@ -14,6 +19,7 @@
         "axios": "^1.7.4",
         "concurrently": "^9.0.1",
         "laravel-vite-plugin": "^1.0",
+        "lighthouse": "^13.1.0",
         "postcss": "^8.4.47",
         "tailwindcss": "^3.4.13",
         "terser": "^5.46.0",

@@ -8,11 +8,9 @@ export default defineConfig(({ command, mode }) => {
         plugins: [
             laravel({
                 input: [
-                    'resources/css/app.css', 
+                    'resources/css/app.css',
                     'resources/js/app.js',
                     'resources/js/components/content-creator.js',
-                    'resources/css/elements.css',
-                    'resources/js/elements.js'
                 ],
                 refresh: [
                     'app/Http/Controllers/**/*.php',
@@ -30,6 +28,12 @@ export default defineConfig(({ command, mode }) => {
                 compress: {
                     drop_console: true,
                     drop_debugger: true,
+                    passes: 2,
+                    unsafe_arrows: true,
+                    unsafe_methods: true,
+                },
+                mangle: {
+                    safari10: true,
                 },
             } : undefined,
 
@@ -39,8 +43,44 @@ export default defineConfig(({ command, mode }) => {
             // Source maps only in dev
             sourcemap: !isProduction,
 
-            // Chunk size warning
-            chunkSizeWarningLimit: 500,
+            // Chunk size warning (lowered to catch issues)
+            chunkSizeWarningLimit: 300,
+
+            // CSS code splitting
+            cssCodeSplit: true,
+
+            // Chunk splitting configuration
+            rollupOptions: {
+                output: {
+                    manualChunks: (id) => {
+                        // Split vendor chunks for better caching
+                        if (id.includes('node_modules')) {
+                            // Alpine.js - core framework, load early
+                            if (id.includes('alpinejs')) {
+                                return 'vendor-alpine';
+                            }
+                            // Chart.js - heavy, load async
+                            if (id.includes('chart.js') || id.includes('chartjs')) {
+                                return 'vendor-chart';
+                            }
+                            // Lucide icons - can be lazy loaded
+                            if (id.includes('lucide')) {
+                                return 'vendor-icons';
+                            }
+                            // Stoplight Elements - very heavy, only load on API docs pages
+                            if (id.includes('@stoplight/elements') || id.includes('@stoplight/mosaic')) {
+                                return 'vendor-stoplight';
+                            }
+                            // Axios - API client
+                            if (id.includes('axios')) {
+                                return 'vendor-axios';
+                            }
+                            // Default vendor chunk
+                            return 'vendor';
+                        }
+                    },
+                },
+            },
         },
 
         // Dev server - proxy to Docker nginx for backend routes only

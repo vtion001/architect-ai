@@ -60,11 +60,12 @@ class ContentGenerationTest extends TestCase
 
         $this->assertEquals('Generated Post', $result);
 
-        // Verify the prompt was constructed correctly
+        // Verify the prompt was constructed correctly with specialized generator
         $this->assertNotNull($capturedArgs);
         $systemPrompt = $capturedArgs['messages'][0]['content'];
         $userContent = $capturedArgs['messages'][1]['content'];
-        $this->assertStringContainsString('professional content creator', $systemPrompt);
+        $this->assertStringContainsString('viral content creator', $systemPrompt);
+        $this->assertStringContainsString('Short and punchy', $systemPrompt);
         $this->assertStringContainsString('My Topic', $userContent);
     }
 
@@ -94,11 +95,11 @@ class ContentGenerationTest extends TestCase
 
         $this->assertEquals('Video Script', $result);
 
-        // Verify the prompt was constructed correctly
+        // Verify the prompt was constructed correctly with specialized generator
         $this->assertNotNull($capturedArgs);
         $systemPrompt = $capturedArgs['messages'][0]['content'];
         $userContent = $capturedArgs['messages'][1]['content'];
-        $this->assertStringContainsString('professional content creator', $systemPrompt);
+        $this->assertStringContainsString('video prompt engineer', $systemPrompt);
         $this->assertStringContainsString('My Video', $userContent);
     }
 
@@ -127,11 +128,11 @@ class ContentGenerationTest extends TestCase
 
         $this->assertEquals('Blog Content', $result);
 
-        // Verify the prompt was constructed correctly
+        // Verify the prompt was constructed correctly with specialized generator
         $this->assertNotNull($capturedArgs);
         $systemPrompt = $capturedArgs['messages'][0]['content'];
         $userContent = $capturedArgs['messages'][1]['content'];
-        $this->assertStringContainsString('professional content creator', $systemPrompt);
+        $this->assertStringContainsString('SEO specialist', $systemPrompt);
         $this->assertStringContainsString('My Blog', $userContent);
     }
 

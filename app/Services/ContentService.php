@@ -21,38 +21,10 @@ class ContentService
 
     public function generateText(string $topic, string $type, ?string $context = null, array $options = []): string
     {
-        // 1. RAG: Fetch relevant knowledge base assets
-        $kbContext = $this->knowledgeBaseService->getContext($topic);
-        if ($kbContext) {
-            $context = ($context ? $context."\n\n" : '')."EXTERNAL KNOWLEDGE BASE DATA:\n".$kbContext;
-        }
+        // Use specialized generator via factory
+        $generator = $this->factory->make($type);
 
-        // Compose prompt for OpenAI
-        $prompt = $topic;
-        if ($context) {
-            $prompt .= "\n".$context;
-        }
-
-        $messages = [
-            ['role' => 'system', 'content' => 'You are a professional content creator.'],
-            ['role' => 'user', 'content' => $prompt],
-        ];
-
-        $chatOptions = [
-            'temperature' => $options['temperature'] ?? 0.8,
-            'max_tokens' => $options['max_tokens'] ?? 4000,
-            'timeout' => 120,
-        ];
-
-        $response = $this->openAIClient->chat($messages, $chatOptions);
-
-        if ($response['success']) {
-            return $response['message'] ?? '';
-        }
-
-        Log::error('ContentService: OpenAI generation failed', ['error' => $response['error'] ?? 'Unknown']);
-
-        return 'Content generation failed.';
+        return $generator->generate($topic, $context, $options);
     }
 
     protected function getViralPosts(string $topic): array

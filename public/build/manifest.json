@@ -1,30 +1,49 @@
 {
+  "_vendor-C7weQZmu.js": {
+    "file": "assets/vendor-C7weQZmu.js",
+    "name": "vendor"
+  },
+  "_vendor-alpine-vIoeAxl2.js": {
+    "file": "assets/vendor-alpine-vIoeAxl2.js",
+    "name": "vendor-alpine"
+  },
+  "_vendor-axios-CcrxTH1M.js": {
+    "file": "assets/vendor-axios-CcrxTH1M.js",
+    "name": "vendor-axios"
+  },
+  "_vendor-chart-DKwXtG2K.js": {
+    "file": "assets/vendor-chart-DKwXtG2K.js",
+    "name": "vendor-chart",
+    "imports": [
+      "_vendor-C7weQZmu.js"
+    ]
+  },
+  "_vendor-icons-BPq_3ZJx.js": {
+    "file": "assets/vendor-icons-BPq_3ZJx.js",
+    "name": "vendor-icons"
+  },
   "resources/css/app.css": {
     "file": "assets/app-BwJB9B7M.css",
     "src": "resources/css/app.css",
     "isEntry": true
   },
-  "resources/css/elements.css": {
-    "file": "assets/elements-DRqu53IY.css",
-    "src": "resources/css/elements.css",
-    "isEntry": true
-  },
   "resources/js/app.js": {
-    "file": "assets/app-yIS5HqEl.js",
+    "file": "assets/app-CHSQJNPi.js",
     "name": "app",
     "src": "resources/js/app.js",
-    "isEntry": true
+    "isEntry": true,
+    "imports": [
+      "_vendor-axios-CcrxTH1M.js",
+      "_vendor-alpine-vIoeAxl2.js",
+      "_vendor-icons-BPq_3ZJx.js",
+      "_vendor-chart-DKwXtG2K.js",
+      "_vendor-C7weQZmu.js"
+    ]
   },
   "resources/js/components/content-creator.js": {
-    "file": "assets/content-creator-CTy0P7n8.js",
+    "file": "assets/content-creator-Bpgpj_B7.js",
     "name": "content-creator",
     "src": "resources/js/components/content-creator.js",
-    "isEntry": true
-  },
-  "resources/js/elements.js": {
-    "file": "assets/elements-l0sNRNKZ.js",
-    "name": "elements",
-    "src": "resources/js/elements.js",
     "isEntry": true
   }
 }
