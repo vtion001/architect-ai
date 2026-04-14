@@ -203,6 +203,14 @@ class CloudinaryService
     protected function saveToLocalStorage(string $url, string $relativePath): array
     {
         try {
+            $allowedHosts = ['res.cloudinary.com', 'api.cloudinary.com'];
+            $host = parse_url($url, PHP_URL_HOST);
+            if (! $host || ! in_array($host, $allowedHosts, true)) {
+                Log::error('CloudinaryService: Rejected disallowed URL for local fallback', ['host' => $host]);
+
+                return ['url' => $url, 'source' => 'temp_url', 'public_id' => null];
+            }
+
             $imageContent = file_get_contents($url);
 
             if ($imageContent === false) {

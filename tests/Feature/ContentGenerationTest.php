@@ -3,7 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\User;
-use App\Services\AI\MiniMaxClient;
+use App\Services\AI\OpenAIClient;
 use App\Services\ContentGenerators\BlogPostGenerator;
 use App\Services\ContentGenerators\SocialPostGenerator;
 use App\Services\ContentGenerators\VideoScriptGenerator;
@@ -44,7 +44,7 @@ class ContentGenerationTest extends TestCase
         $capturedArgs = null;
 
         // Mock MiniMaxClient
-        $mockClient = Mockery::mock(MiniMaxClient::class);
+        $mockClient = Mockery::mock(OpenAIClient::class);
         $mockClient->shouldReceive('chat')
             ->once()
             ->andReturnUsing(function ($messages, $options) use (&$capturedArgs) {
@@ -53,7 +53,7 @@ class ContentGenerationTest extends TestCase
                 return ['success' => true, 'message' => 'Generated Post', 'usage' => null];
             });
 
-        $this->app->instance(MiniMaxClient::class, $mockClient);
+        $this->app->instance(OpenAIClient::class, $mockClient);
 
         $service = app(ContentService::class);
         $result = $service->generateText('My Topic', 'post', null, ['tone' => 'Funny']);
@@ -74,7 +74,7 @@ class ContentGenerationTest extends TestCase
         $capturedArgs = null;
 
         // Mock MiniMaxClient
-        $mockClient = Mockery::mock(MiniMaxClient::class);
+        $mockClient = Mockery::mock(OpenAIClient::class);
         $mockClient->shouldReceive('chat')
             ->once()
             ->andReturnUsing(function ($messages, $options) use (&$capturedArgs) {
@@ -83,7 +83,7 @@ class ContentGenerationTest extends TestCase
                 return ['success' => true, 'message' => 'Video Script', 'usage' => null];
             });
 
-        $this->app->instance(MiniMaxClient::class, $mockClient);
+        $this->app->instance(OpenAIClient::class, $mockClient);
 
         $service = app(ContentService::class);
         $result = $service->generateText('My Video', 'video', null, [
@@ -108,7 +108,7 @@ class ContentGenerationTest extends TestCase
         $capturedArgs = null;
 
         // Mock MiniMaxClient
-        $mockClient = Mockery::mock(MiniMaxClient::class);
+        $mockClient = Mockery::mock(OpenAIClient::class);
         $mockClient->shouldReceive('chat')
             ->once()
             ->andReturnUsing(function ($messages, $options) use (&$capturedArgs) {
@@ -117,7 +117,7 @@ class ContentGenerationTest extends TestCase
                 return ['success' => true, 'message' => 'Blog Content', 'usage' => null];
             });
 
-        $this->app->instance(MiniMaxClient::class, $mockClient);
+        $this->app->instance(OpenAIClient::class, $mockClient);
 
         $service = app(ContentService::class);
         $result = $service->generateText('My Blog', 'blog', null, [
@@ -148,7 +148,7 @@ class ContentGenerationTest extends TestCase
         config(['services.hiker_api.key' => 'test-key']);
 
         // Mock MiniMaxClient
-        $mockClient = Mockery::mock(MiniMaxClient::class);
+        $mockClient = Mockery::mock(OpenAIClient::class);
         $mockClient->shouldReceive('chat')
             ->once()
             ->withArgs(function ($messages, $options) {
@@ -159,7 +159,7 @@ class ContentGenerationTest extends TestCase
             })
             ->andReturn(['success' => true, 'message' => 'Viral Post', 'usage' => null]);
 
-        $this->app->instance(MiniMaxClient::class, $mockClient);
+        $this->app->instance(OpenAIClient::class, $mockClient);
 
         $service = app(ContentService::class);
         $service->generateText('Viral Topic', 'post');

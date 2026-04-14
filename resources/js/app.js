@@ -21,12 +21,9 @@ window.createTeamChatWidgetComponent = createTeamChatWidgetComponent;
 // =========================================================================
 window.Alpine = Alpine;
 
-// Start Alpine after DOM is ready to ensure all components are registered
+// Start Alpine after DOM is ready
 document.addEventListener('DOMContentLoaded', () => {
-    // Small delay to ensure all Alpine.data() calls have been made
-    setTimeout(() => {
-        Alpine.start();
-    }, 10);
+    Alpine.start();
 });
 
 // =========================================================================
@@ -40,6 +37,7 @@ document.addEventListener('DOMContentLoaded', () => {
 window.refreshIcons = () => createIcons({ icons });
 window.createIcons = createIcons;
 window.icons = icons;
+window.lucide = { createIcons: () => createIcons({ icons }) };
 
 
 // =========================================================================

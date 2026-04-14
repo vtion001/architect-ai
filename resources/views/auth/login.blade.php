@@ -18,11 +18,8 @@
     errorMessage: '',
     
     login() {
-        event.preventDefault();
         this.isLoading = true;
         this.errorMessage = '';
-        
-        console.log('Login attempt:', { slug: this.slug, email: this.email });
         
         fetch('{{ url('/auth/login') }}', {
             method: 'POST',

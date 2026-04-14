@@ -91,7 +91,7 @@ class ReportBuilderController extends Controller
 
             return response()->json([
                 'success' => false,
-                'message' => 'Report generation failed: '.$e->getMessage(),
+                'message' => 'Report generation failed. Please try again.',
             ], 500);
         }
     }
@@ -110,7 +110,6 @@ class ReportBuilderController extends Controller
             return response()->json([
                 'html' => '<div style="padding: 40px; text-align: center; color: #666;"><h2>Template Preview Unavailable</h2><p>The template view is not yet created for this variant.</p></div>',
                 'success' => false,
-                'error' => $e->getMessage(),
             ]);
         }
     }

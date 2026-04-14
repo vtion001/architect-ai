@@ -294,7 +294,9 @@ class DocumentBuilderController extends Controller
             return null;
         }
 
-        return Research::find($request->research_id);
+        return Research::where('id', $request->research_id)
+            ->where('tenant_id', app(Tenant::class)->id)
+            ->first();
     }
 
     /**

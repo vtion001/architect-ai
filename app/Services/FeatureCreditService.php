@@ -226,6 +226,8 @@ class FeatureCreditService
         $plan = $tenant->plan ?? 'starter';
         $credits = config("features.plans.{$plan}.credits", []);
 
+        $tenant->loadMissing('users');
+
         DB::transaction(function () use ($tenant, $credits) {
             foreach ($tenant->users as $user) {
                 foreach ($credits as $feature => $limit) {
@@ -254,6 +256,8 @@ class FeatureCreditService
     {
         $plan = $tenant->plan ?? 'starter';
         $credits = config("features.plans.{$plan}.credits", []);
+
+        $tenant->loadMissing('users');
 
         DB::transaction(function () use ($tenant, $credits) {
             foreach ($tenant->users as $user) {

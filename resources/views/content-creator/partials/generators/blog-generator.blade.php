@@ -145,7 +145,7 @@
                         <template x-if="!isLoadingSeoSuggestions">
                             <div class="flex items-center gap-2">
                                 <i data-lucide="sparkles" class="w-4 h-4"></i>
-                                <span>Sugggest</span>
+                                <span>Suggest</span>
                             </div>
                         </template>
                         <template x-if="isLoadingSeoSuggestions">

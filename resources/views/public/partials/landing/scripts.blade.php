@@ -1,7 +1,7 @@
 {{-- Landing Page JavaScript --}}
 <script>
     document.addEventListener('DOMContentLoaded', () => {
-        lucide.createIcons();
+        if (typeof window.refreshIcons === 'function') window.refreshIcons();
         gsap.registerPlugin(ScrollTrigger);
 
         // 1. Loader
@@ -15,7 +15,7 @@
         let countObj = { val: 0 };
         tlLoader.to(countObj, {
             val: 100,
-            duration: 1.5,
+            duration: 0.4,
             ease: "power2.inOut",
             onUpdate: () => {
                 document.querySelector('.counter').innerText = Math.floor(countObj.val) + "%";

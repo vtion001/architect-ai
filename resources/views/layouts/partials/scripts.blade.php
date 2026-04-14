@@ -62,7 +62,8 @@
                 }
             });
             
-            observer.observe(document.body, {
+            const observeTarget = document.querySelector('main') || document.querySelector('[x-data]') || document.body;
+            observer.observe(observeTarget, {
                 childList: true,
                 subtree: true
             });

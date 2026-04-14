@@ -55,8 +55,6 @@
 
         <!-- Scripts -->
         @vite(['resources/css/app.css', 'resources/js/app.js'])
-        <script src="https://unpkg.com/lucide@latest"></script>
-        <script src="https://unpkg.com/alpinejs" defer></script>
     </head>
     <body class="antialiased text-slate-200">
         <div class="min-h-screen flex flex-col items-center justify-center p-6 relative overflow-hidden">
@@ -81,8 +79,8 @@
             </div>
         </div>
         <script>
-            if (window.lucide) {
-                lucide.createIcons();
+            if (typeof window.refreshIcons === 'function') {
+                window.refreshIcons();
             }
         </script>
     </body>

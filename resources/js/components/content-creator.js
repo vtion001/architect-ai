@@ -610,7 +610,7 @@ document.addEventListener('alpine:init', () => {
             this.showBulkScheduleModal = true;
         },
 
-        bulkSchedule() {
+        confirmBulkSchedule() {
             if (!this.frameworkId) return;
             this.isBulkScheduling = true;
 
@@ -623,8 +623,8 @@ document.addEventListener('alpine:init', () => {
                 },
                 body: JSON.stringify({
                     framework_id: this.frameworkId,
-                    platforms: this.selectedPlatforms,
-                    start_date: this.scheduleStartDate
+                    platforms: this.bulkPlatforms,
+                    start_date: this.bulkStartDate
                 })
             })
                 .then(res => res.json())

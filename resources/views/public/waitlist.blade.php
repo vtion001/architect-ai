@@ -6,9 +6,7 @@
     <title>ArchitGrid | Join the Waitlist</title>
     <link rel="preconnect" href="https://fonts.bunny.net">
     <link href="https://fonts.bunny.net/css?family=plus-jakarta-sans:400,500,600,700,800|inter:400,500,600" rel="stylesheet" />
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://unpkg.com/lucide@latest"></script>
-    <script src="https://unpkg.com/alpinejs" defer></script>
+    @vite(['resources/css/app.css', 'resources/js/app.js'])
     <style>
         body { font-family: 'Inter', sans-serif; background-color: #0B0F19; color: #E2E8F0; }
         h1, h2, h3 { font-family: 'Plus Jakarta Sans', sans-serif; }

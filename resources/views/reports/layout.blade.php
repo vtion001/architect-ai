@@ -64,7 +64,7 @@
 
         @yield('styles')
     </style>
-    <script src="https://unpkg.com/lucide@latest"></script>
+    @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
 <body>
     <div class="report-wrapper @yield('container_class')">

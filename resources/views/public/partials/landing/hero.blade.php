@@ -43,7 +43,9 @@
                         <div class="mx-auto text-[10px] text-slate-500 font-mono">dashboard.architgrid.com</div>
                     </div>
                     <div class="relative aspect-[16/9] overflow-hidden rounded-b-lg bg-slate-900 group">
-                        <img src="/images/dashboard-ui.png" 
+                        <img src="/images/dashboard-ui.png"
+                             width="1627" height="915"
+                             loading="lazy"
                              class="w-full h-full object-cover opacity-90 group-hover:scale-105 transition-transform duration-1000" alt="ArchitGrid AI Dashboard">
                     </div>
                 </div>

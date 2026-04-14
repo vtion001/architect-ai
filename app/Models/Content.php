@@ -11,7 +11,17 @@ class Content extends Model
 {
     use BelongsToTenant, HasFactory, HasUuids;
 
-    protected $guarded = [];
+    protected $fillable = [
+        'title',
+        'topic',
+        'type',
+        'context',
+        'result',
+        'image_url',
+        'word_count',
+        'status',
+        'options',
+    ];
 
     protected $casts = [
         'options' => 'array',

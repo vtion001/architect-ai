@@ -19,7 +19,7 @@ class ResearchService
     /**
      * Perform deep research on a topic using OpenAI.
      */
-    public function performResearch(string $topic): string
+    public function performResearch(string $topic, ?string $analysisType = null): string
     {
         $kbContext = $this->knowledgeBaseService->getContext($topic);
         $enhancedTopic = $topic;

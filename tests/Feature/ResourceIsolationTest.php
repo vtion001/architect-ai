@@ -95,6 +95,7 @@ class ResourceIsolationTest extends TestCase
         session(['current_tenant_id' => $this->tenant1->id]);
 
         $this->withoutExceptionHandling();
+        $this->withoutMiddleware(\App\Http\Middleware\MfaMiddleware::class);
 
         // Simulate chat request
         $response = $this->postJson('/ai-agents/chat', [

@@ -547,7 +547,7 @@ class ContentCreatorController extends Controller
             if (config('services.openai.key')) {
                 $prompt = "You are an expert SEO blog content writer. Generate a complete, SEO-optimized blog post body based on the following:\n\nTopic: $topic\nKeywords: $keywords\n\nRequirements:\n- Write 800-1200 words\n- Include the keywords naturally throughout\n- Use proper heading structure (H2, H3)\n- Make it engaging and informative\n- Include a compelling introduction and conclusion\n- DO NOT include the title/headline (that will be added separately)\n- Just write the body content, ready to publish\n\nStart writing the blog post body now:";
 
-                $response = \Http::withToken(config('services.openai.key'))
+                $response = Http::withToken(config('services.openai.key'))
                     ->timeout(120)
                     ->post('https://api.openai.com/v1/chat/completions', [
                         'model' => config('services.openai.model', 'gpt-4o-mini'),
@@ -600,7 +600,7 @@ class ContentCreatorController extends Controller
             if (config('services.openai.key')) {
                 $prompt = "Based on the following blog content, generate a detailed, vivid image generation prompt that would create a compelling featured image for this blog post.\n\nBlog Topic: {$topic}\n\nBlog Content:\n{$blogBody}\n\nRequirements:\n- Create a prompt that is 2-3 sentences long\n- Describe a visually striking scene that represents the blog content\n- Use cinematic, photography-style language\n- Include lighting, composition, and mood details\n- DO NOT include any text or words in the image\n- Make it suitable for a blog featured image (16:9 aspect ratio recommended)\n\nOnly output the image prompt, nothing else:";
 
-                $response = \Http::withToken(config('services.openai.key'))
+                $response = Http::withToken(config('services.openai.key'))
                     ->timeout(60)
                     ->post('https://api.openai.com/v1/chat/completions', [
                         'model' => config('services.openai.model', 'gpt-4o-mini'),

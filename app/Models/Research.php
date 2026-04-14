@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Models\Traits\BelongsToTenant;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 
@@ -16,7 +17,16 @@ class Research extends Model
 
     protected $keyType = 'string';
 
-    protected $guarded = [];
+    protected $fillable = [
+        'title',
+        'query',
+        'status',
+        'result',
+        'citations',
+        'sources_count',
+        'pages_count',
+        'options',
+    ];
 
     protected $casts = [
         'citations' => 'array',
@@ -43,12 +53,7 @@ class Research extends Model
                             $model->options = array_merge($model->options ?? [], $metadata);
                         }
                     } catch (\Exception $e) {
-                        // usage of Log facade requires import, but we want to be minimal.
-                        // Just ignore parse error and leave content or strip?
-                        // User request: "make sure it doesn't appear".
-                        // So we strip it anyway if regex matches?
-                        // But if json is invalid, better keep it text?
-                        // We strictly decode first.
+                        Log::warning('Research: failed to parse AI metadata block', ['error' => $e->getMessage()]);
                     }
                 }
             }

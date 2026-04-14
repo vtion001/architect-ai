@@ -66,4 +66,29 @@ class GodViewController extends Controller
     public function approve(WaitlistModel $waitlist)
     { /* logic already moved to convertLead in AdminController */
     }
+
+    public function reject(WaitlistModel $waitlist)
+    {
+        $this->authorizeGodAccess();
+        $waitlist->update(['status' => 'rejected']);
+
+        return response()->json(['success' => true, 'message' => 'Lead rejected.']);
+    }
+
+    public function destroy(WaitlistModel $waitlist)
+    {
+        $this->authorizeGodAccess();
+        $waitlist->delete();
+
+        return response()->json(['success' => true, 'message' => 'Lead removed.']);
+    }
+
+    public function bulkApprove()
+    {
+        $this->authorizeGodAccess();
+        $ids = request()->input('ids', []);
+        WaitlistModel::whereIn('id', $ids)->update(['status' => 'approved']);
+
+        return response()->json(['success' => true, 'approved' => count($ids)]);
+    }
 }

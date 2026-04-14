@@ -74,7 +74,7 @@ class IAMAuthTest extends TestCase
         $user1 = User::create([
             'tenant_id' => $tenant1->id,
             'email' => 'u1@t1.com',
-            'password' => bcrypt('password123456'),
+            'password' => 'password123456',
         ]);
 
         // 2. Try to login to T2 with U1 credentials

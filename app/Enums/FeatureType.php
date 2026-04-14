@@ -58,6 +58,14 @@ enum FeatureType: string
     }
 
     /**
+     * Get all access-gated features.
+     */
+    public static function accessGatedFeatures(): array
+    {
+        return array_values(array_filter(self::cases(), fn ($f) => $f->isAccessGated()));
+    }
+
+    /**
      * Get a human-readable label for the feature.
      */
     public function label(): string
