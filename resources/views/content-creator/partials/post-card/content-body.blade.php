@@ -30,5 +30,5 @@
     </div>
     
     {{-- Edit Mode --}}
-    <textarea x-show="isEditing" x-model="rawContent" class="w-full h-64 p-3 bg-muted/20 border border-border rounded-lg text-sm focus:ring-1 focus:ring-primary outline-none resize-y font-mono" placeholder="Edit your post content..." x-cloak></textarea>
+    <textarea x-show="isEditing" x-model="rawContent" :class="window.__contentViewerConfig?.contentType === 'blog' ? 'min-h-[500px]' : 'h-64'" class="w-full p-3 bg-muted/20 border border-border rounded-lg text-sm focus:ring-1 focus:ring-primary outline-none resize-y font-mono" placeholder="Edit your post content..." x-cloak></textarea>
 </div>

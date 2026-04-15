@@ -2,6 +2,73 @@
 @tailwind components;
 @tailwind utilities;
 
+@layer components {
+    .prose-custom-blog {
+        @apply text-foreground;
+    }
+
+    .prose-custom-blog h2 {
+        @apply text-3xl font-black text-foreground leading-tight tracking-tight mt-14 mb-6 border-b border-border/50 pb-4;
+    }
+
+    .prose-custom-blog h3 {
+        @apply text-xl font-bold text-foreground mt-8 mb-4;
+    }
+
+    .prose-custom-blog p {
+        @apply text-[17px] leading-[1.85] text-foreground/90 my-5;
+    }
+
+    .prose-custom-blog ul {
+        @apply my-6 space-y-3;
+    }
+
+    .prose-custom-blog ul li {
+        @apply text-[17px] leading-[1.85] text-foreground/90 relative pl-7;
+    }
+
+    .prose-custom-blog ul li::before {
+        content: '';
+        @apply absolute left-0 top-[0.65em] w-2 h-2 rounded-full bg-primary;
+    }
+
+    .prose-custom-blog ol {
+        @apply my-6 space-y-3;
+    }
+
+    .prose-custom-blog ol li {
+        @apply text-[17px] leading-[1.85] text-foreground/90 list-decimal list-inside;
+    }
+
+    .prose-custom-blog strong {
+        @apply font-semibold text-foreground;
+    }
+
+    .prose-custom-blog a {
+        @apply text-primary no-underline hover:underline;
+    }
+
+    .prose-custom-blog blockquote {
+        @apply border-l-4 border-primary bg-muted/20 py-3 px-6 my-6 italic text-muted-foreground rounded-r-lg;
+    }
+
+    .prose-custom-blog img {
+        @apply rounded-2xl shadow-xl my-8;
+    }
+
+    .prose-custom-blog hr {
+        @apply border-border/50 my-10;
+    }
+
+    .prose-custom-blog code {
+        @apply font-mono text-sm bg-muted px-1.5 py-0.5 rounded;
+    }
+
+    .prose-custom-blog pre {
+        @apply bg-muted rounded-xl p-4 overflow-x-auto my-6;
+    }
+}
+
 @layer base {
   :root {
     --background: #F8FAFC;

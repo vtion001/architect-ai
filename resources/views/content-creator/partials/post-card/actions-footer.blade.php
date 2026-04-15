@@ -13,14 +13,14 @@
     </button>
     
     {{-- Redo Button --}}
-    <button @click="regenerateText" :disabled="isRegenerating" class="flex items-center justify-center gap-2 py-2 px-3 rounded-lg bg-white border border-border text-muted-foreground hover:text-red-500 hover:border-red-200 hover:bg-red-50 transition-all text-xs font-bold uppercase tracking-wider disabled:opacity-50 disabled:cursor-not-allowed" title="Regenerate Text">
+    <button @click="regenerateText()" :disabled="isRegenerating" class="flex items-center justify-center gap-2 py-2 px-3 rounded-lg bg-white border border-border text-muted-foreground hover:text-red-500 hover:border-red-200 hover:bg-red-50 transition-all text-xs font-bold uppercase tracking-wider disabled:opacity-50 disabled:cursor-not-allowed" title="Regenerate Text">
         <i x-show="!isRegenerating" data-lucide="refresh-cw" class="w-4 h-4"></i>
         <i x-show="isRegenerating" data-lucide="loader-2" class="w-4 h-4 animate-spin"></i>
         <span x-text="isRegenerating ? 'Redoing...' : 'Redo'" class="hidden sm:inline"></span>
     </button>
     
     {{-- Publish Button --}}
-    <button @click="openPublishModal" :disabled="isPublishing" class="flex items-center justify-center gap-2 py-2 px-4 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 transition-all text-xs font-bold uppercase tracking-wider shadow-sm disabled:opacity-50 disabled:cursor-not-allowed">
+    <button @click="openPublishModal()" :disabled="isPublishing" class="flex items-center justify-center gap-2 py-2 px-4 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 transition-all text-xs font-bold uppercase tracking-wider shadow-sm disabled:opacity-50 disabled:cursor-not-allowed">
         <i x-show="!isPublishing" data-lucide="send" class="w-4 h-4"></i>
         <i x-show="isPublishing" data-lucide="loader-2" class="w-4 h-4 animate-spin"></i>
         <span x-text="isPublishing ? 'Publishing...' : 'Publish'"></span>

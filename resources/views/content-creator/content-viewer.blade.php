@@ -12,8 +12,26 @@
     $rawResult = trim($content->result ?? '');
     
     // Blog posts should not be split - they are single cohesive pieces of content
+    $blogMetaDescription = '';
+    $blogTitle = '';
+    $blogBodyHtml = '';
+
     if ($content->type === 'blog') {
-        $rawSegments = [$rawResult];
+        // Extract meta description: "Meta Description: <text>" at the start
+        if (preg_match('/^Meta Description:\s*(.+?)(?=\n)/is', $rawResult, $metaMatch)) {
+            $blogMetaDescription = trim($metaMatch[1]);
+            $rawResult = preg_replace('/^Meta Description:\s*.+?\n/is', '', $rawResult, 1);
+        }
+
+        // Extract H1 title: "# Title"
+        if (preg_match('/^#\s+(.+?)\n/im', $rawResult, $titleMatch)) {
+            $blogTitle = trim($titleMatch[1]);
+        }
+
+        // Convert cleaned markdown to HTML for body
+        $blogBodyHtml = \Illuminate\Support\Str::markdown(trim($rawResult));
+
+        $rawSegments = [trim($rawResult)];
     } else {
         // Improved regex to handle various newline formats and common separators (---, ***, ___)
         // Using 'm' flag to treat as multiple lines, making start/end line anchors reliable
@@ -63,11 +81,13 @@
             $finalPostContent .= "\n\n" . $globalHashtags;
         }
         
-        $cleanText = preg_replace('/^#+\s+/m', '', $finalPostContent);
-        $cleanText = str_replace(['*', '`'], '', $cleanText);
-        
-        // Blog posts: output plain text with preserved formatting
-        $cleanHtml = nl2br(e($cleanText));
+        if ($content->type === 'blog') {
+            $cleanHtml = \Illuminate\Support\Str::markdown($finalPostContent);
+        } else {
+            $cleanText = preg_replace('/^#+\s+/m', '', $finalPostContent);
+            $cleanText = str_replace(['*', '`'], '', $cleanText);
+            $cleanHtml = nl2br(e($cleanText));
+        }
         
         $postsData[] = [
             'index' => $idx,
@@ -93,9 +113,15 @@
         saveVisualUrl: @js(url("/content-creator/{$content->id}/save-visual")),
         csrfToken: @js(csrf_token()),
         contentId: @js($content->id),
+        contentType: @js($content->type),
         isFacebookConnected: @js($isFacebookConnected),
         brands: @js($brands ?? []),
-        visuals: @js($content->options['visuals'] ?? [])
+        visuals: @js($content->options['visuals'] ?? []),
+        blog: {
+            title: @js($blogTitle),
+            metaDescription: @js($blogMetaDescription),
+            bodyHtml: @js($blogBodyHtml),
+        }
     };
     
     document.addEventListener('alpine:init', () => {
@@ -213,7 +239,7 @@
                 loadMediaAssets() { this.isLoadingAssets = true; fetch('/media-assets?limit=20', { headers: { 'Accept': 'application/json', 'X-CSRF-TOKEN': cfg.csrfToken } }).then(res => res.json()).then(data => { this.mediaAssets = data.assets || []; }).catch(err => console.error(err)).finally(() => { this.isLoadingAssets = false; }); },
                 generateAdvancedImage() { if (!this.imagePrompt.trim()) { alert('Please enter a prompt.'); return; } this.isGenerating = true; this.showImageCreatorModal = false; fetch('/content-creator/generate-media', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Accept': 'application/json', 'X-CSRF-TOKEN': cfg.csrfToken }, body: JSON.stringify({ prompt: this.imagePrompt, format: this.imageFormat, poster_text: this.imageFormat === 'poster' ? this.posterText : null, reference_asset_url: this.imageFormat === 'asset-reference' ? this.selectedAssetUrl : null, brand_id: this.imageFormat === 'poster' ? this.selectedBrandId : null }) }).then(res => res.json()).then(data => { if (data.success) { this.imageUrl = data.url; this.showMediaOptions = false; } else alert(data.message || 'Generation failed'); }).catch(err => { console.error(err); alert('Generation error.'); }).finally(() => { this.isGenerating = false; }); },
                 generateImage() { this.openImageCreator(); },
-                regenerateText() { this.isRegenerating = true; fetch('/content-creator/regenerate', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Accept': 'application/json', 'X-CSRF-TOKEN': cfg.csrfToken }, body: JSON.stringify({ content_id: cfg.contentId, current_text: this.rawContent }) }).then(res => res.json()).then(data => { if (data.success) { this.rawContent = data.new_text; this.htmlContent = this.formatForDisplay(data.new_text); } else alert('Failed to redo'); }).catch(e => console.error(e)).finally(() => { this.isRegenerating = false; }); },
+                regenerateText() { this.isRegenerating = true; fetch('/content-creator/regenerate', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Accept': 'application/json', 'X-CSRF-TOKEN': cfg.csrfToken }, body: JSON.stringify({ content_id: cfg.contentId, current_text: this.rawContent }) }).then(res => res.json())                .then(data => { if (data.success) { this.rawContent = data.new_text; this.htmlContent = data.new_html ?? this.formatForDisplay(data.new_text); } else alert('Failed to redo'); }).catch(e => console.error(e)).finally(() => { this.isRegenerating = false; }); },
                 formatForDisplay(text) { return text.replace(/\*\*/g, '').replace(/\*/g, '').replace(/^#+\s+/gm, '').replace(/`/g, '').replace(/\n/g, '<br>'); },
                 openPublishModal() { this.showPublishModal = true; },
                 confirmPublish() { if (this.selectedPlatforms.length === 0) { alert('Select at least one platform.'); return; } if (this.selectedPlatforms.includes('instagram') && !this.imageUrl) { alert('Instagram requires an image.'); return; } let fbId = null, fbToken = null, igId = null; if (this.selectedPlatforms.includes('facebook') || this.selectedPlatforms.includes('instagram')) { if (this.selectedFacebookPage) { fbId = this.selectedFacebookPage.id; fbToken = this.selectedFacebookPage.access_token; if (this.selectedFacebookPage.instagram_business_account) igId = this.selectedFacebookPage.instagram_business_account.id; } else { if (!confirm('No Meta Page selected. Continue?')) return; } } if (this.selectedPlatforms.includes('instagram') && !igId) { if (!confirm('No linked IG account. Continue?')) return; } this.isPublishing = true; fetch('/content-creator/publish', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Accept': 'application/json', 'X-CSRF-TOKEN': cfg.csrfToken }, body: JSON.stringify({ content_id: cfg.contentId, segment_index: this.index, final_text: this.rawContent, image_url: this.imageUrl, platforms: this.selectedPlatforms, scheduled_at: this.postNow ? 'now' : this.scheduleDate, facebook_page_id: fbId, facebook_page_token: fbToken, instagram_account_id: igId }) }).then(res => res.json()).then(data => { if (data.success) { this.isPublished = true; this.publishResult = data.message; if (data.results?.facebook && !data.results.facebook.success) this.publishResult += "\n\nNote: FB failed: " + data.results.facebook.error; if (data.results?.instagram && !data.results.instagram.success) this.publishResult += "\n\nNote: IG failed: " + data.results.instagram.error; } else alert('Publishing failed: ' + (data.message || 'Unknown error')); }).finally(() => { this.isPublishing = false; this.showPublishModal = false; }); }
@@ -229,44 +255,51 @@
     {{-- Stats Grid --}}
     @include('content-creator.partials.stats-grid')
 
-    {{-- Social Media Feed Grid --}}
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 pb-20">
-        @foreach($postsData as $postInfo)
-        <div x-data="postCard({{ $postInfo['index'] }})" 
-             class="w-full bg-card border border-border rounded-xl shadow-md overflow-visible animate-in fade-in slide-in-from-bottom-4 duration-500 relative" 
-             style="animation-delay: {{ $postInfo['index'] * 150 }}ms;">
-            
-            {{-- Index Badge --}}
-            <div class="absolute -top-3 -left-3 w-8 h-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-sm font-black shadow-lg border-4 border-background z-20">
-                {{ $postInfo['index'] + 1 }}
+    @if($content->type === 'blog')
+        {{-- Blog Article Layout - Single cohesive long-form layout --}}
+        @if(!empty($postsData))
+            @include('content-creator.partials.post-card.article-layout')
+        @endif
+    @else
+        {{-- Social Media Card Grid --}}
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 pb-20">
+            @foreach($postsData as $postInfo)
+            <div x-data="postCard({{ $postInfo['index'] }})"
+                 class="w-full bg-card border border-border rounded-xl shadow-md overflow-visible animate-in fade-in slide-in-from-bottom-4 duration-500 relative"
+                 style="animation-delay: {{ $postInfo['index'] * 150 }}ms;">
+
+                {{-- Index Badge --}}
+                <div class="absolute -top-3 -left-3 w-8 h-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-sm font-black shadow-lg border-4 border-background z-20">
+                    {{ $postInfo['index'] + 1 }}
+                </div>
+
+                {{-- Success Overlay --}}
+                @include('content-creator.partials.post-card.success-overlay')
+
+                {{-- Hidden File Input --}}
+                <input type="file" x-ref="fileInput" class="hidden" accept="image/*,video/*" @change="handleUpload">
+
+                {{-- Post Header --}}
+                @include('content-creator.partials.post-card.card-header')
+
+                {{-- Content Body --}}
+                @include('content-creator.partials.post-card.content-body')
+
+                {{-- Media Area --}}
+                @include('content-creator.partials.post-card.media-area')
+
+                {{-- Actions Footer --}}
+                @include('content-creator.partials.post-card.actions-footer')
+
+                {{-- Publish Modal --}}
+                @include('content-creator.partials.post-card.modals.publish-modal')
+
+                {{-- Image Creator Modal --}}
+                @include('content-creator.partials.post-card.modals.image-creator-modal')
             </div>
-            
-            {{-- Success Overlay --}}
-            @include('content-creator.partials.post-card.success-overlay')
-            
-            {{-- Hidden File Input --}}
-            <input type="file" x-ref="fileInput" class="hidden" accept="image/*,video/*" @change="handleUpload">
-
-            {{-- Post Header --}}
-            @include('content-creator.partials.post-card.card-header')
-
-            {{-- Content Body --}}
-            @include('content-creator.partials.post-card.content-body')
-
-            {{-- Media Area --}}
-            @include('content-creator.partials.post-card.media-area')
-
-            {{-- Actions Footer --}}
-            @include('content-creator.partials.post-card.actions-footer')
-
-            {{-- Publish Modal --}}
-            @include('content-creator.partials.post-card.modals.publish-modal')
-
-            {{-- Image Creator Modal --}}
-            @include('content-creator.partials.post-card.modals.image-creator-modal')
+            @endforeach
         </div>
-        @endforeach
-    </div>
+    @endif
 
     {{-- Delete Batch Confirmation Modal --}}
     @include('content-creator.partials.delete-modal')

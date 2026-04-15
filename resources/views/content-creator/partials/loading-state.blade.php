@@ -9,7 +9,16 @@
     <p class="text-sm font-mono text-slate-500 mt-2 uppercase tracking-widest animate-pulse">
         {{ $content->type === 'video' ? 'Rendering Video Assets...' : 'Synthesizing Text & Context...' }}
     </p>
+    <p class="text-xs font-mono text-slate-400 mt-4" id="lsStatus">Checking status...</p>
     <script>
-        setTimeout(() => window.location.reload(), 3000);
+        (function() {
+            var dots = 0;
+            var el = document.getElementById('lsStatus');
+            setInterval(function() {
+                dots = (dots + 1) % 4;
+                el.textContent = 'Checking status' + '.'.repeat(dots + 1);
+            }, 1000);
+            setTimeout(function() { window.location.reload(); }, 5000);
+        })();
     </script>
 </div>

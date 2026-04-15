@@ -17,11 +17,6 @@
             <i data-lucide="copy" class="w-4 h-4 mr-2"></i>
             Copy All
         </button>
-        <button class="inline-flex items-center justify-center rounded-md text-sm font-medium bg-primary text-primary-foreground hover:bg-primary/90 h-10 px-4 py-2 uppercase tracking-wider font-bold text-xs shadow-lg shadow-primary/20">
-            <i data-lucide="send" class="w-4 h-4 mr-2"></i>
-            Publish All
-        </button>
-        
         {{-- Copy All Success Toast --}}
         <div x-show="showCopyAllToast" 
              x-transition:enter="transition ease-out duration-300"

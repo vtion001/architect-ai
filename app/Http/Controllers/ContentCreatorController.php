@@ -4,12 +4,19 @@ namespace App\Http\Controllers;
 
 use App\Enums\FeatureType;
 use App\Http\Requests\StoreContentRequest;
+use App\Jobs\GenerateCalendarFramework;
+use App\Jobs\GenerateContent;
+use App\Jobs\RenderVideo;
+use App\Models\Brand;
 use App\Models\Content;
 use App\Models\KnowledgeBaseAsset;
 use App\Models\MediaAsset;
+use App\Models\Tenant;
 use App\Services\BrandResolverService;
+use App\Services\CloudinaryService;
 use App\Services\ContentService;
 use App\Services\FeatureCreditService;
+use App\Services\ResearchService;
 use App\Services\SocialPublishingService;
 use App\Services\TokenService;
 use Carbon\Carbon;
@@ -23,7 +30,7 @@ class ContentCreatorController extends Controller
 {
     public function __construct(
         private readonly ContentService $contentService,
-        protected \App\Services\ResearchService $researchService,
+        protected ResearchService $researchService,
         protected TokenService $tokenService,
         protected SocialPublishingService $socialPublishingService,
         protected BrandResolverService $brandResolverService,
@@ -34,7 +41,7 @@ class ContentCreatorController extends Controller
 
     public function index()
     {
-        $tenant = app(\App\Models\Tenant::class);
+        $tenant = app(Tenant::class);
         $brands = $tenant->brands()->orderBy('is_default', 'desc')->get();
 
         $stats = [
@@ -110,7 +117,7 @@ class ContentCreatorController extends Controller
             $brandContext = $this->brandResolverService->buildBrandContext($request->brand_id);
             if ($brandContext) {
                 $context .= "\n\nBRAND GUIDELINES:\n".$brandContext;
-                $brand = \App\Models\Brand::find($request->brand_id);
+                $brand = Brand::find($request->brand_id);
                 if ($brand) {
                     $options['brand_tone'] = $brand->voice_tone;
                 }
@@ -139,7 +146,7 @@ class ContentCreatorController extends Controller
             ]);
 
             // Dispatch to Queue
-            \App\Jobs\GenerateCalendarFramework::dispatch($content, auth()->user(), $tokenCost);
+            GenerateCalendarFramework::dispatch($content, auth()->user(), $tokenCost);
 
             Log::info('[ContentCreator] Job dispatched to queue', [
                 'content_id' => $content->id,
@@ -178,7 +185,7 @@ class ContentCreatorController extends Controller
             ]);
 
             // Step 2: Send enhanced prompt to video rendering service
-            \App\Jobs\RenderVideo::dispatch(
+            RenderVideo::dispatch(
                 $content,
                 $enhancedPrompt, // Use AI-enhanced prompt instead of raw topic
                 [
@@ -271,7 +278,7 @@ class ContentCreatorController extends Controller
             'options' => $options,
         ]);
 
-        \App\Jobs\GenerateContent::dispatch($content, auth()->user(), $tokenCost);
+        GenerateContent::dispatch($content, auth()->user(), $tokenCost);
 
         return response()->json([
             'success' => true,
@@ -524,11 +531,12 @@ class ContentCreatorController extends Controller
                 'kb_count' => $kbCount,
             ]);
         } catch (\Throwable $e) {
-            Log::error('Suggestions error: ' . $e->getMessage());
+            Log::error('Suggestions error: '.$e->getMessage());
+
             return response()->json([
                 'suggestions' => [],
                 'kb_count' => 0,
-                'error' => 'Failed to generate suggestions. Please try again.'
+                'error' => 'Failed to generate suggestions. Please try again.',
             ], 500);
         }
     }
@@ -561,6 +569,7 @@ class ContentCreatorController extends Controller
 
                 if ($response->successful()) {
                     $body = $response->json('choices.0.message.content', '');
+
                     // Return raw markdown (no HTML conversion)
                     return response()->json([
                         'success' => true,
@@ -573,12 +582,14 @@ class ContentCreatorController extends Controller
 
             // Fallback: Generate a placeholder body when API is not configured
             $fallbackBody = $this->generateFallbackBlogBody($topic, $keywords);
+
             return response()->json([
                 'success' => true,
                 'body' => $fallbackBody,
             ]);
         } catch (\Throwable $e) {
             Log::error('Blog body error: '.$e->getMessage());
+
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to generate blog body. Please try again.',
@@ -614,6 +625,7 @@ class ContentCreatorController extends Controller
 
                 if ($response->successful()) {
                     $imagePrompt = $response->json('choices.0.message.content', '');
+
                     return response()->json([
                         'success' => true,
                         'prompt' => trim($imagePrompt),
@@ -625,12 +637,14 @@ class ContentCreatorController extends Controller
 
             // Fallback: Generate a basic prompt from topic
             $fallbackPrompt = "A compelling featured image representing: {$topic}. Cinematic photography style, dramatic lighting, professional quality, suitable for blog header.";
+
             return response()->json([
                 'success' => true,
                 'prompt' => $fallbackPrompt,
             ]);
         } catch (\Throwable $e) {
             Log::error('Image prompt error: '.$e->getMessage());
+
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to generate image prompt. Please try again.',
@@ -641,6 +655,7 @@ class ContentCreatorController extends Controller
     private function generateFallbackBlogBody(string $topic, string $keywords): string
     {
         $keywordList = $keywords ? implode(', ', explode(',', $keywords)) : 'blogging, content creation';
+
         return <<<HTML
 <h2>Introduction</h2>
 <p>Welcome to our comprehensive guide on <strong>{$topic}</strong>. In today's rapidly evolving landscape, understanding this topic has become essential for anyone looking to stay ahead of the curve. Whether you're a beginner just getting started or an experienced professional looking to refine your knowledge, this article will provide you with valuable insights and practical strategies.</p>
@@ -731,7 +746,7 @@ HTML;
                 }
             }
 
-            $filename = \Illuminate\Support\Str::random(40).'.'.$file->getClientOriginalExtension();
+            $filename = Str::random(40).'.'.$file->getClientOriginalExtension();
             $file->move(public_path('uploads/content-media'), $filename);
             $url = '/uploads/content-media/'.$filename;
 
@@ -803,7 +818,7 @@ HTML;
             }
 
             // Fallback to local storage
-            $filename = \Illuminate\Support\Str::random(40).'.'.$file->getClientOriginalExtension();
+            $filename = Str::random(40).'.'.$file->getClientOriginalExtension();
             $file->move(public_path('uploads/content-media'), $filename);
             $url = '/uploads/content-media/'.$filename;
 
@@ -848,7 +863,7 @@ HTML;
         if ($format === 'poster') {
             $options['poster_text'] = $request->input('poster_text');
             if ($request->filled('brand_id')) {
-                $brand = \App\Models\Brand::find($request->brand_id);
+                $brand = Brand::find($request->brand_id);
                 if ($brand) {
                     $options['brand'] = [
                         'name' => $brand->name,
@@ -864,7 +879,7 @@ HTML;
         $generatedUrl = $this->contentService->generateImage($request->prompt, $format, $options);
 
         if ($generatedUrl) {
-            $cloudinaryService = app(\App\Services\CloudinaryService::class);
+            $cloudinaryService = app(CloudinaryService::class);
             $uploadResult = $cloudinaryService->uploadFromUrl($generatedUrl, 'ai-generated', 'uploads/content-media');
 
             $finalUrl = $uploadResult['url'];
@@ -918,10 +933,12 @@ HTML;
                 $options
             );
 
-            return response()->json([
-                'success' => true,
-                'new_text' => $newText,
-            ]);
+            $response = ['success' => true, 'new_text' => $newText];
+            if ($content->type === 'blog') {
+                $response['new_html'] = Str::markdown($newText);
+            }
+
+            return response()->json($response);
         } catch (\Exception $e) {
             Log::error('Regeneration failed: '.$e->getMessage());
 
@@ -992,7 +1009,7 @@ HTML;
                 'options' => $options,
             ]);
 
-            if ($isImmediate || \Carbon\Carbon::parse($scheduledAt)->isPast()) {
+            if ($isImmediate || Carbon::parse($scheduledAt)->isPast()) {
                 if ($platform === 'facebook' && ! empty($options['page_id']) && ! empty($options['page_token'])) {
                     $fbResult = $this->socialPublishingService->postToFacebook($contentRecord);
                     $results['facebook'] = $fbResult;
