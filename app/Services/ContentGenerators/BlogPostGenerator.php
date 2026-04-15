@@ -49,11 +49,42 @@ class BlogPostGenerator extends BaseContentGenerator
     public function getUserPrompt(string $topic, ?string $context = null, array $options = []): string
     {
         $keywords = $options['blog_keywords'] ?? '';
+        $angle = $options['angle'] ?? null;
+        $focusKeyword = $options['focus_keyword'] ?? '';
+
+        if ($angle) {
+            return "Write a blog post about: \"$angle — $topic\".
+            Target Keywords: $focusKeyword".($keywords ? ", $keywords" : '').".
+            Focus: This article should dive deep into the angle of \"$angle\".
+            Specific Context/Mandates: $context.
+
+            Ensure the content is original, substantive (1500+ words), and directly addresses this specific angle of the topic. Use a different structure and perspective than a general overview.";
+        }
 
         return "Write a blog post about: \"$topic\".
         Target Keywords: $keywords.
         Specific Context/Mandates: $context.
-        
+
         Ensure the content is original, valuable, and directly addresses user intent.";
+    }
+
+    public function getAngleExtractionPrompt(string $topic, int $count, string $keywords = ''): string
+    {
+        return "You are an expert content strategist. Given the topic \"$topic\" and keywords \"$keywords\", generate exactly $count distinct sub-topic angles for creating $count separate, unique blog posts.
+
+Return your response ONLY as valid JSON in this exact format:
+```json
+[
+  {\"angle\": \"The Sub-Topic Title\", \"keyword\": \"primary keyword for this angle\", \"description\": \"One sentence describing what this angle covers\"},
+  ... (exactly $count items)
+]
+```
+
+Requirements:
+- Each angle must be genuinely different from the others
+- Angles should cover different aspects: types/kinds, how-to steps, common mistakes, best practices, case studies, comparison, beginner guide, advanced tactics, industry trends, etc.
+- Each angle should have a distinct primary keyword that differs from the others
+- Make angles specific and actionable, not generic
+- Output ONLY the JSON array, no explanations or markdown outside the code block";
     }
 }

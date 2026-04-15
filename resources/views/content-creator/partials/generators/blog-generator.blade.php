@@ -66,6 +66,26 @@
             </button>
         </div>
 
+        {{-- Batch Quantity Selector (only visible in batch mode) --}}
+        <div x-show="isBatchMode" x-transition class="bg-primary/5 border border-primary/20 rounded-xl p-4 space-y-3">
+            <div class="flex items-center gap-2">
+                <i data-lucide="layers" class="w-4 h-4 text-primary"></i>
+                <h4 class="text-[10px] font-black text-primary uppercase tracking-wider">How Many Blogs?</h4>
+            </div>
+            <div class="flex gap-2">
+                <template x-for="n in [1, 2, 3]" :key="n">
+                    <button @click="blogCount = n"
+                            :class="blogCount === n ? 'bg-primary text-white border-primary shadow-md' : 'bg-white text-foreground border-border hover:border-primary/30'"
+                            class="flex-1 py-3 rounded-lg border text-xs font-black uppercase tracking-wider transition-all">
+                        <span x-text="n"></span>
+                    </button>
+                </template>
+            </div>
+            <p class="text-[10px] text-muted-foreground italic">
+                Each blog covers a different angle of the topic — no duplicates.
+            </p>
+        </div>
+
         {{-- Suggestions Box --}}
         <div class="bg-primary/5 border border-primary/20 rounded-xl p-6 space-y-4">
             <div class="flex items-center gap-2 mb-2">
@@ -353,7 +373,7 @@
         </div>
 
         <div class="text-xs text-muted-foreground mt-4 italic">
-            Estimated Token Consumption: <span class="font-bold text-foreground">20 tokens</span>
+            Estimated Token Consumption: <span class="font-bold text-foreground" x-text="isBatchMode ? (blogCount * 20) + ' tokens' : '20 tokens'"></span>
         </div>
 
         {{-- Generate Button Area --}}
@@ -364,13 +384,13 @@
                 <template x-if="!isGenerating">
                     <div class="flex items-center gap-2">
                         <i data-lucide="sparkles" class="w-5 h-5"></i>
-                        <span>Generate & Preview Blog Post</span>
+                        <span x-text="isBatchMode ? 'Generate ' + blogCount + ' Blog Posts' : 'Generate & Preview Blog Post'"></span>
                     </div>
                 </template>
                 <template x-if="isGenerating">
                     <div class="flex items-center gap-2">
                         <i data-lucide="loader-2" class="w-5 h-5 animate-spin"></i>
-                        <span>Architecting Blog...</span>
+                        <span x-text="isBatchMode ? 'Generating Blog Batch...' : 'Architecting Blog...'"></span>
                     </div>
                 </template>
             </button>

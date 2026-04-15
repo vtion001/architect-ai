@@ -2,19 +2,36 @@
 
 require __DIR__.'/api-docs.php';
 
+use App\Http\Controllers\Admin\AdminController;
+use App\Http\Controllers\Admin\AuditController;
+use App\Http\Controllers\Admin\TenantExplorerController;
+use App\Http\Controllers\AiAgentController;
 use App\Http\Controllers\AnalyticsController;
+use App\Http\Controllers\Auth\AgencyImpersonationController;
 use App\Http\Controllers\Auth\AuthController;
 use App\Http\Controllers\Auth\DeveloperController;
 use App\Http\Controllers\Auth\InvitationController;
+use App\Http\Controllers\Auth\MfaController;
+use App\Http\Controllers\Auth\TenantController;
+use App\Http\Controllers\BillingController;
+use App\Http\Controllers\BrandController;
 use App\Http\Controllers\ContentCreatorController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DocumentBuilderController;
 use App\Http\Controllers\DocumentsController;
+use App\Http\Controllers\GodViewController;
+use App\Http\Controllers\HelpCenterController;
 use App\Http\Controllers\KnowledgeBaseController;
 use App\Http\Controllers\LandingPageController;
+use App\Http\Controllers\MediaRegistryController;
 use App\Http\Controllers\ResearchEngineController;
 use App\Http\Controllers\SignatureRequestController;
 use App\Http\Controllers\SocialPlannerController;
+use App\Http\Controllers\TaskController;
+use App\Http\Controllers\Tenant\PolicyController;
+use App\Http\Controllers\Tenant\SettingsController;
+use App\Http\Controllers\Tenant\SubAccountController;
+use App\Http\Controllers\Tenant\UserManagementController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', [LandingPageController::class, 'index'])->name('landing');
@@ -43,8 +60,8 @@ Route::prefix('auth')->group(function () {
         return view('auth.login', ['slug' => $slug]);
     })->name('login');
 
-    Route::get('join/{token}', [\App\Http\Controllers\Auth\InvitationController::class, 'show'])->name('invitation.join');
-    Route::post('join/{token}', [\App\Http\Controllers\Auth\InvitationController::class, 'accept']);
+    Route::get('join/{token}', [InvitationController::class, 'show'])->name('invitation.join');
+    Route::post('join/{token}', [InvitationController::class, 'accept']);
 
     Route::post('register-agency', [AuthController::class, 'registerAgency'])->middleware('throttle:3,60'); // 3 agencies per hour
     Route::post('login', [AuthController::class, 'login'])->middleware('throttle:60,1'); // 60 attempts per 1 min
@@ -56,10 +73,10 @@ Route::prefix('auth')->group(function () {
 
     // MFA Challenge/Setup (Auth only, no mfa middleware)
     Route::middleware('auth')->group(function () {
-        Route::get('mfa/challenge', [\App\Http\Controllers\Auth\MfaController::class, 'challenge'])->name('mfa.challenge');
-        Route::post('mfa/verify', [\App\Http\Controllers\Auth\MfaController::class, 'verify'])->middleware('throttle:60,1')->name('mfa.verify');
-        Route::get('mfa/setup', [\App\Http\Controllers\Auth\MfaController::class, 'setup'])->name('mfa.setup');
-        Route::post('mfa/enable', [\App\Http\Controllers\Auth\MfaController::class, 'enable'])->name('mfa.enable');
+        Route::get('mfa/challenge', [MfaController::class, 'challenge'])->name('mfa.challenge');
+        Route::post('mfa/verify', [MfaController::class, 'verify'])->middleware('throttle:60,1')->name('mfa.verify');
+        Route::get('mfa/setup', [MfaController::class, 'setup'])->name('mfa.setup');
+        Route::post('mfa/enable', [MfaController::class, 'enable'])->name('mfa.enable');
     });
 });
 
@@ -72,18 +89,18 @@ Route::get('/api-docs', function () {
 Route::middleware(['auth', 'tenant', 'mfa', 'session_security'])->group(function () {
 
     // Task & Note Management
-    Route::resource('tasks', \App\Http\Controllers\TaskController::class)->only(['index', 'store', 'update', 'destroy']);
-    Route::post('tasks/{task}/restore', [\App\Http\Controllers\TaskController::class, 'restore'])->name('tasks.restore');
-    Route::delete('tasks/{task}/force', [\App\Http\Controllers\TaskController::class, 'forceDelete'])->name('tasks.force-delete');
-    Route::post('tasks/breakdown', [\App\Http\Controllers\TaskController::class, 'breakdown'])->name('tasks.breakdown');
-    Route::post('tasks/voice-to-intelligence', [\App\Http\Controllers\TaskController::class, 'voiceToIntelligence'])->name('tasks.voice');
-    Route::post('tasks/voice-save', [\App\Http\Controllers\TaskController::class, 'saveAudioOnly'])->name('tasks.voice-save');
+    Route::resource('tasks', TaskController::class)->only(['index', 'store', 'update', 'destroy']);
+    Route::post('tasks/{task}/restore', [TaskController::class, 'restore'])->name('tasks.restore');
+    Route::delete('tasks/{task}/force', [TaskController::class, 'forceDelete'])->name('tasks.force-delete');
+    Route::post('tasks/breakdown', [TaskController::class, 'breakdown'])->name('tasks.breakdown');
+    Route::post('tasks/voice-to-intelligence', [TaskController::class, 'voiceToIntelligence'])->name('tasks.voice');
+    Route::post('tasks/voice-save', [TaskController::class, 'saveAudioOnly'])->name('tasks.voice-save');
 
     // Ghost Demo Routes
-    Route::post('tasks/ghost-demo', [\App\Http\Controllers\TaskController::class, 'storeGhostDemo'])->name('tasks.ghost-demo.store');
-    Route::get('tasks/ghost-demo/{document}', [\App\Http\Controllers\TaskController::class, 'showGhostDemo'])->name('tasks.ghost-demo.show');
-    Route::post('task-categories', [\App\Http\Controllers\TaskController::class, 'storeCategory'])->name('task-categories.store');
-    Route::delete('task-categories/{category}', [\App\Http\Controllers\TaskController::class, 'destroyCategory'])->name('task-categories.destroy');
+    Route::post('tasks/ghost-demo', [TaskController::class, 'storeGhostDemo'])->name('tasks.ghost-demo.store');
+    Route::get('tasks/ghost-demo/{document}', [TaskController::class, 'showGhostDemo'])->name('tasks.ghost-demo.show');
+    Route::post('task-categories', [TaskController::class, 'storeCategory'])->name('task-categories.store');
+    Route::delete('task-categories/{category}', [TaskController::class, 'destroyCategory'])->name('task-categories.destroy');
 
     // Content & Intelligence Registry
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
@@ -95,53 +112,53 @@ Route::middleware(['auth', 'tenant', 'mfa', 'session_security'])->group(function
         return response()->json(['success' => true]);
     })->name('notifications.read-all');
 
-    Route::get('/tenant/switch/{tenant}', [\App\Http\Controllers\Auth\TenantController::class, 'switch'])->name('tenant.switch');
-    Route::post('/agency/impersonate', [\App\Http\Controllers\Auth\AgencyImpersonationController::class, 'impersonate'])->name('agency.impersonate');
-    Route::get('/agency/impersonate/stop', [\App\Http\Controllers\Auth\AgencyImpersonationController::class, 'stop'])->name('agency.impersonate.stop');
+    Route::get('/tenant/switch/{tenant}', [TenantController::class, 'switch'])->name('tenant.switch');
+    Route::post('/agency/impersonate', [AgencyImpersonationController::class, 'impersonate'])->name('agency.impersonate');
+    Route::get('/agency/impersonate/stop', [AgencyImpersonationController::class, 'stop'])->name('agency.impersonate.stop');
 
     // Billing & Subscription Management
     Route::prefix('billing')->group(function () {
-        Route::get('/', [\App\Http\Controllers\BillingController::class, 'index'])->name('billing.index');
-        Route::get('/upgrade', [\App\Http\Controllers\BillingController::class, 'upgrade'])->name('billing.upgrade');
-        Route::get('/credits', [\App\Http\Controllers\BillingController::class, 'credits'])->name('billing.credits');
-        Route::get('/check/{feature}', [\App\Http\Controllers\BillingController::class, 'checkFeature'])->name('billing.check-feature');
+        Route::get('/', [BillingController::class, 'index'])->name('billing.index');
+        Route::get('/upgrade', [BillingController::class, 'upgrade'])->name('billing.upgrade');
+        Route::get('/credits', [BillingController::class, 'credits'])->name('billing.credits');
+        Route::get('/check/{feature}', [BillingController::class, 'checkFeature'])->name('billing.check-feature');
     });
 
     // Tenant/Agency Management
     Route::prefix('settings')->group(function () {
-        Route::get('/', [\App\Http\Controllers\Tenant\SettingsController::class, 'index'])->name('settings.index');
-        Route::post('/branding', [\App\Http\Controllers\Tenant\SettingsController::class, 'updateBranding'])->name('settings.branding');
-        Route::post('/profile', [\App\Http\Controllers\Tenant\SettingsController::class, 'updateProfile'])->name('settings.profile');
-        Route::post('/mfa/disable', [\App\Http\Controllers\Tenant\SettingsController::class, 'disableMfa'])->name('settings.mfa.disable');
+        Route::get('/', [SettingsController::class, 'index'])->name('settings.index');
+        Route::post('/branding', [SettingsController::class, 'updateBranding'])->name('settings.branding');
+        Route::post('/profile', [SettingsController::class, 'updateProfile'])->name('settings.profile');
+        Route::post('/mfa/disable', [SettingsController::class, 'disableMfa'])->name('settings.mfa.disable');
 
         // Brand Kits (Pro+ Feature)
         Route::middleware('feature:brand_kits')->group(function () {
-            Route::post('/brands/scrape', [\App\Http\Controllers\BrandController::class, 'scrape'])->name('brands.scrape');
-            Route::post('/brands/analyze-blueprint', [\App\Http\Controllers\BrandController::class, 'analyzeBlueprint'])->name('brands.analyze-blueprint');
-            Route::get('/brands', [\App\Http\Controllers\BrandController::class, 'index'])->name('brands.index');
-            Route::post('/brands', [\App\Http\Controllers\BrandController::class, 'store'])->name('brands.store');
-            Route::put('/brands/{brand}', [\App\Http\Controllers\BrandController::class, 'update'])->name('brands.update');
-            Route::delete('/brands/{brand}', [\App\Http\Controllers\BrandController::class, 'destroy'])->name('brands.destroy');
-            Route::post('/brands/{brand}/default', [\App\Http\Controllers\BrandController::class, 'setDefault'])->name('brands.set-default');
+            Route::post('/brands/scrape', [BrandController::class, 'scrape'])->name('brands.scrape');
+            Route::post('/brands/analyze-blueprint', [BrandController::class, 'analyzeBlueprint'])->name('brands.analyze-blueprint');
+            Route::get('/brands', [BrandController::class, 'index'])->name('brands.index');
+            Route::post('/brands', [BrandController::class, 'store'])->name('brands.store');
+            Route::put('/brands/{brand}', [BrandController::class, 'update'])->name('brands.update');
+            Route::delete('/brands/{brand}', [BrandController::class, 'destroy'])->name('brands.destroy');
+            Route::post('/brands/{brand}/default', [BrandController::class, 'setDefault'])->name('brands.set-default');
         });
 
         // Sub-Accounts (Agency Only Feature)
         Route::middleware('feature:sub_accounts')->group(function () {
-            Route::get('/sub-accounts', [\App\Http\Controllers\Tenant\SubAccountController::class, 'index'])->name('sub-accounts.index');
-            Route::post('/sub-accounts', [\App\Http\Controllers\Tenant\SubAccountController::class, 'store'])->name('sub-accounts.store');
+            Route::get('/sub-accounts', [SubAccountController::class, 'index'])->name('sub-accounts.index');
+            Route::post('/sub-accounts', [SubAccountController::class, 'store'])->name('sub-accounts.store');
         });
 
-        Route::get('/users', [\App\Http\Controllers\Tenant\UserManagementController::class, 'index'])->name('users.index');
-        Route::post('/users', [\App\Http\Controllers\Tenant\UserManagementController::class, 'store'])->name('users.store');
-        Route::post('/users/invite', [\App\Http\Controllers\Tenant\UserManagementController::class, 'invite'])->name('users.invite');
+        Route::get('/users', [UserManagementController::class, 'index'])->name('users.index');
+        Route::post('/users', [UserManagementController::class, 'store'])->name('users.store');
+        Route::post('/users/invite', [UserManagementController::class, 'invite'])->name('users.invite');
 
-        Route::post('/api/generate', [\App\Http\Controllers\Tenant\SettingsController::class, 'generateToken'])->name('settings.api.generate');
-        Route::delete('/api/{token}', [\App\Http\Controllers\Tenant\SettingsController::class, 'revokeToken'])->name('settings.api.revoke');
+        Route::post('/api/generate', [SettingsController::class, 'generateToken'])->name('settings.api.generate');
+        Route::delete('/api/{token}', [SettingsController::class, 'revokeToken'])->name('settings.api.revoke');
 
-        Route::get('/policies', [\App\Http\Controllers\Tenant\PolicyController::class, 'index'])->name('policies.index');
-        Route::get('/policies/create', [\App\Http\Controllers\Tenant\PolicyController::class, 'create'])->name('policies.create');
-        Route::post('/policies', [\App\Http\Controllers\Tenant\PolicyController::class, 'store'])->name('policies.store');
-        Route::delete('/policies/{policy}', [\App\Http\Controllers\Tenant\PolicyController::class, 'destroy'])->name('policies.destroy');
+        Route::get('/policies', [PolicyController::class, 'index'])->name('policies.index');
+        Route::get('/policies/create', [PolicyController::class, 'create'])->name('policies.create');
+        Route::post('/policies', [PolicyController::class, 'store'])->name('policies.store');
+        Route::delete('/policies/{policy}', [PolicyController::class, 'destroy'])->name('policies.destroy');
     });
 
     Route::get('/document-builder', [DocumentBuilderController::class, 'index'])->name('document-builder.index');
@@ -153,6 +170,7 @@ Route::middleware(['auth', 'tenant', 'mfa', 'session_security'])->group(function
 
     Route::get('/content-creator', [ContentCreatorController::class, 'index'])->name('content-creator.index');
     Route::post('/content-creator/generate', [ContentCreatorController::class, 'store'])->middleware('throttle:10,1')->name('content-creator.generate');
+    Route::post('/content-creator/blog/batch', [ContentCreatorController::class, 'batchStore'])->middleware('throttle:10,1')->name('content-creator.blog.batch');
     // Bulk Operations (Moved from API for session auth)
     Route::post('/content-creator/generate-bulk-images', [ContentCreatorController::class, 'generateBulkImages'])->name('content-creator.generate-bulk-images');
     Route::post('/content-creator/bulk-schedule', [ContentCreatorController::class, 'bulkSchedule'])->name('content-creator.bulk-schedule');
@@ -168,6 +186,7 @@ Route::middleware(['auth', 'tenant', 'mfa', 'session_security'])->group(function
     Route::post('/content-creator/publish', [ContentCreatorController::class, 'publish'])->name('content-creator.publish');
     Route::post('/content-creator/{content}/save-visual', [ContentCreatorController::class, 'saveVisual'])->name('content-creator.save-visual');
     Route::delete('/content-creator/{content}', [ContentCreatorController::class, 'destroy'])->name('content-creator.destroy');
+    Route::get('/content-creator/{content}/children', [ContentCreatorController::class, 'getChildren'])->name('content-creator.children');
     Route::get('/content-creator/{content}', [ContentCreatorController::class, 'show'])->name('content-creator.show');
 
     Route::get('/social-planner', [SocialPlannerController::class, 'index'])->name('social-planner.index');
@@ -187,17 +206,17 @@ Route::middleware(['auth', 'tenant', 'mfa', 'session_security'])->group(function
 
     // AI Agents (Pro+ Feature)
     Route::middleware('feature:ai_agents')->group(function () {
-        Route::get('/ai-agents', [\App\Http\Controllers\AiAgentController::class, 'index'])->name('ai-agents.index');
-        Route::post('/ai-agents', [\App\Http\Controllers\AiAgentController::class, 'store'])->name('ai-agents.store');
+        Route::get('/ai-agents', [AiAgentController::class, 'index'])->name('ai-agents.index');
+        Route::post('/ai-agents', [AiAgentController::class, 'store'])->name('ai-agents.store');
         // Static routes MUST come before dynamic {agent} routes
-        Route::post('/ai-agents/chat', [\App\Http\Controllers\AiAgentController::class, 'chat'])->name('ai-agents.chat');
-        Route::get('/ai-agents/conversation', [\App\Http\Controllers\AiAgentController::class, 'getConversation'])->name('ai-agents.conversation');
-        Route::post('/ai-agents/conversation/clear', [\App\Http\Controllers\AiAgentController::class, 'clearConversation'])->name('ai-agents.conversation.clear');
-        Route::get('/ai-agents/list', [\App\Http\Controllers\AiAgentController::class, 'list'])->name('ai-agents.list');
+        Route::post('/ai-agents/chat', [AiAgentController::class, 'chat'])->name('ai-agents.chat');
+        Route::get('/ai-agents/conversation', [AiAgentController::class, 'getConversation'])->name('ai-agents.conversation');
+        Route::post('/ai-agents/conversation/clear', [AiAgentController::class, 'clearConversation'])->name('ai-agents.conversation.clear');
+        Route::get('/ai-agents/list', [AiAgentController::class, 'list'])->name('ai-agents.list');
         // Dynamic routes with {agent} parameter
-        Route::get('/ai-agents/{agent}', [\App\Http\Controllers\AiAgentController::class, 'show'])->name('ai-agents.show');
-        Route::put('/ai-agents/{agent}', [\App\Http\Controllers\AiAgentController::class, 'update'])->name('ai-agents.update');
-        Route::delete('/ai-agents/{agent}', [\App\Http\Controllers\AiAgentController::class, 'destroy'])->name('ai-agents.destroy');
+        Route::get('/ai-agents/{agent}', [AiAgentController::class, 'show'])->name('ai-agents.show');
+        Route::put('/ai-agents/{agent}', [AiAgentController::class, 'update'])->name('ai-agents.update');
+        Route::delete('/ai-agents/{agent}', [AiAgentController::class, 'destroy'])->name('ai-agents.destroy');
     });
 
     Route::get('/documents', [DocumentsController::class, 'index'])->name('documents.index');
@@ -209,16 +228,16 @@ Route::middleware(['auth', 'tenant', 'mfa', 'session_security'])->group(function
     Route::post('/documents/{document}/request-signature', [SignatureRequestController::class, 'send'])->name('documents.request-signature');
     Route::get('/documents/{document}/signatures', [SignatureRequestController::class, 'index'])->name('documents.signatures.index');
 
-    Route::get('/media-registry', [\App\Http\Controllers\MediaRegistryController::class, 'index'])->name('media-registry.index');
-    Route::post('/media-registry', [\App\Http\Controllers\MediaRegistryController::class, 'store'])->name('media-registry.store');
-    Route::delete('/media-registry/{asset}', [\App\Http\Controllers\MediaRegistryController::class, 'destroy'])->name('media-registry.destroy');
-    Route::get('/media-assets', [\App\Http\Controllers\MediaRegistryController::class, 'getAssets'])->name('media-assets.json');
+    Route::get('/media-registry', [MediaRegistryController::class, 'index'])->name('media-registry.index');
+    Route::post('/media-registry', [MediaRegistryController::class, 'store'])->name('media-registry.store');
+    Route::delete('/media-registry/{asset}', [MediaRegistryController::class, 'destroy'])->name('media-registry.destroy');
+    Route::get('/media-assets', [MediaRegistryController::class, 'getAssets'])->name('media-assets.json');
 
     Route::get('/analytics', [AnalyticsController::class, 'index'])->name('analytics.index');
 
     // Help Center
-    Route::get('/help-center', [\App\Http\Controllers\HelpCenterController::class, 'index'])->name('help-center.index');
-    Route::get('/help-center/{section}/{article}', [\App\Http\Controllers\HelpCenterController::class, 'show'])->name('help-center.show');
+    Route::get('/help-center', [HelpCenterController::class, 'index'])->name('help-center.index');
+    Route::get('/help-center/{section}/{article}', [HelpCenterController::class, 'show'])->name('help-center.show');
 
     Route::get('/research-engine', [ResearchEngineController::class, 'index'])->name('research-engine.index');
     Route::post('/research-engine/start', [ResearchEngineController::class, 'store'])->middleware('throttle:5,1')->name('research-engine.start');
@@ -233,23 +252,23 @@ Route::middleware(['auth', 'tenant', 'mfa', 'session_security'])->group(function
 
     // Platform Operations Console (Admin/DevTool)
     Route::middleware('can:is-developer')->prefix('admin')->group(function () {
-        Route::get('/', [\App\Http\Controllers\Admin\AdminController::class, 'index'])->name('admin.dashboard');
-        Route::post('/toggle-observability', [\App\Http\Controllers\Admin\AdminController::class, 'toggleObservability'])->name('admin.toggle-observability');
-        Route::post('/waitlist/{lead}/convert', [\App\Http\Controllers\Admin\AdminController::class, 'convertLead'])->name('admin.waitlist.convert');
+        Route::get('/', [AdminController::class, 'index'])->name('admin.dashboard');
+        Route::post('/toggle-observability', [AdminController::class, 'toggleObservability'])->name('admin.toggle-observability');
+        Route::post('/waitlist/{lead}/convert', [AdminController::class, 'convertLead'])->name('admin.waitlist.convert');
 
-        Route::get('/audit', [\App\Http\Controllers\Admin\AuditController::class, 'index'])->name('admin.audit.index');
+        Route::get('/audit', [AuditController::class, 'index'])->name('admin.audit.index');
 
-        Route::get('/tenants', [\App\Http\Controllers\Admin\TenantExplorerController::class, 'index'])->name('admin.tenants.index');
-        Route::get('/tenants/{tenant}', [\App\Http\Controllers\Admin\TenantExplorerController::class, 'show'])->name('admin.tenants.show');
-        Route::post('/tenants/{tenant}/grant', [\App\Http\Controllers\Admin\TenantExplorerController::class, 'grantTokens'])->name('admin.tenants.grant');
+        Route::get('/tenants', [TenantExplorerController::class, 'index'])->name('admin.tenants.index');
+        Route::get('/tenants/{tenant}', [TenantExplorerController::class, 'show'])->name('admin.tenants.show');
+        Route::post('/tenants/{tenant}/grant', [TenantExplorerController::class, 'grantTokens'])->name('admin.tenants.grant');
     });
 
     // God View - Waitlist Management (admin@archit-ai.io only)
     Route::prefix('god-view')->group(function () {
-        Route::get('/', [\App\Http\Controllers\GodViewController::class, 'index'])->name('god-view.index');
-        Route::post('/approve/{waitlist}', [\App\Http\Controllers\GodViewController::class, 'approve'])->name('god-view.approve');
-        Route::post('/reject/{waitlist}', [\App\Http\Controllers\GodViewController::class, 'reject'])->name('god-view.reject');
-        Route::delete('/{waitlist}', [\App\Http\Controllers\GodViewController::class, 'destroy'])->name('god-view.destroy');
-        Route::post('/bulk-approve', [\App\Http\Controllers\GodViewController::class, 'bulkApprove'])->name('god-view.bulk-approve');
+        Route::get('/', [GodViewController::class, 'index'])->name('god-view.index');
+        Route::post('/approve/{waitlist}', [GodViewController::class, 'approve'])->name('god-view.approve');
+        Route::post('/reject/{waitlist}', [GodViewController::class, 'reject'])->name('god-view.reject');
+        Route::delete('/{waitlist}', [GodViewController::class, 'destroy'])->name('god-view.destroy');
+        Route::post('/bulk-approve', [GodViewController::class, 'bulkApprove'])->name('god-view.bulk-approve');
     });
 });

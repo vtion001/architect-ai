@@ -33,6 +33,7 @@ document.addEventListener('alpine:init', () => {
         lastAutoSeoTopic: null,
         structure: 'Standard',
         isBatchMode: false,
+        blogCount: 3,
         featuredImageType: 'ai',
         featuredImageUrl: '',
         showImagePreview: false,
@@ -426,7 +427,7 @@ document.addEventListener('alpine:init', () => {
                 topic: this.topic,
                 generator: this.generator,
                 type: this.type, // Use current type which is updated via watcher
-                count: this.count,
+                count: this.generator === 'blog' && this.isBatchMode ? this.blogCount : this.count,
                 tone: this.tone,
                 length: this.length,
                 context: this.context,
@@ -451,7 +452,11 @@ document.addEventListener('alpine:init', () => {
                 brand_id: this.selectedBrandId
             };
 
-            fetch('/content-creator/generate', {
+            const endpoint = (this.generator === 'blog' && this.isBatchMode)
+                ? '/content-creator/blog/batch'
+                : '/content-creator/generate';
+
+            fetch(endpoint, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',

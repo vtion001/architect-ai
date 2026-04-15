@@ -130,6 +130,32 @@
             showDeleteModal: false,
             isDeleting: false,
             showCopyAllToast: false,
+            batchChildren: [],
+            batchPage: 1,
+            batchLastPage: 1,
+            isLoadingChildren: false,
+            
+            init() {
+                if (window.__contentViewerConfig.contentType === 'blog_batch') {
+                    this.loadBatchChildren();
+                }
+            },
+            
+            loadBatchChildren() {
+                this.isLoadingChildren = true;
+                const nextPage = this.batchPage + 1;
+                fetch(`/content-creator/${window.__contentViewerConfig.contentId}/children?page=${nextPage}`, {
+                    headers: { 'Accept': 'application/json', 'X-CSRF-TOKEN': window.__contentViewerConfig.csrfToken }
+                })
+                .then(res => res.json())
+                .then(data => {
+                    this.batchChildren = [...this.batchChildren, ...data.items];
+                    this.batchPage = data.current_page;
+                    this.batchLastPage = data.last_page;
+                })
+                .catch(e => console.error(e))
+                .finally(() => { this.isLoadingChildren = false; });
+            },
             
             copyAllPosts() {
                 const allPosts = window.__postsData.map(p => p.raw).join('\n\n---\n\n');
@@ -161,7 +187,7 @@
                     if (data.success) { window.location.href = window.__contentViewerConfig.redirectUrl; }
                     else { alert('Delete failed: ' + (data.message || 'Unknown error')); this.isDeleting = false; this.showDeleteModal = false; }
                 })
-                .catch(e => { console.error(e); alert('An error occurred during deletion.'); this.isDeleting = false; });
+                .catch(e => { console.error(e); alert('An error occurred during deletion.'); this.isDeleting = false });
             }
         }));
 
@@ -260,6 +286,68 @@
         @if(!empty($postsData))
             @include('content-creator.partials.post-card.article-layout')
         @endif
+    @elseif($content->type === 'blog_batch')
+        {{-- Blog Batch: Compact card grid with lazy loading --}}
+        <div class="grid grid-cols-1 gap-6 pb-20">
+            <template x-for="(child, idx) in batchChildren" :key="child.id">
+                <div class="bg-card border border-border rounded-xl shadow-md p-6 animate-in fade-in slide-in-from-bottom-4 duration-500 relative"
+                     :style="`animation-delay: ${idx * 150}ms`">
+                    <div class="absolute -top-3 -left-3 w-8 h-8 rounded-full bg-purple-600 text-white flex items-center justify-center text-sm font-black shadow-lg border-4 border-background z-20"
+                         x-text="child.batch_index + 1"></div>
+                    <div class="flex items-start justify-between gap-4 mb-3">
+                        <div class="flex-1 min-w-0">
+                            <h3 class="text-base font-black text-foreground leading-tight mb-1" x-text="child.title"></h3>
+                            <div class="flex items-center gap-3">
+                                <span class="text-[10px] font-black uppercase tracking-wider text-purple-600"
+                                      x-text="child.angle"></span>
+                                <span class="text-[10px] text-muted-foreground"
+                                      x-text="child.word_count + ' words'"></span>
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-2 shrink-0">
+                            <a :href="`/content-creator/${child.id}`"
+                               class="w-8 h-8 rounded-lg bg-muted/50 hover:bg-primary/10 flex items-center justify-center transition-colors"
+                               title="View full article">
+                                <i data-lucide="external-link" class="w-4 h-4 text-muted-foreground"></i>
+                            </a>
+                            <button @click="navigator.clipboard.writeText(child.title)"
+                                    class="w-8 h-8 rounded-lg bg-muted/50 hover:bg-primary/10 flex items-center justify-center transition-colors"
+                                    title="Copy title">
+                                <i data-lucide="copy" class="w-4 h-4 text-muted-foreground"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <p class="text-sm text-muted-foreground leading-relaxed line-clamp-3 mb-4" x-text="child.excerpt"></p>
+                    <div class="flex items-center gap-3 pt-3 border-t border-border/50">
+                        <span class="text-[10px] font-bold px-2 py-1 rounded-full bg-purple-600/10 text-purple-600 border border-purple-600/20"
+                              x-text="child.focus_keyword"></span>
+                        <span class="text-[10px] font-bold px-2 py-1 rounded-full bg-green-600/10 text-green-600 border border-green-600/20"
+                              :class="child.status === 'published' ? 'bg-green-600/10 text-green-600' : 'bg-yellow-600/10 text-yellow-600'"
+                              x-text="child.status"></span>
+                    </div>
+                </div>
+            </template>
+        </div>
+        
+        {{-- Load More (only if more pages exist) --}}
+        <div x-show="batchChildren.length > 0 && batchPage < batchLastPage" class="text-center pb-20">
+            <button @click="loadBatchChildren()"
+                    :disabled="isLoadingChildren"
+                    class="px-8 py-3 bg-muted/50 hover:bg-muted border border-border rounded-xl text-xs font-black uppercase tracking-wider transition-all disabled:opacity-50">
+                <span x-show="!isLoadingChildren">Load More</span>
+                <span x-show="isLoadingChildren" class="flex items-center gap-2">
+                    <i data-lucide="loader-2" class="w-4 h-4 animate-spin"></i>
+                    Loading...
+                </span>
+            </button>
+        </div>
+        
+        {{-- Empty / Loading State for blog batch --}}
+        <div x-show="batchChildren.length === 0 && !isLoadingChildren" class="text-center py-20 text-muted-foreground">
+            <i data-lucide="layers" class="w-12 h-12 mx-auto mb-4 opacity-30"></i>
+            <p class="text-sm font-bold">Blog batch is still generating...</p>
+            <p class="text-xs mt-1">Each blog is being crafted with a unique angle. This may take a moment.</p>
+        </div>
     @else
         {{-- Social Media Card Grid --}}
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6 pb-20">

@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Enums\FeatureType;
 use App\Http\Requests\StoreContentRequest;
+use App\Jobs\GenerateBlogBatch;
 use App\Jobs\GenerateCalendarFramework;
 use App\Jobs\GenerateContent;
 use App\Jobs\RenderVideo;
@@ -284,6 +285,111 @@ class ContentCreatorController extends Controller
             'success' => true,
             'content' => $content,
             'message' => 'Content generation protocol initiated.',
+        ]);
+    }
+
+    public function batchStore(Request $request)
+    {
+        $request->validate([
+            'topic' => 'required|string|min:3',
+            'count' => 'required|integer|min:1|max:3',
+        ]);
+
+        $user = auth()->user();
+        $count = (int) $request->input('count', 1);
+        $tokenCost = $count * 20;
+
+        if (! $this->tokenService->consume($user, $tokenCost, 'blog_batch_generation', ['topic' => $request->topic, 'count' => $count])) {
+            return response()->json([
+                'success' => false,
+                'message' => "Insufficient tokens. This request requires $tokenCost tokens.",
+            ], 402);
+        }
+
+        $options = [
+            'count' => $count,
+            'blog_keywords' => $request->input('keywords', ''),
+            'cta' => $request->input('cta', ''),
+            'blog_structure' => $request->input('blog_structure', 'Standard'),
+            'tone' => $request->input('tone', 'Professional'),
+        ];
+
+        $context = $request->input('context', '');
+        if ($request->filled('brand_id')) {
+            $brandContext = $this->brandResolverService->buildBrandContext($request->brand_id);
+            if ($brandContext) {
+                $context .= "\n\nBRAND GUIDELINES:\n".$brandContext;
+                $brand = Brand::find($request->brand_id);
+                if ($brand) {
+                    $options['brand_tone'] = $brand->voice_tone;
+                }
+            }
+        }
+
+        $topicData = [
+            'topic' => $request->input('topic'),
+            'count' => $count,
+            'keywords' => $request->input('keywords', ''),
+            'context' => $context,
+            'cta' => $request->input('cta', ''),
+            'brand_tone' => $options['brand_tone'] ?? '',
+        ];
+
+        $content = Content::create([
+            'title' => 'Batch: '.Str::limit($request->input('topic'), 30),
+            'topic' => $request->input('topic'),
+            'type' => 'blog_batch',
+            'context' => $context,
+            'status' => 'generating',
+            'options' => $options,
+        ]);
+
+        GenerateBlogBatch::dispatch($content, $user, $tokenCost, $topicData);
+
+        Log::info('[ContentCreator] Blog batch dispatched', [
+            'content_id' => $content->id,
+            'count' => $count,
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'content' => $content,
+            'message' => "Blog batch initiated — generating $count posts.",
+        ]);
+    }
+
+    public function getChildren(Request $request, Content $content)
+    {
+        $perPage = min((int) $request->input('per_page', 3), 3);
+        $page = (int) $request->input('page', 1);
+
+        $children = Content::where('options->parent_batch_id', $content->id)
+            ->where('type', 'blog')
+            ->orderBy('options->batch_index', 'asc')
+            ->paginate($perPage, ['*'], 'page', $page);
+
+        $items = $children->map(function ($child) {
+            $result = trim($child->result ?? '');
+            $excerpt = Str::limit(strip_tags(Str::markdown($result)), 150);
+
+            return [
+                'id' => $child->id,
+                'title' => $child->title,
+                'word_count' => $child->word_count,
+                'excerpt' => $excerpt,
+                'angle' => $child->options['angle'] ?? '',
+                'focus_keyword' => $child->options['focus_keyword'] ?? '',
+                'status' => $child->status,
+                'batch_index' => $child->options['batch_index'] ?? 0,
+            ];
+        });
+
+        return response()->json([
+            'items' => $items,
+            'current_page' => $children->currentPage(),
+            'last_page' => $children->lastPage(),
+            'per_page' => $perPage,
+            'total' => $children->total(),
         ]);
     }
 
