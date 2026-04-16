@@ -613,6 +613,8 @@ class ContentCreatorController extends Controller
                 $suggestions = $this->researchService->suggestSeoKeywords($request->topic);
             } elseif ($type === 'blog_topics') {
                 $suggestions = $this->researchService->suggestBlogTopics($request->topic);
+            } elseif ($type === 'framework_topics') {
+                $suggestions = $this->researchService->suggestFrameworkTopics($request->topic);
             } else {
                 $suggestions = $this->researchService->suggestSocialMediaTopics($request->topic);
             }

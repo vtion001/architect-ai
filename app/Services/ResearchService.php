@@ -4,16 +4,18 @@ declare(strict_types=1);
 
 namespace App\Services;
 
+use App\Services\AI\OpenAIClient;
 use Illuminate\Support\Facades\Log;
 
 class ResearchService
 {
     private const MODEL_RESEARCH = 'gpt-4o';
+
     private const MODEL_SUGGESTIONS = 'gpt-4o-mini';
 
     public function __construct(
         protected KnowledgeBaseService $knowledgeBaseService,
-        protected \App\Services\AI\OpenAIClient $openAIClient
+        protected OpenAIClient $openAIClient
     ) {}
 
     /**
@@ -49,7 +51,8 @@ class ResearchService
             return $result['message'];
         }
 
-        Log::error('OpenAI research error: ' . ($result['error'] ?? 'Unknown error'));
+        Log::error('OpenAI research error: '.($result['error'] ?? 'Unknown error'));
+
         return 'Research failed: OpenAI request failed.';
     }
 
@@ -90,7 +93,8 @@ class ResearchService
             return $result['message'];
         }
 
-        Log::error('OpenAI blog suggestion error: ' . ($result['error'] ?? 'Unknown error'));
+        Log::error('OpenAI blog suggestion error: '.($result['error'] ?? 'Unknown error'));
+
         return $this->generateFallbackBlogTopics($keyword);
     }
 
@@ -99,11 +103,11 @@ class ResearchService
      */
     private function generateFallbackBlogTopics(string $keyword): string
     {
-        return "1. The Ultimate Guide to " . ucfirst($keyword) . " - Everything you need to know to get started\n" .
-               "2. 10 " . ucfirst($keyword) . " Strategies That Actually Work - Proven methods for real results\n" .
-               "3. " . ucfirst($keyword) . " vs Alternatives: Which is Right for You? - An honest comparison\n" .
-               "4. Common " . ucfirst($keyword) . " Mistakes to Avoid - Learn from these frequently made errors\n" .
-               "5. Why " . ucfirst($keyword) . " Matters in 2024 - The impact and benefits explained";
+        return '1. The Ultimate Guide to '.ucfirst($keyword)." - Everything you need to know to get started\n".
+               '2. 10 '.ucfirst($keyword)." Strategies That Actually Work - Proven methods for real results\n".
+               '3. '.ucfirst($keyword)." vs Alternatives: Which is Right for You? - An honest comparison\n".
+               '4. Common '.ucfirst($keyword)." Mistakes to Avoid - Learn from these frequently made errors\n".
+               '5. Why '.ucfirst($keyword).' Matters in 2024 - The impact and benefits explained';
     }
 
     /**
@@ -133,7 +137,8 @@ class ResearchService
             return $result['message'];
         }
 
-        Log::error('OpenAI social media suggestion error: ' . ($result['error'] ?? 'Unknown error'));
+        Log::error('OpenAI social media suggestion error: '.($result['error'] ?? 'Unknown error'));
+
         return 'Error generating suggestions. Please try again later.';
     }
 
@@ -164,7 +169,8 @@ class ResearchService
             return $result['message'];
         }
 
-        Log::error('OpenAI SEO keyword error: ' . ($result['error'] ?? 'Unknown error'));
+        Log::error('OpenAI SEO keyword error: '.($result['error'] ?? 'Unknown error'));
+
         return $this->generateFallbackSeoKeywords($topic);
     }
 
@@ -186,6 +192,50 @@ class ResearchService
         ];
 
         return implode(', ', $keywords);
+    }
+
+    /**
+     * Generate framework topic suggestions for the 4-Pillar calendar.
+     */
+    public function suggestFrameworkTopics(string $topic): string
+    {
+        $messages = [
+            [
+                'role' => 'system',
+                'content' => 'You are a content strategy expert specializing in the 4-Pillar content framework.',
+            ],
+            [
+                'role' => 'user',
+                'content' => "Based on the niche/topic: '$topic'\n\nGenerate exactly 5 catchy, engaging content angle ideas for a weekly social media calendar.\n\nFORMAT:\n- Each angle should be on its own line\n- Start each line with a number followed by a period (1. 2. etc)\n- Include a brief description after a dash (e.g., \"1. How to Create Viral Content - A comprehensive guide to...\")\n- Ideas should be diverse: educational how-tos, case studies, community engagement posts, product/service highlights\n- Do not include introductory text or explanations\n- These will be used to generate a 4-pillar calendar (3 educational, 2 showcase, 2 conversational, 1 promotional posts)",
+            ],
+        ];
+
+        $result = $this->openAIClient->chat($messages, [
+            'model' => self::MODEL_SUGGESTIONS,
+            'max_tokens' => 800,
+            'temperature' => 0.8,
+            'timeout' => 30,
+        ]);
+
+        if ($result['success'] ?? false) {
+            return $result['message'];
+        }
+
+        Log::error('OpenAI framework suggestion error: '.($result['error'] ?? 'Unknown error'));
+
+        return $this->generateFallbackFrameworkTopics($topic);
+    }
+
+    /**
+     * Generate fallback framework topics without API.
+     */
+    private function generateFallbackFrameworkTopics(string $keyword): string
+    {
+        return '1. The Ultimate Guide to '.ucfirst($keyword)." - Everything you need to know to get started\n".
+               '2. 10 '.ucfirst($keyword)." Strategies That Actually Work - Proven methods for real results\n".
+               '3. '.ucfirst($keyword)." Success Stories - Real case studies and transformations\n".
+               '4. Common '.ucfirst($keyword)." Mistakes to Avoid - Learn from these frequently made errors\n".
+               '5. Exclusive '.ucfirst($keyword).' Offer - Special promotion for our community';
     }
 
     /**

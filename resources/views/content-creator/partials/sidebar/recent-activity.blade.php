@@ -1,11 +1,33 @@
 {{-- Recent Activity Feed Sidebar Partial --}}
 <div x-show="generator !== 'video' && !generatedCalendar" 
      class="rounded-xl border border-border bg-card text-card-foreground shadow-sm overflow-hidden">
-    <div class="flex flex-col space-y-1.5 p-6 border-b border-border/50 bg-background/50 backdrop-blur-sm sticky top-0 z-10">
-        <h3 class="text-xl font-bold leading-none tracking-tight flex items-center gap-2">
-            <i data-lucide="activity" class="w-5 h-5 text-primary"></i>
-            Recent Activity Feed
+    <div class="flex items-center justify-between p-4 border-b border-border/50 bg-background/50 sticky top-0 z-10 gap-2">
+        <h3 class="text-sm font-bold leading-none tracking-tight flex items-center gap-2">
+            <i data-lucide="activity" class="w-4 h-4 text-primary"></i>
+            Activity Feed
         </h3>
+        <div class="flex gap-1">
+            <button @click="contentFeedFilter = 'all'"
+                    :class="contentFeedFilter === 'all' ? 'bg-primary text-white' : 'bg-muted text-muted-foreground hover:bg-muted/80'"
+                    class="px-2.5 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all">
+                All
+            </button>
+            <button @click="contentFeedFilter = 'social-media'"
+                    :class="contentFeedFilter === 'social-media' ? 'bg-primary text-white' : 'bg-muted text-muted-foreground hover:bg-muted/80'"
+                    class="px-2.5 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all">
+                Social
+            </button>
+            <button @click="contentFeedFilter = 'blog'"
+                    :class="contentFeedFilter === 'blog' ? 'bg-primary text-white' : 'bg-muted text-muted-foreground hover:bg-muted/80'"
+                    class="px-2.5 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all">
+                Blog
+            </button>
+            <button @click="contentFeedFilter = 'video'"
+                    :class="contentFeedFilter === 'video' ? 'bg-primary text-white' : 'bg-muted text-muted-foreground hover:bg-muted/80'"
+                    class="px-2.5 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all">
+                Video
+            </button>
+        </div>
     </div>
     
     <div class="bg-muted/5 p-4 min-h-[400px]">
@@ -22,8 +44,9 @@
                     $statusColor = $statusColors[$item->status] ?? 'text-slate-700 bg-slate-50 border-slate-200';
                     
                     $typeIcons = [
-                        'social-post' => 'share-2',
-                        'blog-post' => 'book-open',
+                        'social-media' => 'share-2',
+                        'blog' => 'book-open',
+                        'blog_batch' => 'book-open',
                         'video' => 'video',
                         'email' => 'mail'
                     ];
@@ -31,6 +54,8 @@
                 @endphp
                 
                 <a href="{{ route('content-creator.show', $item) }}" 
+                   x-data="{ itemType: '{{ $item->type }}' }"
+                   x-show="contentFeedFilter === 'all' || itemType === contentFeedFilter"
                    class="group flex items-center gap-3 p-3 rounded-xl border border-border bg-card hover:bg-white hover:shadow-md hover:border-primary/30 transition-all duration-200">
                     
                     {{-- Icon / Indicator --}}
@@ -62,6 +87,7 @@
                     <p class="text-sm font-medium">Activity feed is empty.</p>
                 </div>
             @endforelse
+        </div>
         </div>
     </div>
 </div>

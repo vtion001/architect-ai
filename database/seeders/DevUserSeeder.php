@@ -3,7 +3,9 @@
 namespace Database\Seeders;
 
 use App\Models\Role;
+use App\Models\Tenant;
 use App\Models\User;
+use App\Services\TokenService;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
 
@@ -11,7 +13,7 @@ class DevUserSeeder extends Seeder
 {
     public function run(): void
     {
-        $tenant = \App\Models\Tenant::firstOrCreate(
+        $tenant = Tenant::firstOrCreate(
             ['slug' => 'dev'],
             [
                 'name' => 'Dev Agency',
@@ -31,11 +33,11 @@ class DevUserSeeder extends Seeder
         );
 
         $role = Role::where('name', 'Agency Owner')->first();
-        if ($role && !$user->roles()->where('name', 'Agency Owner')->exists()) {
+        if ($role && ! $user->roles()->where('name', 'Agency Owner')->exists()) {
             $user->roles()->attach($role->id, ['scope_type' => 'tenant']);
         }
 
-        app(\App\Services\TokenService::class)->grant($tenant, 1000, 'initial_provisioning');
+        app(TokenService::class)->grant($tenant, 1000, 'initial_provisioning');
 
         $this->command->info('Dev user created: admin@dev.local / password123');
     }

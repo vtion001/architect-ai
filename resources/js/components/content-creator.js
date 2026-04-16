@@ -1,8 +1,64 @@
 document.addEventListener('alpine:init', () => {
-    Alpine.data('contentCreator', () => ({
+    Alpine.store('cc', {
         generator: 'post',
+        isGenerating: false,
+        showSuccessModal: false,
+        createdContentId: null,
+        batchChildren: [],
+        isBatchMode: false,
+        generatedCalendar: null,
+        frameworkId: null,
+        isBulkGeneratingImages: false,
+        isBulkScheduling: false,
+        showBulkScheduleModal: false,
+        bulkStartDate: new Date().toISOString().slice(0, 10),
+        bulkPlatforms: ['facebook'],
+        frameworkSuggestionKeyword: '',
+        frameworkSuggestions: [],
+        isLoadingFrameworkSuggestions: false,
+
+        confirmBulkSchedule() {
+            if (!this.frameworkId) return;
+            this.isBulkScheduling = true;
+
+            fetch('/content-creator/bulk-schedule', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json',
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+                },
+                body: JSON.stringify({
+                    framework_id: this.frameworkId,
+                    platforms: this.bulkPlatforms,
+                    start_date: this.bulkStartDate
+                })
+            })
+                .then(async res => {
+                    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                    return res.json();
+                })
+                .then(data => {
+                    if (data.success) {
+                        alert(data.message);
+                        this.showBulkScheduleModal = false;
+                    } else {
+                        alert('Failed: ' + data.message);
+                    }
+                })
+                .catch(err => {
+                    console.error(err);
+                    alert('Error initiating bulk scheduling.');
+                })
+                .finally(() => {
+                    this.isBulkScheduling = false;
+                });
+        },
+    });
+
+    Alpine.data('contentCreator', () => ({
         topic: '',
-        type: 'social-media', // Default type for post generator
+        type: 'social-media',
         count: 2,
         tone: 'Default Tone',
         length: 'Default Length',
@@ -26,16 +82,13 @@ document.addEventListener('alpine:init', () => {
         addLineBreaks: true,
         includeHashtags: false,
 
-        // Content Feed Filter (Recent Activity sidebar)
         contentFeedFilter: 'all',
 
-        // Blog specific
         keywords: '',
         seoSuggestions: [],
         isLoadingSeoSuggestions: false,
         lastAutoSeoTopic: null,
         structure: 'Standard',
-        isBatchMode: false,
         blogCount: 1,
         featuredImageType: 'ai',
         featuredImageUrl: '',
@@ -46,7 +99,6 @@ document.addEventListener('alpine:init', () => {
         blogBody: '',
         isGeneratingBlogBody: false,
 
-        // Image Creator Modal State
         showImageCreatorModal: false,
         imageFormat: 'realistic',
         imagePrompt: '',
@@ -55,13 +107,11 @@ document.addEventListener('alpine:init', () => {
         mediaAssets: [],
         isLoadingAssets: false,
 
-        // Featured Image Upload State
         isUploadingFeaturedImage: false,
         featuredImageUploadError: '',
         isDraggingFeaturedImage: false,
         isGeneratingFeaturedImage: false,
 
-        // Video specific - Core
         videoStyle: 'UGC',
         videoDescription: '',
         sourceImage: '',
@@ -73,7 +123,6 @@ document.addEventListener('alpine:init', () => {
         hookStyle: 'Problem/Solution',
         duration: '60s',
 
-        // Video specific - UGC Style
         ugcScenario: 'testimonial',
         environment: 'indoor-natural',
         cameraMovement: 'handheld',
@@ -81,7 +130,6 @@ document.addEventListener('alpine:init', () => {
         includeNoise: false,
         casualFraming: true,
 
-        // Video specific - Cinematic Style
         cinematicMood: 'epic',
         lightingSetup: 'golden-hour',
         colorGrading: 'teal-orange',
@@ -91,7 +139,6 @@ document.addEventListener('alpine:init', () => {
         motionBlur: false,
         anamorphic: false,
 
-        // Video specific - 3D Animation Style
         animationStyle: 'photorealistic',
         sceneEnvironment: 'infinite-white',
         cameraAnimation: 'orbit-360',
@@ -104,7 +151,6 @@ document.addEventListener('alpine:init', () => {
         animationSpeed: 1.0,
         colorPalette: 'vibrant',
 
-        // Video specific - Minimalist Style
         visualApproach: 'product-focused',
         backgroundStyle: 'pure-white',
         typographyFocus: 'headline-only',
@@ -117,29 +163,13 @@ document.addEventListener('alpine:init', () => {
         elementCount: 3,
         layout: 'centered',
 
-        // Suggestions & AI
         suggestions: '',
         kbDiscovered: 0,
         isLoadingSuggestions: false,
 
         isRefining: false,
 
-        isGenerating: false,
-        showSuccessModal: false,
-        createdContentId: null,
-        batchChildren: [],
-        generatedCalendar: null,
-        frameworkId: null, // Track framework ID for bulk operations
-        isBulkGeneratingImages: false,
-        isBulkScheduling: false,
-
-        // Bulk Schedule Modal State
-        showBulkScheduleModal: false,
-        bulkStartDate: new Date().toISOString().slice(0, 10),
-        bulkPlatforms: ['facebook'], // Default
-
         init() {
-            // Initialize brands from global variable if available
             if (window.__contentCreatorBrands) {
                 this.brands = window.__contentCreatorBrands;
             }
@@ -157,22 +187,23 @@ document.addEventListener('alpine:init', () => {
                 localStorage.setItem('arch_ai_cta_snippets', JSON.stringify(value));
             });
 
-            // Watch generator changes to set appropriate default types
-            this.$watch('generator', (value) => {
+            this.$watch('cc.generator', (value) => {
                 if (value === 'post') this.type = 'social-media';
                 if (value === 'blog') this.type = 'blog-post';
                 if (value === 'video') this.type = 'video';
                 if (value === 'framework') this.type = 'framework_calendar';
-                // Auto-fetch SEO when switching to blog if topic exists
                 if (value === 'blog' && this.topic && this.topic.length >= 3) {
                     this.fetchSeoSuggestions();
                 }
+                if (value === 'framework' && this.topic && this.topic.length >= 3) {
+                    Alpine.store('cc') && (Alpine.store('cc').frameworkSuggestionKeyword = this.topic);
+                    this.fetchFrameworkSuggestions();
+                }
             });
 
-            // Auto-fetch SEO keywords when topic changes in blog mode
             let seoDebounceTimer = null;
             this.$watch('topic', (value) => {
-                if (this.generator !== 'blog') return;
+                if (this.type !== 'blog-post') return;
                 clearTimeout(seoDebounceTimer);
                 if (!value || value.length < 3) return;
 
@@ -181,6 +212,54 @@ document.addEventListener('alpine:init', () => {
                 }, 800);
             });
         },
+
+        get generator() { return Alpine.store('cc')?.generator ?? 'post'; },
+        set generator(v) { Alpine.store('cc') && (Alpine.store('cc').generator = v); },
+
+        get isGenerating() { return Alpine.store('cc')?.isGenerating ?? false; },
+        set isGenerating(v) { Alpine.store('cc') && (Alpine.store('cc').isGenerating = v); },
+
+        get showSuccessModal() { return Alpine.store('cc')?.showSuccessModal ?? false; },
+        set showSuccessModal(v) { Alpine.store('cc') && (Alpine.store('cc').showSuccessModal = v); },
+
+        get createdContentId() { return Alpine.store('cc')?.createdContentId ?? null; },
+        set createdContentId(v) { Alpine.store('cc') && (Alpine.store('cc').createdContentId = v); },
+
+        get batchChildren() { return Alpine.store('cc')?.batchChildren ?? []; },
+        set batchChildren(v) { Alpine.store('cc') && (Alpine.store('cc').batchChildren = v); },
+
+        get isBatchMode() { return Alpine.store('cc')?.isBatchMode ?? false; },
+        set isBatchMode(v) { Alpine.store('cc') && (Alpine.store('cc').isBatchMode = v); },
+
+        get generatedCalendar() { return Alpine.store('cc')?.generatedCalendar ?? null; },
+        set generatedCalendar(v) { Alpine.store('cc') && (Alpine.store('cc').generatedCalendar = v); },
+
+        get frameworkId() { return Alpine.store('cc')?.frameworkId ?? null; },
+        set frameworkId(v) { Alpine.store('cc') && (Alpine.store('cc').frameworkId = v); },
+
+        get isBulkGeneratingImages() { return Alpine.store('cc')?.isBulkGeneratingImages ?? false; },
+        set isBulkGeneratingImages(v) { Alpine.store('cc') && (Alpine.store('cc').isBulkGeneratingImages = v); },
+
+        get isBulkScheduling() { return Alpine.store('cc')?.isBulkScheduling ?? false; },
+        set isBulkScheduling(v) { Alpine.store('cc') && (Alpine.store('cc').isBulkScheduling = v); },
+
+        get showBulkScheduleModal() { return Alpine.store('cc')?.showBulkScheduleModal ?? false; },
+        set showBulkScheduleModal(v) { Alpine.store('cc') && (Alpine.store('cc').showBulkScheduleModal = v); },
+
+        get bulkStartDate() { return Alpine.store('cc')?.bulkStartDate ?? new Date().toISOString().slice(0, 10); },
+        set bulkStartDate(v) { Alpine.store('cc') && (Alpine.store('cc').bulkStartDate = v); },
+
+        get bulkPlatforms() { return Alpine.store('cc')?.bulkPlatforms ?? ['facebook']; },
+        set bulkPlatforms(v) { Alpine.store('cc') && (Alpine.store('cc').bulkPlatforms = v); },
+
+        get frameworkSuggestionKeyword() { return Alpine.store('cc')?.frameworkSuggestionKeyword ?? ''; },
+        set frameworkSuggestionKeyword(v) { Alpine.store('cc') && (Alpine.store('cc').frameworkSuggestionKeyword = v); },
+
+        get frameworkSuggestions() { return Alpine.store('cc')?.frameworkSuggestions ?? []; },
+        set frameworkSuggestions(v) { Alpine.store('cc') && (Alpine.store('cc').frameworkSuggestions = v); },
+
+        get isLoadingFrameworkSuggestions() { return Alpine.store('cc')?.isLoadingFrameworkSuggestions ?? false; },
+        set isLoadingFrameworkSuggestions(v) { Alpine.store('cc') && (Alpine.store('cc').isLoadingFrameworkSuggestions = v); },
 
         addSnippet() {
             if (this.newSnippet.trim()) {
@@ -253,7 +332,6 @@ document.addEventListener('alpine:init', () => {
                     return res.json();
                 })
                 .then(data => {
-                    // Parse suggestions - handle both array and string formats
                     let parsed = [];
                     if (Array.isArray(data.suggestions)) {
                         parsed = data.suggestions;
@@ -261,7 +339,6 @@ document.addEventListener('alpine:init', () => {
                         try {
                             parsed = JSON.parse(data.suggestions);
                         } catch (e) {
-                            // Split by newlines or numbered patterns
                             const lines = data.suggestions.split('\n').filter(l => l.trim());
                             parsed = lines.map(line => {
                                 const clean = line.replace(/^\d+[\.\)]\s*/, '').trim();
@@ -269,7 +346,6 @@ document.addEventListener('alpine:init', () => {
                             });
                         }
                     } else if (typeof data.suggestions === 'string') {
-                        // Parse numbered list format: "1. Title - Description"
                         const lines = data.suggestions.split('\n').filter(l => l.trim() && /^\d/.test(l.trim()));
                         parsed = lines.map(line => {
                             const match = line.match(/^\d+[\.\)]\s*(.+?)(?:\s*[-–—]\s*(.+))?$/);
@@ -283,7 +359,6 @@ document.addEventListener('alpine:init', () => {
                         });
                     }
 
-                    // Ensure we have 3-5 suggestions
                     if (parsed.length === 0) {
                         parsed = [
                             { title: 'Top 10 ' + this.blogSuggestionKeyword + ' Tips for Beginners', description: 'Comprehensive guide covering essential strategies and best practices', category: 'How-to' },
@@ -310,7 +385,6 @@ document.addEventListener('alpine:init', () => {
             if (!this.topic && !this.blogSuggestionKeyword) {
                 return;
             }
-            // Skip if already fetched for this exact topic
             if (this.topic && this.topic === this.lastAutoSeoTopic && this.keywords) {
                 return;
             }
@@ -373,6 +447,67 @@ document.addEventListener('alpine:init', () => {
                     console.error(err);
                     this.seoSuggestions = [];
                     this.isLoadingSeoSuggestions = false;
+                });
+        },
+
+        fetchFrameworkSuggestions() {
+            if (!this.frameworkSuggestionKeyword || this.isLoadingFrameworkSuggestions) return;
+            this.isLoadingFrameworkSuggestions = true;
+            this.frameworkSuggestions = [];
+
+            fetch('/content-creator/suggestions', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+                },
+                body: JSON.stringify({ topic: this.frameworkSuggestionKeyword, type: 'framework_topics' })
+            })
+                .then(res => {
+                    if (!res.ok) {
+                        throw new Error(`Framework suggestions request failed: ${res.status} ${res.statusText}`);
+                    }
+                    const contentType = res.headers.get('content-type');
+                    if (!contentType || !contentType.includes('application/json')) {
+                        throw new Error('Server returned HTML instead of JSON. Check console.');
+                    }
+                    return res.json();
+                })
+                .then(data => {
+                    let parsed = [];
+                    if (Array.isArray(data.suggestions)) {
+                        parsed = data.suggestions;
+                    } else if (typeof data.suggestions === 'string') {
+                        const lines = data.suggestions.split('\n').filter(l => l.trim() && /^\d/.test(l.trim()));
+                        parsed = lines.map(line => {
+                            const match = line.match(/^\d+[\.\)]\s*(.+?)(?:\s*[-–—]\s*(.+))?$/);
+                            if (match) {
+                                return {
+                                    title: match[1].trim(),
+                                    description: match[2]?.trim() || 'AI-generated content angle'
+                                };
+                            }
+                            return { title: line.replace(/^\d+[\.\)]\s*/, '').trim(), description: 'AI-generated content angle' };
+                        });
+                    }
+                    if (parsed.length === 0) {
+                        parsed = [
+                            { title: 'Top 10 ' + this.frameworkSuggestionKeyword + ' Tips for Beginners', description: 'Build authority with a comprehensive how-to guide' },
+                            { title: this.frameworkSuggestionKeyword + ' Success Stories', description: 'Showcase real results and client transformations' },
+                            { title: 'Behind the Scenes: Our ' + this.frameworkSuggestionKeyword + ' Process', description: 'Build trust with transparency' },
+                            { title: this.frameworkSuggestionKeyword + ' Q&A Session', description: 'Engage your audience with community questions' },
+                            { title: 'Exclusive ' + this.frameworkSuggestionKeyword + ' Offer', description: 'Drive conversions with a special promotion' }
+                        ];
+                    }
+                    this.frameworkSuggestions = parsed.slice(0, 5);
+                    this.isLoadingFrameworkSuggestions = false;
+                })
+                .catch(err => {
+                    console.error(err);
+                    this.frameworkSuggestions = [
+                        { title: 'Error loading suggestions. Please try again.', description: '' }
+                    ];
+                    this.isLoadingFrameworkSuggestions = false;
                 });
         },
 
@@ -454,6 +589,7 @@ document.addEventListener('alpine:init', () => {
                 alert('Please enter a topic.');
                 return;
             }
+            const cc = Alpine.store('cc');
             this.isGenerating = true;
             this.generatedCalendar = null;
             this.frameworkId = null;
@@ -462,8 +598,8 @@ document.addEventListener('alpine:init', () => {
             const payload = {
                 topic: this.topic,
                 generator: this.generator,
-                type: this.type, // Use current type which is updated via watcher
-                count: this.generator === 'blog' && this.isBatchMode ? this.blogCount : this.count,
+                type: this.type,
+                count: this.type === 'blog-post' && this.isBatchMode ? this.blogCount : this.count,
                 tone: this.tone,
                 length: this.length,
                 context: this.context,
@@ -488,7 +624,7 @@ document.addEventListener('alpine:init', () => {
                 brand_id: this.selectedBrandId
             };
 
-            const endpoint = (this.generator === 'blog' && this.isBatchMode)
+            const endpoint = (this.type === 'blog-post' && this.isBatchMode)
                 ? '/content-creator/blog/batch'
                 : '/content-creator/generate';
 
@@ -519,13 +655,12 @@ document.addEventListener('alpine:init', () => {
                     console.log('[Content Creator] Generator:', this.generator);
                     console.log('[Content Creator] Content Status:', data.content.status);
                     console.log('[Content Creator] Content ID:', data.content.id);
-                    
+
                     if (this.generator === 'framework') {
                         if (data.content.status === 'generating') {
                             console.log('[Content Creator] Starting polling for framework ID:', data.content.id);
                             this.pollForFramework(data.content.id);
                         } else if (data.content.status === 'draft') {
-                            // Already completed
                             console.log('[Content Creator] Framework already completed');
                             let result = data.content.result;
                             if (typeof result === 'string') {
@@ -538,7 +673,21 @@ document.addEventListener('alpine:init', () => {
                             console.warn('[Content Creator] Unexpected status:', data.content.status);
                             this.isGenerating = false;
                         }
-                    } else if (this.generator === 'blog' && this.isBatchMode) {
+                    } else if (this.generator === 'framework') {
+                        if (data.content.status === 'generating') {
+                            this.pollForFramework(data.content.id);
+                        } else if (data.content.status === 'draft') {
+                            let result = data.content.result;
+                            if (typeof result === 'string') {
+                                try { result = JSON.parse(result); } catch(e) {}
+                            }
+                            this.generatedCalendar = result;
+                            this.frameworkId = data.content.id;
+                            this.isGenerating = false;
+                        } else {
+                            this.isGenerating = false;
+                        }
+                    } else if (this.type === 'blog-post' && this.isBatchMode) {
                         this.createdContentId = data.content.id;
                         if (data.content.status === 'generating') {
                             console.log('[Content Creator] Batch generating, starting poll for ID:', data.content.id);
@@ -568,12 +717,12 @@ document.addEventListener('alpine:init', () => {
         pollForFramework(id) {
             console.log('[Content Creator] Poll started for ID:', id);
             let pollCount = 0;
-            const maxPolls = 60; // 2 minutes max (60 * 2s)
-            
+            const maxPolls = 60;
+
             const interval = setInterval(() => {
                 pollCount++;
                 console.log(`[Content Creator] Polling attempt ${pollCount}/${maxPolls} for ID: ${id}`);
-                
+
                 if (pollCount > maxPolls) {
                     clearInterval(interval);
                     this.isGenerating = false;
@@ -581,7 +730,7 @@ document.addEventListener('alpine:init', () => {
                     alert('Generation is taking longer than expected. Please check your recent content or try again.');
                     return;
                 }
-                
+
                 fetch(`/content-creator/${id}`, {
                     headers: { 'Accept': 'application/json' }
                 })
@@ -594,26 +743,25 @@ document.addEventListener('alpine:init', () => {
                 .then(data => {
                     const status = data.content.status;
                     console.log(`[Content Creator] Poll response - Status: ${status}`);
-                    
+
                     if (status === 'draft') {
                         clearInterval(interval);
                         console.log('[Content Creator] Framework generation complete!');
-                        
+
                         let result = data.content.result;
                         if (typeof result === 'string') {
-                            try { 
-                                result = JSON.parse(result); 
+                            try {
+                                result = JSON.parse(result);
                                 console.log('[Content Creator] Parsed result:', result);
-                            } catch(e) { 
+                            } catch(e) {
                                 console.error('[Content Creator] JSON parse error:', e);
                             }
                         }
-                        
+
                         this.generatedCalendar = result;
                         this.frameworkId = data.content.id;
                         this.isGenerating = false;
-                        
-                        // Count cards
+
                         const cardCount = Object.values(result || {}).reduce((sum, arr) => sum + (arr?.length || 0), 0);
                         console.log(`[Content Creator] Generated ${cardCount} cards`);
                     } else if (status === 'failed') {
@@ -713,7 +861,7 @@ document.addEventListener('alpine:init', () => {
                 },
                 body: JSON.stringify({
                     framework_id: this.frameworkId,
-                    style: 'poster' // Default to poster style for calendar content
+                    style: 'poster'
                 })
             })
                 .then(async res => {
@@ -741,46 +889,7 @@ document.addEventListener('alpine:init', () => {
             this.showBulkScheduleModal = true;
         },
 
-        confirmBulkSchedule() {
-            if (!this.frameworkId) return;
-            this.isBulkScheduling = true;
-
-            fetch('/content-creator/bulk-schedule', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Accept': 'application/json',
-                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
-                },
-                body: JSON.stringify({
-                    framework_id: this.frameworkId,
-                    platforms: this.bulkPlatforms,
-                    start_date: this.bulkStartDate
-                })
-            })
-                .then(async res => {
-                    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-                    return res.json();
-                })
-                .then(data => {
-                    if (data.success) {
-                        alert(data.message);
-                        this.showBulkScheduleModal = false;
-                    } else {
-                        alert('Failed: ' + data.message);
-                    }
-                })
-                .catch(err => {
-                    console.error(err);
-                    alert('Error initiating bulk scheduling.');
-                })
-                .finally(() => {
-                    this.isBulkScheduling = false;
-                });
-        },
-
         generateFeaturedImage() {
-            // Use blog body to generate an AI image prompt, then generate the image
             if (this.isGenerating || this.isGeneratingFeaturedImage) return;
 
             const hasBlogBody = this.blogBody && this.blogBody.length > 50;
@@ -794,7 +903,6 @@ document.addEventListener('alpine:init', () => {
             this.isGeneratingFeaturedImage = true;
 
             if (hasBlogBody) {
-                // First generate an image prompt from the blog body using OpenAI
                 this.isGenerating = true;
                 fetch('/content-creator/generate-image-prompt', {
                     method: 'POST',
@@ -815,7 +923,6 @@ document.addEventListener('alpine:init', () => {
                     if (data.success && data.prompt) {
                         this.imagePrompt = data.prompt;
                     } else {
-                        // Fallback to topic-based prompt
                         this.imagePrompt = this.topic + ' - professional blog featured image, cinematic style';
                     }
                     this.featuredImageType = 'ai';
@@ -828,7 +935,6 @@ document.addEventListener('alpine:init', () => {
                     this.generateAdvancedImage();
                 });
             } else {
-                // No blog body, use topic directly
                 this.imagePrompt = this.topic + ' - professional blog featured image, cinematic style';
                 this.featuredImageType = 'ai';
                 this.generateAdvancedImage();
@@ -957,7 +1063,6 @@ document.addEventListener('alpine:init', () => {
                     this.isUploadingFeaturedImage = false;
                 });
         },
-
 
     }));
 });

@@ -43,6 +43,52 @@
                class="w-full h-14 bg-muted/20 border border-border rounded-xl px-5 text-sm font-medium focus:ring-1 focus:ring-primary">
     </div>
 
+    {{-- AI Suggestions Box --}}
+    <div class="bg-primary/5 border border-primary/20 rounded-xl p-6 space-y-4">
+        <div class="flex items-center gap-2 mb-2">
+            <i data-lucide="sparkles" class="w-4 h-4 text-primary"></i>
+            <h4 class="text-xs font-black text-primary uppercase tracking-wider">AI Content Angles</h4>
+        </div>
+        <div class="flex gap-2">
+            <input type="text"
+                   x-model="frameworkSuggestionKeyword"
+                   @keydown.enter.prevent="fetchFrameworkSuggestions()"
+                   placeholder="Enter a keyword for AI-generated content angles (e.g., 'sustainable design')"
+                   class="flex-1 h-12 rounded-lg border border-primary/20 bg-white/50 px-4 text-xs italic focus:ring-1 focus:ring-primary">
+            <button @click="fetchFrameworkSuggestions()"
+                    :disabled="isLoadingFrameworkSuggestions"
+                    class="h-12 px-6 rounded-lg bg-white border border-primary/30 text-primary text-[10px] font-black uppercase tracking-widest flex items-center gap-2 hover:bg-primary/5 disabled:opacity-50">
+                <template x-if="!isLoadingFrameworkSuggestions">
+                    <i data-lucide="search" class="w-3.5 h-3.5"></i>
+                </template>
+                <template x-if="isLoadingFrameworkSuggestions">
+                    <i data-lucide="loader-2" class="w-3.5 h-3.5 animate-spin"></i>
+                </template>
+                Get Angles
+            </button>
+        </div>
+        <p class="text-[10px] text-muted-foreground font-medium italic opacity-70">
+            Enter a keyword to get AI-generated content angles for your weekly calendar.
+        </p>
+        <div class="text-center py-4 text-[10px] text-muted-foreground italic border-t border-primary/10"
+             x-show="!frameworkSuggestions || frameworkSuggestions.length === 0">
+            Enter a keyword to get AI-generated content angles, or enter a topic manually above.
+        </div>
+        <div class="space-y-2 border-t border-primary/10 pt-4" x-show="frameworkSuggestions && frameworkSuggestions.length > 0">
+            <template x-for="(suggestion, index) in frameworkSuggestions" :key="index">
+                <div @click="topic = suggestion.title; frameworkSuggestions = []"
+                     class="flex items-start gap-3 p-3 rounded-lg bg-white/50 hover:bg-white cursor-pointer border border-transparent hover:border-primary/20 transition-all">
+                    <i data-lucide="layout-grid" class="w-4 h-4 text-primary shrink-0 mt-0.5"></i>
+                    <div class="flex-1 min-w-0">
+                        <p class="text-xs font-bold text-foreground truncate" x-text="suggestion.title"></p>
+                        <p class="text-[10px] text-muted-foreground mt-1 line-clamp-2" x-text="suggestion.description"></p>
+                    </div>
+                    <i data-lucide="plus-circle" class="w-4 h-4 text-primary/50 hover:text-primary shrink-0"></i>
+                </div>
+            </template>
+        </div>
+    </div>
+
     {{-- Info Box - 4-Pillar Strategy --}}
     <div class="bg-primary/5 border border-primary/10 rounded-xl p-6 space-y-4">
         <div class="flex items-center gap-2 mb-1">
