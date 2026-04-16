@@ -373,7 +373,7 @@
         </div>
 
         <div class="text-xs text-muted-foreground mt-4 italic">
-            Estimated Token Consumption: <span class="font-bold text-foreground" x-text="isBatchMode ? (blogCount * 20) + ' tokens' : '20 tokens'"></span>
+            Estimated Token Consumption: <span class="font-bold text-foreground" x-text="isBatchMode ? (blogCount * 20 + 20) + ' tokens' : '20 tokens'"></span>
         </div>
 
         {{-- Generate Button Area --}}

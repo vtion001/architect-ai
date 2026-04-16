@@ -108,6 +108,7 @@ class GenerateBlogBatch implements ShouldQueue
                 $totalWordCount += $wordCount;
 
                 $child = Content::create([
+                    'tenant_id' => $this->user->tenant_id,
                     'title' => $title,
                     'topic' => $topic,
                     'type' => 'blog',
@@ -140,8 +141,10 @@ class GenerateBlogBatch implements ShouldQueue
             $this->parent->update([
                 'title' => "Batch: $topic",
                 'result' => json_encode([
+                    'status' => 'completed',
                     'angles' => $angles,
                     'children' => $childResults,
+                    'completed_at' => now()->toIso8601String(),
                 ]),
                 'word_count' => $totalWordCount,
                 'status' => 'published',

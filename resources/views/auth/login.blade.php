@@ -21,7 +21,7 @@
         this.isLoading = true;
         this.errorMessage = '';
         
-        fetch('{{ url('/auth/login') }}', {
+        fetch('/auth/login', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',

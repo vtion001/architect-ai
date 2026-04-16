@@ -26,6 +26,9 @@ document.addEventListener('alpine:init', () => {
         addLineBreaks: true,
         includeHashtags: false,
 
+        // Content Feed Filter (Recent Activity sidebar)
+        contentFeedFilter: 'all',
+
         // Blog specific
         keywords: '',
         seoSuggestions: [],
@@ -33,7 +36,7 @@ document.addEventListener('alpine:init', () => {
         lastAutoSeoTopic: null,
         structure: 'Standard',
         isBatchMode: false,
-        blogCount: 3,
+        blogCount: 1,
         featuredImageType: 'ai',
         featuredImageUrl: '',
         showImagePreview: false,
@@ -124,6 +127,7 @@ document.addEventListener('alpine:init', () => {
         isGenerating: false,
         showSuccessModal: false,
         createdContentId: null,
+        batchChildren: [],
         generatedCalendar: null,
         frameworkId: null, // Track framework ID for bulk operations
         isBulkGeneratingImages: false,
@@ -203,7 +207,16 @@ document.addEventListener('alpine:init', () => {
                 },
                 body: JSON.stringify({ topic: this.topic })
             })
-                .then(res => res.json())
+                .then(res => {
+                    if (!res.ok) {
+                        throw new Error(`Suggestions request failed: ${res.status} ${res.statusText}`);
+                    }
+                    const contentType = res.headers.get('content-type');
+                    if (!contentType || !contentType.includes('application/json')) {
+                        throw new Error('Server returned HTML instead of JSON. Check console.');
+                    }
+                    return res.json();
+                })
                 .then(data => {
                     this.suggestions = data.suggestions;
                     this.kbDiscovered = data.kb_count || 0;
@@ -229,7 +242,16 @@ document.addEventListener('alpine:init', () => {
                 },
                 body: JSON.stringify({ topic: this.blogSuggestionKeyword, type: 'blog_topics' })
             })
-                .then(res => res.json())
+                .then(res => {
+                    if (!res.ok) {
+                        throw new Error(`Blog suggestions request failed: ${res.status} ${res.statusText}`);
+                    }
+                    const contentType = res.headers.get('content-type');
+                    if (!contentType || !contentType.includes('application/json')) {
+                        throw new Error('Server returned HTML instead of JSON. Check console.');
+                    }
+                    return res.json();
+                })
                 .then(data => {
                     // Parse suggestions - handle both array and string formats
                     let parsed = [];
@@ -311,7 +333,16 @@ document.addEventListener('alpine:init', () => {
                 },
                 body: JSON.stringify({ topic: searchTerm, type: 'seo_keywords' })
             })
-                .then(res => res.json())
+                .then(res => {
+                    if (!res.ok) {
+                        throw new Error(`SEO suggestions request failed: ${res.status} ${res.statusText}`);
+                    }
+                    const contentType = res.headers.get('content-type');
+                    if (!contentType || !contentType.includes('application/json')) {
+                        throw new Error('Server returned HTML instead of JSON. Check console.');
+                    }
+                    return res.json();
+                })
                 .then(data => {
                     let parsed = [];
                     if (Array.isArray(data.suggestions)) {
@@ -372,7 +403,10 @@ document.addEventListener('alpine:init', () => {
                     keywords: this.keywords
                 })
             })
-                .then(res => res.json())
+                .then(async res => {
+                    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                    return res.json();
+                })
                 .then(data => {
                     if (data.success && data.body) {
                         this.blogBody = data.body;
@@ -382,9 +416,7 @@ document.addEventListener('alpine:init', () => {
                 })
                 .catch(err => {
                     console.error(err);
-                    alert('Error generating blog body. Please try again.');
-                })
-                .finally(() => {
+                    alert('Failed to generate blog body. Please try again.');
                     this.isGeneratingBlogBody = false;
                 });
         },
@@ -401,7 +433,10 @@ document.addEventListener('alpine:init', () => {
                 },
                 body: JSON.stringify({ context: this.context })
             })
-                .then(res => res.json())
+                .then(async res => {
+                    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                    return res.json();
+                })
                 .then(data => {
                     if (data.context) {
                         this.context = data.context;
@@ -422,6 +457,7 @@ document.addEventListener('alpine:init', () => {
             this.isGenerating = true;
             this.generatedCalendar = null;
             this.frameworkId = null;
+            this.batchChildren = [];
 
             const payload = {
                 topic: this.topic,
@@ -502,6 +538,20 @@ document.addEventListener('alpine:init', () => {
                             console.warn('[Content Creator] Unexpected status:', data.content.status);
                             this.isGenerating = false;
                         }
+                    } else if (this.generator === 'blog' && this.isBatchMode) {
+                        this.createdContentId = data.content.id;
+                        if (data.content.status === 'generating') {
+                            console.log('[Content Creator] Batch generating, starting poll for ID:', data.content.id);
+                            this.pollForBatch(data.content.id);
+                        } else if (data.content.status === 'published') {
+                            console.log('[Content Creator] Batch already completed');
+                            this.fetchBatchChildren(data.content.id);
+                            this.showSuccessModal = true;
+                            this.isGenerating = false;
+                        } else {
+                            console.warn('[Content Creator] Unexpected batch status:', data.content.status);
+                            this.isGenerating = false;
+                        }
                     } else {
                         this.createdContentId = data.content.id;
                         this.showSuccessModal = true;
@@ -535,7 +585,12 @@ document.addEventListener('alpine:init', () => {
                 fetch(`/content-creator/${id}`, {
                     headers: { 'Accept': 'application/json' }
                 })
-                .then(res => res.json())
+                .then(async res => {
+                    if (!res.ok) throw new Error(`Poll failed: HTTP ${res.status}`);
+                    const ct = res.headers.get('content-type');
+                    if (!ct || !ct.includes('application/json')) throw new Error('Non-JSON response');
+                    return res.json();
+                })
                 .then(data => {
                     const status = data.content.status;
                     console.log(`[Content Creator] Poll response - Status: ${status}`);
@@ -577,6 +632,74 @@ document.addEventListener('alpine:init', () => {
             }, 2000);
         },
 
+        pollForBatch(id) {
+            console.log('[Content Creator] Batch poll started for ID:', id);
+            let pollCount = 0;
+            const maxPolls = 60;
+
+            const interval = setInterval(() => {
+                pollCount++;
+                console.log(`[Content Creator] Batch polling ${pollCount}/${maxPolls} for ID: ${id}`);
+
+                if (pollCount > maxPolls) {
+                    clearInterval(interval);
+                    this.isGenerating = false;
+                    console.error('[Content Creator] Batch polling timeout');
+                    alert('Blog batch generation is taking longer than expected. Please check your recent content.');
+                    return;
+                }
+
+                fetch(`/content-creator/${id}`, {
+                    headers: { 'Accept': 'application/json' }
+                })
+                .then(async res => {
+                    if (!res.ok) throw new Error(`Batch poll failed: HTTP ${res.status}`);
+                    const ct = res.headers.get('content-type');
+                    if (!ct || !ct.includes('application/json')) throw new Error('Non-JSON response');
+                    return res.json();
+                })
+                .then(data => {
+                    const status = data.content.status;
+                    console.log(`[Content Creator] Batch poll - Status: ${status}`);
+
+                    if (status === 'published') {
+                        clearInterval(interval);
+                        console.log('[Content Creator] Batch generation complete!');
+                        this.fetchBatchChildren(id);
+                        this.showSuccessModal = true;
+                        this.isGenerating = false;
+                    } else if (status === 'failed') {
+                        clearInterval(interval);
+                        this.isGenerating = false;
+                        console.error('[Content Creator] Batch generation failed');
+                        alert('Blog batch generation failed. Please try again.');
+                    }
+                })
+                .catch(e => {
+                    console.error('[Content Creator] Batch polling error:', e);
+                });
+            }, 2000);
+        },
+
+        fetchBatchChildren(id) {
+            fetch(`/content-creator/${id}/children?per_page=10`, {
+                headers: { 'Accept': 'application/json' }
+            })
+            .then(async res => {
+                if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                const ct = res.headers.get('content-type');
+                if (!ct || !ct.includes('application/json')) throw new Error('Non-JSON response');
+                return res.json();
+            })
+            .then(data => {
+                this.batchChildren = data.items || [];
+                console.log(`[Content Creator] Loaded ${this.batchChildren.length} batch children`);
+            })
+            .catch(e => {
+                console.error('[Content Creator] Failed to fetch batch children:', e);
+            });
+        },
+
         generateBulkImages() {
             if (!this.frameworkId) return;
             this.isBulkGeneratingImages = true;
@@ -593,7 +716,10 @@ document.addEventListener('alpine:init', () => {
                     style: 'poster' // Default to poster style for calendar content
                 })
             })
-                .then(res => res.json())
+                .then(async res => {
+                    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                    return res.json();
+                })
                 .then(data => {
                     if (data.success) {
                         alert('Image generation initiated for ' + data.count + ' posts. Check the media registry shortly.');
@@ -632,7 +758,10 @@ document.addEventListener('alpine:init', () => {
                     start_date: this.bulkStartDate
                 })
             })
-                .then(res => res.json())
+                .then(async res => {
+                    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                    return res.json();
+                })
                 .then(data => {
                     if (data.success) {
                         alert(data.message);
@@ -678,7 +807,10 @@ document.addEventListener('alpine:init', () => {
                         blog_body: this.blogBody
                     })
                 })
-                .then(res => res.json())
+                .then(async res => {
+                    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                    return res.json();
+                })
                 .then(data => {
                     if (data.success && data.prompt) {
                         this.imagePrompt = data.prompt;
@@ -713,7 +845,10 @@ document.addEventListener('alpine:init', () => {
             if (this.isLoadingAssets) return;
             this.isLoadingAssets = true;
             fetch('/media-assets')
-                .then(res => res.json())
+                .then(async res => {
+                    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                    return res.json();
+                })
                 .then(data => { this.mediaAssets = data.assets || []; })
                 .catch(err => console.error('Failed to load assets:', err))
                 .finally(() => { this.isLoadingAssets = false; });
@@ -745,7 +880,10 @@ document.addEventListener('alpine:init', () => {
                 },
                 body: JSON.stringify(payload)
             })
-                .then(res => res.json())
+                .then(async res => {
+                    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                    return res.json();
+                })
                 .then(data => {
                     if (data.success) {
                         this.featuredImageUrl = data.url;
@@ -800,7 +938,10 @@ document.addEventListener('alpine:init', () => {
                 },
                 body: formData
             })
-                .then(res => res.json())
+                .then(async res => {
+                    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                    return res.json();
+                })
                 .then(data => {
                     if (data.success) {
                         this.featuredImageUrl = data.url;
@@ -815,6 +956,8 @@ document.addEventListener('alpine:init', () => {
                 .finally(() => {
                     this.isUploadingFeaturedImage = false;
                 });
-        }
+        },
+
+
     }));
 });

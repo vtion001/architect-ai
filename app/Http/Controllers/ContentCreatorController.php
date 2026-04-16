@@ -297,7 +297,7 @@ class ContentCreatorController extends Controller
 
         $user = auth()->user();
         $count = (int) $request->input('count', 1);
-        $tokenCost = $count * 20;
+        $tokenCost = ($count * 20) + 20;
 
         if (! $this->tokenService->consume($user, $tokenCost, 'blog_batch_generation', ['topic' => $request->topic, 'count' => $count])) {
             return response()->json([

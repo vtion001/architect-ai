@@ -5,6 +5,7 @@
         "dev": "vite",
         "build": "vite build",
         "type-check": "tsc --noEmit",
+        "test:e2e": "playwright test",
         "lh": "lighthouse http://localhost:8081/dashboard --output=html --output-path=./reports/lh-dashboard.html --chrome-flags=\"--headless\" --preset=desktop",
         "lh:mobile": "lighthouse http://localhost:8081/dashboard --output=html --output-path=./reports/lh-dashboard-mobile.html --chrome-flags=\"--headless\" --preset=mobile",
         "lh:ci": "lhci autorun",

@@ -19,7 +19,7 @@ use Illuminate\Support\Facades\Log;
  */
 class MiniMaxClient
 {
-    protected string $apiKey;
+    protected ?string $apiKey = null;
 
     protected string $baseUrl = 'https://api.minimax.io/v1';
 

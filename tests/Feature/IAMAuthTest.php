@@ -4,7 +4,9 @@ namespace Tests\Feature;
 
 use App\Models\Tenant;
 use App\Models\User;
+use Database\Seeders\IAMSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Routing\Middleware\ThrottleRequests;
 use Tests\TestCase;
 
 class IAMAuthTest extends TestCase
@@ -14,9 +16,9 @@ class IAMAuthTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->seed(\Database\Seeders\IAMSeeder::class);
+        $this->seed(IAMSeeder::class);
         // Disable throttling middleware for auth tests to avoid cache pollution
-        $this->withoutMiddleware(\Illuminate\Routing\Middleware\ThrottleRequests::class);
+        $this->withoutMiddleware(ThrottleRequests::class);
     }
 
     public function test_agency_registration_creates_tenant_and_owner()
@@ -48,12 +50,13 @@ class IAMAuthTest extends TestCase
             'password' => 'password123456',
         ]);
 
-        // 2. Login without slug
+        // 2. Login without slug — uses user's default tenant
         $response = $this->postJson('/api/auth/login', [
             'email' => 'owner@test.com',
             'password' => 'password123456',
         ]);
-        $response->assertStatus(422);
+        $response->assertStatus(200)
+            ->assertJsonStructure(['token', 'user']);
 
         // 3. Login with correct slug
         $response = $this->postJson('/api/auth/login', [

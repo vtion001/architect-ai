@@ -8,7 +8,7 @@
     }
 
     .prose-custom-blog h2 {
-        @apply text-3xl font-black text-foreground leading-tight tracking-tight mt-14 mb-6 border-b border-border/50 pb-4;
+        @apply text-3xl font-black text-foreground leading-tight tracking-tight mt-14 mb-6 border-b border-black/30 pb-4;
     }
 
     .prose-custom-blog h3 {
@@ -16,7 +16,7 @@
     }
 
     .prose-custom-blog p {
-        @apply text-[17px] leading-[1.85] text-foreground/90 my-5;
+        @apply text-[17px] leading-[1.85] text-gray-700 dark:text-gray-300 my-5;
     }
 
     .prose-custom-blog ul {
@@ -24,7 +24,7 @@
     }
 
     .prose-custom-blog ul li {
-        @apply text-[17px] leading-[1.85] text-foreground/90 relative pl-7;
+        @apply text-[17px] leading-[1.85] text-gray-700 dark:text-gray-300 relative pl-7;
     }
 
     .prose-custom-blog ul li::before {
@@ -37,7 +37,7 @@
     }
 
     .prose-custom-blog ol li {
-        @apply text-[17px] leading-[1.85] text-foreground/90 list-decimal list-inside;
+        @apply text-[17px] leading-[1.85] text-gray-700 dark:text-gray-300 list-decimal list-inside;
     }
 
     .prose-custom-blog strong {
@@ -49,7 +49,7 @@
     }
 
     .prose-custom-blog blockquote {
-        @apply border-l-4 border-primary bg-muted/20 py-3 px-6 my-6 italic text-muted-foreground rounded-r-lg;
+        @apply border-l-4 border-primary bg-slate-100 dark:bg-slate-800 py-3 px-6 my-6 italic text-muted-foreground rounded-r-lg;
     }
 
     .prose-custom-blog img {
@@ -57,7 +57,7 @@
     }
 
     .prose-custom-blog hr {
-        @apply border-border/50 my-10;
+        @apply border-black/30 my-10;
     }
 
     .prose-custom-blog code {

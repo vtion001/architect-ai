@@ -23,7 +23,7 @@
     "name": "vendor-icons"
   },
   "resources/css/app.css": {
-    "file": "assets/app-BwJB9B7M.css",
+    "file": "assets/app-CrQXO5Nx.css",
     "src": "resources/css/app.css",
     "isEntry": true
   },
@@ -39,11 +39,5 @@
       "_vendor-chart-DKwXtG2K.js",
       "_vendor-C7weQZmu.js"
     ]
-  },
-  "resources/js/components/content-creator.js": {
-    "file": "assets/content-creator-Bpgpj_B7.js",
-    "name": "content-creator",
-    "src": "resources/js/components/content-creator.js",
-    "isEntry": true
   }
 }

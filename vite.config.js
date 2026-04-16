@@ -7,11 +7,10 @@ export default defineConfig(({ command, mode }) => {
     return {
         plugins: [
             laravel({
-                input: [
-                    'resources/css/app.css',
-                    'resources/js/app.js',
-                    'resources/js/components/content-creator.js',
-                ],
+            input: [
+                'resources/css/app.css',
+                'resources/js/app.js',
+            ],
                 refresh: [
                     'app/Http/Controllers/**/*.php',
                     'resources/views/**/*.blade.php',
@@ -113,6 +112,12 @@ export default defineConfig(({ command, mode }) => {
                     secure: false,
                 },
                 '/admin': {
+                    target: 'http://localhost:8081',
+                    changeOrigin: true,
+                    secure: false,
+                },
+                // Proxy to Docker app container (hardcoded in built assets)
+                '/content-creator': {
                     target: 'http://localhost:8081',
                     changeOrigin: true,
                     secure: false,
