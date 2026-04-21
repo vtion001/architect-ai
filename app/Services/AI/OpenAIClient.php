@@ -19,7 +19,7 @@ use Illuminate\Support\Facades\Log;
  */
 class OpenAIClient
 {
-    protected string $apiKey;
+    protected ?string $apiKey = null;
 
     protected string $baseUrl = 'https://api.openai.com/v1';
 
