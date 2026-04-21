@@ -300,6 +300,20 @@ class ContentCreatorController extends Controller
         ]);
 
         $user = auth()->user();
+
+        // Feature credit check — mirrors store() behavior
+        $featureType = FeatureType::BLOG_GENERATOR;
+        if (! $this->featureCreditService->canUseFeature($user, $featureType)) {
+            return response()->json([
+                'success' => false,
+                'error' => 'credit_exhausted',
+                'message' => "You've reached your monthly limit for {$featureType->label()}. Upgrade to Pro for unlimited access.",
+                'feature' => $featureType->value,
+                'upgrade_url' => route('billing.upgrade'),
+            ], 402);
+        }
+        $this->featureCreditService->consumeCredit($user, $featureType);
+
         $count = (int) $request->input('count', 1);
         $tokenCost = ($count * 20) + 20;
 

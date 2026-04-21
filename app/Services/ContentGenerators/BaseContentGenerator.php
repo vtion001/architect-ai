@@ -7,6 +7,7 @@ namespace App\Services\ContentGenerators;
 use App\Contracts\ContentGeneratorInterface;
 use App\Services\AI\MiniMaxClient;
 use App\Services\AI\OpenAIClient;
+use Illuminate\Support\Facades\Log;
 
 /**
  * Base class for content generators.
