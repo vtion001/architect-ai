@@ -39,5 +39,11 @@
       "_vendor-chart-DKwXtG2K.js",
       "_vendor-C7weQZmu.js"
     ]
+  },
+  "resources/js/components/content-creator.js": {
+    "file": "assets/content-creator-CC0akkF8.js",
+    "name": "content-creator",
+    "src": "resources/js/components/content-creator.js",
+    "isEntry": true
   }
 }

@@ -10,6 +10,7 @@ export default defineConfig(({ command, mode }) => {
             input: [
                 'resources/css/app.css',
                 'resources/js/app.js',
+                'resources/js/components/content-creator.js',
             ],
                 refresh: [
                     'app/Http/Controllers/**/*.php',
