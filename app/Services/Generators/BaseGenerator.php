@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Services\Generators;
 
 use App\DTOs\ReportRequestData;
-use App\Services\AI\MiniMaxClient;
+use App\Services\AI\OpenAIClient;
 use App\Services\BrandResolverService;
 use App\Services\Report\SampleContentProvider;
 use Illuminate\Support\Facades\Log;
@@ -24,28 +24,28 @@ abstract class BaseGenerator implements DocumentGeneratorInterface
      *
      * @param  BrandResolverService  $brandResolverService  Service for brand voice and guidelines
      * @param  SampleContentProvider  $sampleContentProvider  Service for fallback sample content
-     * @param  MiniMaxClient  $miniMaxClient  AI client for content generation
+     * @param  OpenAIClient  $aiClient  AI client for content generation
      */
     public function __construct(
         protected BrandResolverService $brandResolverService,
         protected SampleContentProvider $sampleContentProvider,
-        protected MiniMaxClient $miniMaxClient
+        protected OpenAIClient $aiClient
     ) {}
 
     /**
-     * Generate document content using MiniMax AI API.
+     * Generate document content using OpenAI API.
      *
      * This is the main template method that orchestrates generation:
      * 1. Build system prompt (template-specific instructions)
      * 2. Build user prompt (context + content)
-     * 3. Call MiniMax AI API
+     * 3. Call OpenAI API
      * 4. Sanitize output
      * 5. Return clean HTML or fallback to sample content
      */
     public function generate(ReportRequestData $data, ?string $kbContext = null, ?string $researchData = null): string
     {
-        if (! $this->miniMaxClient->isConfigured()) {
-            Log::warning('MiniMax API key not configured - using sample content');
+        if (! $this->aiClient->isConfigured()) {
+            Log::warning('OpenAI API key not configured - using sample content');
 
             return $this->getFallbackContent($data);
         }
@@ -65,15 +65,15 @@ abstract class BaseGenerator implements DocumentGeneratorInterface
                 'timeout' => 120,
             ];
 
-            $response = $this->miniMaxClient->chat($messages, $options);
+            $response = $this->aiClient->chat($messages, $options);
 
             if ($response['success']) {
                 return $this->sanitizeOutput($response['message']);
             }
 
-            Log::error('MiniMax API error', ['error' => $response['error'] ?? 'Unknown']);
+            Log::error('OpenAI API error', ['error' => $response['error'] ?? 'Unknown']);
         } catch (\Exception $e) {
-            Log::error('MiniMax generation error: '.$e->getMessage());
+            Log::error('OpenAI generation error: '.$e->getMessage());
         }
 
         // Fallback to sample content
