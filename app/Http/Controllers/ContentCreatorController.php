@@ -749,17 +749,19 @@ class ContentCreatorController extends Controller
             }
 
             // Fallback: Generate a structured prompt from topic when no blog body exists
-            $fallbackPrompt = "Professional editorial photograph representing: {$topic}.
+            $fallbackPrompt = <<<PROMPT
+Professional editorial photograph representing: {$topic}.
 
-SUBJECT: A visually striking, documentary-style scene that captures the essence of '{$topic}'. Think magazine cover quality — something that makes a reader stop and want to read more. Authentic moments, genuine emotion, not staged.
+SUBJECT: A visually striking, documentary-style scene that captures the essence of '{$topic}'. Think magazine cover quality -- something that makes a reader stop and want to read more. Authentic moments, genuine emotion, not staged.
 
-TECHNICAL: Shot on full-frame camera, 50mm f/1.4 lens. ISO 400-800 for natural film-like grain. Shallow depth of field with smooth bokeh. Dramatic lighting — golden hour or moody overcast.
+TECHNICAL: Shot on full-frame camera, 50mm f/1.4 lens. ISO 400-800 for natural film-like grain. Shallow depth of field with smooth bokeh. Dramatic lighting -- golden hour or moody overcast.
 
 MOOD: Compelling, editorial, premium. The kind of image that belongs in a high-quality online publication like The Atlantic, Bloomberg, or Wired.
 
 COMPOSITION: Subject placed using rule of thirds. Clean negative space at top or bottom for potential text overlay. No text, no overlays, no stock photo cheese.
 
-QUALITY: Professional photography, sharp focus on subject, organic background blur, 4K resolution."
+QUALITY: Professional photography, sharp focus on subject, organic background blur, 4K resolution.
+PROMPT;
 
             return response()->json([
                 'success' => true,
