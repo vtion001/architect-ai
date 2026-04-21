@@ -203,12 +203,17 @@ class CloudinaryService
     protected function saveToLocalStorage(string $url, string $relativePath): array
     {
         try {
-            $allowedHosts = ['res.cloudinary.com', 'api.cloudinary.com'];
+            // Support both Cloudinary URLs (for migration) and OpenAI DALL-E temp URLs
+            $allowedHosts = [
+                'res.cloudinary.com',
+                'api.cloudinary.com',
+                'oaidalleapiprodscus.blob.core.windows.net', // OpenAI DALL-E temp URLs
+            ];
             $host = parse_url($url, PHP_URL_HOST);
             if (! $host || ! in_array($host, $allowedHosts, true)) {
                 Log::error('CloudinaryService: Rejected disallowed URL for local fallback', ['host' => $host]);
 
-                return ['url' => $url, 'source' => 'temp_url', 'public_id' => null];
+                return ['url' => null, 'source' => 'upload_failed', 'public_id' => null, 'error' => 'Disallowed host: ' . $host];
             }
 
             $imageContent = file_get_contents($url);
@@ -216,7 +221,7 @@ class CloudinaryService
             if ($imageContent === false) {
                 Log::error('CloudinaryService: Failed to download from URL for local fallback');
 
-                return ['url' => $url, 'source' => 'temp_url', 'public_id' => null];
+                return ['url' => null, 'source' => 'upload_failed', 'public_id' => null, 'error' => 'Failed to download image'];
             }
 
             $filename = 'ai_'.Str::random(40).'.png';
@@ -240,7 +245,7 @@ class CloudinaryService
         } catch (\Exception $e) {
             Log::error('CloudinaryService: Local fallback failed', ['message' => $e->getMessage()]);
 
-            return ['url' => $url, 'source' => 'temp_url', 'public_id' => null];
+            return ['url' => null, 'source' => 'upload_failed', 'public_id' => null, 'error' => 'Local fallback failed: ' . $e->getMessage()];
         }
     }
 }

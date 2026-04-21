@@ -43,8 +43,9 @@ class ContentGenerationTest extends TestCase
         // Capture the actual call arguments
         $capturedArgs = null;
 
-        // Mock MiniMaxClient
+        // Mock OpenAIClient
         $mockClient = Mockery::mock(OpenAIClient::class);
+        $mockClient->shouldReceive('isConfigured')->andReturn(true);
         $mockClient->shouldReceive('chat')
             ->once()
             ->andReturnUsing(function ($messages, $options) use (&$capturedArgs) {
@@ -74,8 +75,9 @@ class ContentGenerationTest extends TestCase
         // Capture the actual call arguments
         $capturedArgs = null;
 
-        // Mock MiniMaxClient
+        // Mock OpenAIClient
         $mockClient = Mockery::mock(OpenAIClient::class);
+        $mockClient->shouldReceive('isConfigured')->andReturn(true);
         $mockClient->shouldReceive('chat')
             ->once()
             ->andReturnUsing(function ($messages, $options) use (&$capturedArgs) {
@@ -108,8 +110,9 @@ class ContentGenerationTest extends TestCase
         // Capture the actual call arguments
         $capturedArgs = null;
 
-        // Mock MiniMaxClient
+        // Mock OpenAIClient
         $mockClient = Mockery::mock(OpenAIClient::class);
+        $mockClient->shouldReceive('isConfigured')->andReturn(true);
         $mockClient->shouldReceive('chat')
             ->once()
             ->andReturnUsing(function ($messages, $options) use (&$capturedArgs) {
@@ -148,8 +151,9 @@ class ContentGenerationTest extends TestCase
         // Explicitly set HikerAPI key in config for this test
         config(['services.hiker_api.key' => 'test-key']);
 
-        // Mock MiniMaxClient
+        // Mock OpenAIClient
         $mockClient = Mockery::mock(OpenAIClient::class);
+        $mockClient->shouldReceive('isConfigured')->andReturn(true);
         $mockClient->shouldReceive('chat')
             ->once()
             ->withArgs(function ($messages, $options) {

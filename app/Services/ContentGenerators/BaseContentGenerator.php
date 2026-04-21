@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Services\ContentGenerators;
 
 use App\Contracts\ContentGeneratorInterface;
+use App\Services\AI\MiniMaxClient;
 use App\Services\AI\OpenAIClient;
 
 /**
@@ -20,14 +21,16 @@ use App\Services\AI\OpenAIClient;
 abstract class BaseContentGenerator implements ContentGeneratorInterface
 {
     protected OpenAIClient $openAIClient;
+    protected MiniMaxClient $miniMaxClient;
 
     public function __construct()
     {
         $this->openAIClient = app(OpenAIClient::class);
+        $this->miniMaxClient = app(MiniMaxClient::class);
     }
 
     /**
-     * Generate content using OpenAI.
+     * Generate content using OpenAI with MiniMax fallback.
      */
     public function generate(string $topic, ?string $context = null, array $options = []): string
     {
@@ -49,20 +52,53 @@ abstract class BaseContentGenerator implements ContentGeneratorInterface
             $chatOptions['model'] = $options['model'];
         }
 
-        $response = $this->openAIClient->chat($messages, $chatOptions);
+        $lastError = null;
 
-        if ($response['success']) {
-            $message = $response['message'] ?? '';
-        } else {
-            $message = 'Content generation failed.';
+        // Try OpenAI first
+        if ($this->openAIClient->isConfigured()) {
+            $response = $this->openAIClient->chat($messages, $chatOptions);
+
+            if ($response['success']) {
+                $message = $response['message'] ?? '';
+
+                if (($options['response_format'] ?? null) === ['type' => 'json_object'] || $this->getType() === 'framework_calendar') {
+                    return $this->cleanJsonResponse($message);
+                }
+
+                return $message;
+            }
+
+            $lastError = $response['error'] ?? 'OpenAI request failed';
+            Log::warning('ContentGenerator OpenAI failed, falling back to MiniMax: '.$lastError);
         }
 
-        // If the generator expects JSON (inferred from type or explicit option)
+        // Fall back to MiniMax
+        if ($this->miniMaxClient->isConfigured()) {
+            $response = $this->miniMaxClient->chat($messages, $chatOptions);
+
+            if ($response['success']) {
+                $message = $response['message'] ?? '';
+
+                if (($options['response_format'] ?? null) === ['type' => 'json_object'] || $this->getType() === 'framework_calendar') {
+                    return $this->cleanJsonResponse($message);
+                }
+
+                return $message;
+            }
+
+            $lastError = $response['error'] ?? 'MiniMax request failed';
+            Log::warning('ContentGenerator MiniMax failed: '.$lastError);
+        }
+
+        // Both failed
+        $errorMsg = $lastError ?? 'No AI service configured';
+        Log::error('ContentGenerator: all AI providers failed. Last error: '.$errorMsg);
+
         if (($options['response_format'] ?? null) === ['type' => 'json_object'] || $this->getType() === 'framework_calendar') {
-            return $this->cleanJsonResponse($message);
+            return $this->cleanJsonResponse('{}');
         }
 
-        return $message;
+        return 'Content generation failed. '.$errorMsg;
     }
 
     /**

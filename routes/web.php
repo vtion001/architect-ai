@@ -177,7 +177,7 @@ Route::middleware(['auth', 'tenant', 'mfa', 'session_security'])->group(function
 
     Route::post('/content-creator/suggestions', [ContentCreatorController::class, 'getSuggestions'])->name('content-creator.suggestions');
     Route::post('/content-creator/generate-blog-body', [ContentCreatorController::class, 'generateBlogBody'])->name('content-creator.generate-blog-body');
-    Route::post('/content-creator/generate-image-prompt', [ContentCreatorController::class, 'generateImagePrompt'])->name('content-creator.generate-image-prompt');
+    Route::post('/content-creator/generate-image-prompt', [ContentCreatorController::class, 'generateImagePrompt'])->middleware('throttle:10,1')->name('content-creator.generate-image-prompt');
     Route::post('/content-creator/refine', [ContentCreatorController::class, 'refineContext'])->name('content-creator.refine');
     Route::post('/content-creator/upload-media', [ContentCreatorController::class, 'uploadMedia'])->name('content-creator.upload-media');
     Route::post('/content-creator/upload-featured-image', [ContentCreatorController::class, 'uploadFeaturedImage'])->name('content-creator.upload-featured-image');

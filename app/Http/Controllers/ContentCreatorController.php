@@ -448,48 +448,11 @@ class ContentCreatorController extends Controller
             'style' => 'nullable|string|in:realistic,poster,asset-reference',
         ]);
 
-        $parent = Content::findOrFail($request->framework_id);
-
-        $drafts = Content::where(function ($q) use ($parent) {
-            $q->where('options->original_content_id', $parent->id)
-                ->orWhere('options->original_content_id', (string) $parent->id);
-        })
-            ->where('status', 'draft')
-            ->get();
-
-        if ($drafts->isEmpty()) {
-            return response()->json(['success' => false, 'message' => 'No drafts found for this framework.'], 404);
-        }
-
-        $count = $drafts->count();
-        $tokenCost = $count * 5;
-
-        if (! $this->tokenService->consume(auth()->user(), $tokenCost, 'bulk_image_generation', ['framework_id' => $parent->id])) {
-            return response()->json([
-                'success' => false,
-                'message' => "Insufficient tokens. Bulk generation requires $tokenCost tokens.",
-            ], 402);
-        }
-
-        $dispatchedCount = 0;
-        foreach ($drafts as $draft) {
-            $visualIdea = $draft->options['visual_idea'] ?? null;
-            if (! $visualIdea) {
-                $visualIdea = Str::before($draft->result, "\n");
-            }
-
-            if ($visualIdea) {
-                // In a real implementation, we would dispatch a job here.
-                // For MVP, we'll mark it as processing or similar if we had a status for that.
-                $dispatchedCount++;
-            }
-        }
-
         return response()->json([
-            'success' => true,
-            'message' => "Initiated image generation for $dispatchedCount posts.",
-            'count' => $dispatchedCount,
-        ]);
+            'success' => false,
+            'message' => 'Bulk image generation is not yet available. Please generate featured images individually for each post.',
+            'count' => 0,
+        ], 501);
     }
 
     /**
@@ -785,8 +748,18 @@ class ContentCreatorController extends Controller
                 Log::error('Image prompt generation failed: '.$response->body());
             }
 
-            // Fallback: Generate a basic prompt from topic
-            $fallbackPrompt = "A compelling featured image representing: {$topic}. Cinematic photography style, dramatic lighting, professional quality, suitable for blog header.";
+            // Fallback: Generate a structured prompt from topic when no blog body exists
+            $fallbackPrompt = "Professional editorial photograph representing: {$topic}.
+
+SUBJECT: A visually striking, documentary-style scene that captures the essence of '{$topic}'. Think magazine cover quality — something that makes a reader stop and want to read more. Authentic moments, genuine emotion, not staged.
+
+TECHNICAL: Shot on full-frame camera, 50mm f/1.4 lens. ISO 400-800 for natural film-like grain. Shallow depth of field with smooth bokeh. Dramatic lighting — golden hour or moody overcast.
+
+MOOD: Compelling, editorial, premium. The kind of image that belongs in a high-quality online publication like The Atlantic, Bloomberg, or Wired.
+
+COMPOSITION: Subject placed using rule of thirds. Clean negative space at top or bottom for potential text overlay. No text, no overlays, no stock photo cheese.
+
+QUALITY: Professional photography, sharp focus on subject, organic background blur, 4K resolution."
 
             return response()->json([
                 'success' => true,
@@ -998,7 +971,7 @@ HTML;
             'brand_id' => 'nullable|uuid',
         ]);
 
-        $tokenCost = 5;
+        $tokenCost = config('tokens.costs.image_generation', 20);
 
         if (! $this->tokenService->consume(auth()->user(), $tokenCost, 'image_generation', ['prompt' => $request->prompt])) {
             return response()->json([
@@ -1026,11 +999,29 @@ HTML;
             $options['reference_url'] = $request->input('reference_asset_url');
         }
 
+        // Cascade: OpenAI DALL-E 3 → MiniMax fallback
         $generatedUrl = $this->contentService->generateImage($request->prompt, $format, $options);
+        if (!$generatedUrl) {
+            Log::info('DALL-E failed, attempting MiniMax fallback for image generation');
+            $generatedUrl = $this->contentService->generateImageMiniMax($request->prompt, $format, $options);
+        }
 
         if ($generatedUrl) {
             $cloudinaryService = app(CloudinaryService::class);
             $uploadResult = $cloudinaryService->uploadFromUrl($generatedUrl, 'ai-generated', 'uploads/content-media');
+
+            // Check if upload failed — return error instead of storing broken URL
+            if (empty($uploadResult['url']) || ($uploadResult['source'] ?? '') === 'upload_failed') {
+                Log::error('Image upload failed after AI generation', [
+                    'generated_url' => $generatedUrl,
+                    'upload_result' => $uploadResult,
+                ]);
+
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Image was generated but upload to storage failed. Please try again.',
+                ], 500);
+            }
 
             $finalUrl = $uploadResult['url'];
             $source = match ($uploadResult['source']) {

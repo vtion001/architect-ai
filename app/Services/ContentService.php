@@ -109,6 +109,45 @@ class ContentService
     }
 
     /**
+     * Image generation via MiniMax (fallback when OpenAI fails).
+     * Uses MiniMax Image-01 API.
+     */
+    public function generateImageMiniMax(string $prompt, string $format = 'realistic', array $options = []): ?string
+    {
+        $apiKey = config('services.minimax.key');
+        if (!$apiKey) {
+            Log::info('MiniMax image fallback: API key not configured.');
+            return null;
+        }
+
+        $enhancedPrompt = $this->buildImagePrompt($prompt, $format, $options);
+
+        try {
+            $response = Http::withToken($apiKey)
+                ->timeout(120)
+                ->post('https://api.minimax.io/v1/image_generation', [
+                    'model' => 'MiniMax-Image-01',
+                    'prompt' => $enhancedPrompt,
+                    'num_images' => 1,
+                    'width' => 1024,
+                    'height' => 1024,
+                ]);
+
+            if ($response->successful()) {
+                $url = $response->json('data.0.url') ?? $response->json('data.0.urls.0');
+                Log::info('Image generated via MiniMax: ' . $url);
+                return $url;
+            }
+
+            Log::error('MiniMax image generation failed: ' . $response->body());
+            return null;
+        } catch (\Throwable $e) {
+            Log::error('MiniMax image generation error: ' . $e->getMessage());
+            return null;
+        }
+    }
+
+    /**
      * Build format-specific prompts for DALL-E 3 image generation.
      */
     protected function buildImagePrompt(string $prompt, string $format, array $options): string
