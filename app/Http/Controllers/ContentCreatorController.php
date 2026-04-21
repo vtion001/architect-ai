@@ -13,6 +13,7 @@ use App\Models\Content;
 use App\Models\KnowledgeBaseAsset;
 use App\Models\MediaAsset;
 use App\Models\Tenant;
+use App\Services\AI\MiniMaxClient;
 use App\Services\BrandResolverService;
 use App\Services\CloudinaryService;
 use App\Services\ContentService;
@@ -209,6 +210,9 @@ class ContentCreatorController extends Controller
                 'user_id' => auth()->id(),
                 'topic' => $request->input('topic'),
             ]);
+
+            // DEBUG: log context type and value
+
 
             $content = Content::create([
                 'title' => $request->input('topic'),
@@ -656,51 +660,89 @@ class ContentCreatorController extends Controller
                 'topic' => 'required|string|min:3',
             ]);
 
-            $keywords = $request->input('keywords', '');
+            $keywords = $request->input('keywords') ?? '';
             $topic = $request->topic;
+            $lastError = null;
 
-            // Use OpenAI to generate blog body content if configured
+            // System prompt and user prompt for AI generation
+            $systemPrompt = 'You are an expert SEO blog content writer.';
+            $userPrompt = "You are an expert SEO blog content writer. Generate a complete, SEO-optimized blog post body based on the following:\n\nTopic: $topic\nKeywords: $keywords\n\nRequirements:\n- Write 800-1200 words\n- Include the keywords naturally throughout\n- Use proper heading structure (H2, H3)\n- Make it engaging and informative\n- Include a compelling introduction and conclusion\n- DO NOT include the title/headline (that will be added separately)\n- Just write the body content, ready to publish\n\nStart writing the blog post body now:";
+            $messages = [
+                ['role' => 'system', 'content' => $systemPrompt],
+                ['role' => 'user', 'content' => $userPrompt],
+            ];
+
+            // Try OpenAI first
             if (config('services.openai.key')) {
-                $prompt = "You are an expert SEO blog content writer. Generate a complete, SEO-optimized blog post body based on the following:\n\nTopic: $topic\nKeywords: $keywords\n\nRequirements:\n- Write 800-1200 words\n- Include the keywords naturally throughout\n- Use proper heading structure (H2, H3)\n- Make it engaging and informative\n- Include a compelling introduction and conclusion\n- DO NOT include the title/headline (that will be added separately)\n- Just write the body content, ready to publish\n\nStart writing the blog post body now:";
-
-                $response = Http::withToken(config('services.openai.key'))
-                    ->timeout(120)
-                    ->post('https://api.openai.com/v1/chat/completions', [
+                try {
+                    $openAIClient = app(\App\Services\AI\OpenAIClient::class);
+                    $response = $openAIClient->chat($messages, [
                         'model' => config('services.openai.model', 'gpt-4o-mini'),
-                        'messages' => [
-                            ['role' => 'system', 'content' => 'You are an expert SEO blog content writer.'],
-                            ['role' => 'user', 'content' => $prompt],
-                        ],
                         'max_tokens' => 4000,
                         'temperature' => 0.7,
+                        'timeout' => 120,
                     ]);
 
-                if ($response->successful()) {
-                    $body = $response->json('choices.0.message.content', '');
+                    if ($response['success']) {
+                        return response()->json([
+                            'success' => true,
+                            'body' => trim($response['message']),
+                        ]);
+                    }
 
-                    // Return raw markdown (no HTML conversion)
-                    return response()->json([
-                        'success' => true,
-                        'body' => trim($body),
-                    ]);
+                    $lastError = $response['error'] ?? 'OpenAI request failed';
+                    Log::warning('Blog body OpenAI failed, trying MiniMax: '.$lastError);
+                } catch (\Throwable $e) {
+                    $lastError = $e->getMessage();
+                    Log::warning('Blog body OpenAI exception, trying MiniMax: '.$lastError);
                 }
-
-                Log::error('Blog body generation failed: '.$response->body());
+            } else {
+                $lastError = 'OpenAI API key not configured';
+                Log::info('OpenAI not configured for blog body generation, trying MiniMax');
             }
 
-            // Fallback: Generate a placeholder body when API is not configured
+            // Fall back to MiniMax
+            $miniMaxClient = app(MiniMaxClient::class);
+            if ($miniMaxClient->isConfigured()) {
+                try {
+                    $response = $miniMaxClient->chat($messages, [
+                        'max_tokens' => 4000,
+                        'temperature' => 0.7,
+                        'timeout' => 120,
+                    ]);
+
+                    if ($response['success']) {
+                        return response()->json([
+                            'success' => true,
+                            'body' => trim($response['message']),
+                        ]);
+                    }
+
+                    $lastError = $response['error'] ?? 'MiniMax request failed';
+                    Log::warning('Blog body MiniMax failed, using template fallback: '.$lastError);
+                } catch (\Throwable $e) {
+                    $lastError = $e->getMessage();
+                    Log::warning('Blog body MiniMax exception, using template fallback: '.$lastError);
+                }
+            } else {
+                Log::info('MiniMax not configured either, using template fallback');
+            }
+
+            // Last resort: use template and signal fallback to frontend
             $fallbackBody = $this->generateFallbackBlogBody($topic, $keywords);
 
             return response()->json([
                 'success' => true,
                 'body' => $fallbackBody,
+                'fallback' => true,
+                'error' => $lastError,
             ]);
         } catch (\Throwable $e) {
             Log::error('Blog body error: '.$e->getMessage());
 
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to generate blog body. Please try again.',
+                'message' => 'Failed to generate blog body. '.$e->getMessage(),
             ], 500);
         }
     }

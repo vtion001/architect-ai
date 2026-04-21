@@ -13,6 +13,7 @@ use App\Policies\AiAgentPolicy;
 use App\Policies\BrandPolicy;
 use App\View\Composers\ContentViewerComposer;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\View;
 use Illuminate\Support\ServiceProvider;
 
@@ -66,6 +67,11 @@ class AppServiceProvider extends ServiceProvider
             // Check by explicit attribute OR by Role
             return $user->is_developer || $user->roles()->where('name', 'Developer')->exists();
         });
+
+        // Disable SSL verification for local dev (Windows lacks CA bundle)
+        if (app()->environment('local')) {
+            Http::globalOptions(['verify' => false]);
+        }
 
         // Register View Composers
         View::composer('content-creator.content-viewer', ContentViewerComposer::class);
