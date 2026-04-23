@@ -83,43 +83,56 @@ export default defineConfig(({ command, mode }) => {
             },
         },
 
-        // Dev server - proxy to Docker nginx for backend routes only
+        // Dev server — proxy to Laravel backend
+        // In Docker: use 'host.docker.internal' for host machine, or 'app:9000' for container network
+        // On host: use 'localhost:8081'
         server: {
-            host: '0.0.0.0',
-            port: 5175,
-            strictPort: false,
+            host: '0.0.0.0',   // Must bind to all interfaces — Nginx is another process
+            port: 5175,         // Host-facing port (container maps 5175:5175 in docker-compose.dev.yml)
+            strictPort: false,  // Don't error if port is taken — fallback to random port
             allowedHosts: true,
-            hmr: process.env.VITE_HMR_HOST
-                ? { host: process.env.VITE_HMR_HOST }
-                : command === 'serve' ? { host: 'localhost' } : false,
             cors: true,
+            hmr: {
+                // HMR WebSocket — must match the server port for Vite to inject correct WS URL
+                port: 5175,
+                host: 'localhost',
+            },
             proxy: {
-                // Proxy API routes to Laravel backend
+                // All Laravel routes proxy through Nginx (port 80) to PHP-FPM
+                // Inside Docker: VITE_PROXY_TARGET=http://localhost:80 (Nginx in same container)
+                // On host (local dev): falls back to http://localhost:8081 (php artisan serve)
                 '/api': {
-                    target: 'http://localhost:8081',
+                    target: process.env.VITE_PROXY_TARGET || 'http://localhost:8081',
                     changeOrigin: true,
                     secure: false,
                 },
-                // Proxy auth routes to Laravel backend
                 '/auth': {
-                    target: 'http://localhost:8081',
+                    target: process.env.VITE_PROXY_TARGET || 'http://localhost:8081',
                     changeOrigin: true,
                     secure: false,
                 },
-                // Proxy other web routes that need PHP processing
                 '/dashboard': {
-                    target: 'http://localhost:8081',
+                    target: process.env.VITE_PROXY_TARGET || 'http://localhost:8081',
                     changeOrigin: true,
                     secure: false,
                 },
                 '/admin': {
-                    target: 'http://localhost:8081',
+                    target: process.env.VITE_PROXY_TARGET || 'http://localhost:8081',
                     changeOrigin: true,
                     secure: false,
                 },
-                // Proxy to Docker app container (hardcoded in built assets)
                 '/content-creator': {
-                    target: 'http://localhost:8081',
+                    target: process.env.VITE_PROXY_TARGET || 'http://localhost:8081',
+                    changeOrigin: true,
+                    secure: false,
+                },
+                '/settings': {
+                    target: process.env.VITE_PROXY_TARGET || 'http://localhost:8081',
+                    changeOrigin: true,
+                    secure: false,
+                },
+                '/billing': {
+                    target: process.env.VITE_PROXY_TARGET || 'http://localhost:8081',
                     changeOrigin: true,
                     secure: false,
                 },

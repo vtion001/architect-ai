@@ -1,0 +1,82 @@
+# ============================================================
+# architect-ai — Docker Dev Stack
+# ============================================================
+# Starts the full app in containers: Laravel + Vite + SQLite
+# Usage:
+#   docker compose -f docker-compose.dev.yml up --build
+#
+# Access:
+#   App:      http://localhost:8081
+#   Vite HMR: http://localhost:5175  (proxied via Nginx internally)
+#   Health:   http://localhost:8081/up
+#
+# Dev credentials:
+#   Email:    admin@dev.local
+#   Password: password123
+#
+# First run:
+#   docker compose -f docker-compose.dev.yml exec app php artisan migrate --force
+#   docker compose -f docker-compose.dev.yml exec app php artisan db:seed --class=DevUserSeeder --force
+#
+# Tear down:
+#   docker compose -f docker-compose.dev.yml down -v   # removes SQLite volume too
+# ============================================================
+
+services:
+  # ── App (PHP + Laravel + Vite) ────────────────────────────────────────────────
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: architect-ai-app
+    container_name: architect-ai-app
+    restart: unless-stopped
+    working_dir: /var/www/html
+    environment:
+      # ── Laravel ──────────────────────────────────────────────────────────────
+      APP_ENV: local
+      APP_DEBUG: "true"
+      APP_URL: http://localhost:8081
+      DB_CONNECTION: sqlite
+      DB_DATABASE: /var/www/html/database/database.sqlite
+      # Vite proxies Laravel routes through Nginx (localhost:80) inside the container
+      VITE_PROXY_TARGET: http://localhost:80
+      # ── PHP ──────────────────────────────────────────────────────────────────
+      PHP_MEMORY_LIMIT: 256M
+      PHP_PM: dynamic
+      PHP_PM_MAX_CHILDREN: 8
+      PHP_PM_START_SERVERS: 2
+      PHP_PM_MIN_SPARE_SERVERS: 2
+      PHP_PM_MAX_SPARE_SERVERS: 4
+      OPCACHE_ENABLE: "0"
+      SKIP_LAZY_OVERRIDE: "true"
+    env_file:
+      - .env.docker
+    volumes:
+      # Mount source code for live-reload (Blade templates, JS, CSS, routes, etc.)
+      # node_modules is BAKED into the image — do NOT mount host's node_modules here.
+      # Mounting it would overwrite Linux-native node_modules with Windows ones,
+      # breaking the native Rollup .node binaries.
+      - .:/var/www/html
+      # Named volume for the SQLite file only.
+      # Result: SQLite persists across restarts, deleted only by `docker compose down -v`.
+      - sqlite-data:/var/www/html/database
+    ports:
+      - "8081:80"     # Nginx :80 inside container → host port 8081
+      - "5175:5175"   # Vite HMR — browser connects here
+    networks:
+      - architect-dev
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost/up"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+
+networks:
+  architect-dev:
+    driver: bridge
+
+volumes:
+  # Stores SQLite file. Named volume = persists across `down`, deleted by `down -v`.
+  sqlite-data:
