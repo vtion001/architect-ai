@@ -4,6 +4,23 @@ use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
 
+// ── Permanent SQLite auto-creation ──────────────────────────────────────────────
+// Prevents "database file does not exist" errors after git clean / fresh clone.
+// SQLite creates the file automatically on first connection, but only for existing
+// parent directories. This ensures the file always exists before any DB query.
+if (env('DB_CONNECTION') === 'sqlite') {
+    // Use __DIR__ (bootstrap dir) and relative path — base_path() is not available yet
+    $dbFile = env('DB_DATABASE', 'database/database.sqlite');
+    $dbPath = dirname(__DIR__) . DIRECTORY_SEPARATOR . str_replace('/', DIRECTORY_SEPARATOR, $dbFile);
+    if (!file_exists($dbPath)) {
+        $dir = dirname($dbPath);
+        if (!is_dir($dir)) {
+            mkdir($dir, 0755, true);
+        }
+        touch($dbPath); // zero-byte file; SQLite auto-initialises on connect
+    }
+}
+
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
         web: __DIR__.'/../routes/web.php',
