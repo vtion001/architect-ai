@@ -7,6 +7,7 @@ services:
         container_name: architect-ai-app
         restart: unless-stopped
         working_dir: /var/www/html
+        entrypoint: ['./docker/entrypoint.sh']
         environment:
             PHP_MEMORY_LIMIT: 256M
             APP_URL: http://localhost:8081
@@ -52,8 +53,6 @@ services:
             - architect-network
         depends_on:
             - app
-            - db
-            - qdrant
 
     web:
         image: nginx:alpine
@@ -69,27 +68,6 @@ services:
             - architect-network
         depends_on:
             - app
-
-    db:
-        image: mysql:8.0
-        container_name: architect-ai-db
-        restart: unless-stopped
-        command: --default-authentication-plugin=mysql_native_password
-        ports:
-            - "3306:3306"
-        environment:
-            MYSQL_ROOT_PASSWORD: archpass123
-            MYSQL_DATABASE: architect_ai
-        volumes:
-            - ./docker/mysql/data:/var/lib/mysql
-        networks:
-            - architect-network
-        healthcheck:
-            test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uroot", "-parchpass123"]
-            interval: 30s
-            timeout: 10s
-            retries: 3
-            start_period: 30s
 
     qdrant:
         image: qdrant/qdrant:latest

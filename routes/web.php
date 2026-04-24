@@ -34,6 +34,14 @@ use App\Http\Controllers\Tenant\SubAccountController;
 use App\Http\Controllers\Tenant\UserManagementController;
 use Illuminate\Support\Facades\Route;
 
+Route::get('/healthcheck', function () {
+    return response()->json([
+        'status' => 'ok',
+        'app'    => config('app.name'),
+        'time'   => now()->toISOString(),
+    ]);
+})->withoutMiddleware(['auth', 'tenant', \App\Http\Middleware\SessionSecurityMiddleware::class]);
+
 Route::get('/', [LandingPageController::class, 'index'])->name('landing');
 Route::get('/waitlist', [LandingPageController::class, 'waitlist'])->name('waitlist');
 Route::post('/waitlist', [LandingPageController::class, 'joinWaitlist'])->name('waitlist.join');
