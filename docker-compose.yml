@@ -30,6 +30,9 @@ services:
             - architect-storage:/var/www/html/storage
         networks:
             - architect-network
+        depends_on:
+            db:
+                condition: service_healthy
 
     queue:
         build:
@@ -52,7 +55,10 @@ services:
         networks:
             - architect-network
         depends_on:
-            - app
+            app:
+                condition: service_started
+            db:
+                condition: service_healthy
 
     web:
         image: nginx:alpine
@@ -68,6 +74,28 @@ services:
             - architect-network
         depends_on:
             - app
+
+    db:
+        image: mysql:8.0
+        container_name: architect-ai-db
+        restart: unless-stopped
+        ports:
+            - "3306:3306"
+        environment:
+            MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD}
+            MYSQL_DATABASE: ${DB_DATABASE}
+            MYSQL_USER: ${DB_USERNAME}
+            MYSQL_PASSWORD: ${DB_PASSWORD}
+        volumes:
+            - architect-db:/var/lib/mysql
+        networks:
+            - architect-network
+        healthcheck:
+            test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u${DB_USERNAME}", "-p${DB_PASSWORD}"]
+            interval: 10s
+            timeout: 5s
+            retries: 5
+            start_period: 30s
 
     qdrant:
         image: qdrant/qdrant:latest
@@ -86,3 +114,4 @@ networks:
 
 volumes:
     architect-storage:
+    architect-db:

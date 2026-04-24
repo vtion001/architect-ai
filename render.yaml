@@ -28,7 +28,3 @@ services:
   - type: redis
     name: architect-redis
     plan: free
-
-databases:
-  - name: architect-db
-    plan: starter
