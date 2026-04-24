@@ -11,13 +11,16 @@ use Illuminate\Foundation\Configuration\Middleware;
 if (env('DB_CONNECTION') === 'sqlite') {
     // Use __DIR__ (bootstrap dir) and relative path — base_path() is not available yet
     $dbFile = env('DB_DATABASE', 'database/database.sqlite');
-    $dbPath = dirname(__DIR__) . DIRECTORY_SEPARATOR . str_replace('/', DIRECTORY_SEPARATOR, $dbFile);
-    if (!file_exists($dbPath)) {
-        $dir = dirname($dbPath);
-        if (!is_dir($dir)) {
-            mkdir($dir, 0755, true);
+    // Skip file creation for in-memory SQLite (used in tests)
+    if ($dbFile !== ':memory:') {
+        $dbPath = dirname(__DIR__) . DIRECTORY_SEPARATOR . str_replace('/', DIRECTORY_SEPARATOR, $dbFile);
+        if (!file_exists($dbPath)) {
+            $dir = dirname($dbPath);
+            if (!is_dir($dir)) {
+                mkdir($dir, 0755, true);
+            }
+            touch($dbPath); // zero-byte file; SQLite auto-initialises on connect
         }
-        touch($dbPath); // zero-byte file; SQLite auto-initialises on connect
     }
 }
 

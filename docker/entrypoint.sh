@@ -9,6 +9,10 @@ chmod -R 775 /var/www/html/storage /var/www/html/bootstrap/cache 2>/dev/null || 
 if [ $# -gt 0 ]; then
     exec "$@"
 else
+    # Run migrations before starting the main app (idempotent — safe on every restart)
+    echo "[entrypoint] Running database migrations..."
+    php artisan migrate --force
+
     # Start supervisord (nginx + php-fpm in one container)
     exec /usr/bin/supervisord -c /etc/supervisord.conf
 fi

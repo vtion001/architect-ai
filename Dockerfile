@@ -2,26 +2,38 @@ FROM serversideup/php:8.3-fpm-nginx
 
 USER root
 
-# ── Install Node.js 20 LTS ─────────────────────────────────────────────────────
-# The base image has no Node.js. We need it for Vite dev server (HMR).
-RUN apt-get update && apt-get install -y \
-    gnupg curl ca-certificates && \
+# ── Install Node.js 20 LTS (base image has none) ────────────────────────────
+RUN apt-get update && apt-get install -y gnupg curl ca-certificates && \
     curl -fsSL https://deb.nodesource.com/setup_20.x | bash - && \
     apt-get install -y nodejs && \
     apt-get clean && rm -rf /var/lib/apt/lists/*
 
-# Verify Node.js/npm are installed
-RUN node --version && npm --version
-
-# ── Install frontend dependencies ───────────────────────────────────────────────
-# node_modules is baked in so native Rollup .node binaries match the container OS.
-# Source code is volume-mounted — changes to .blade.php/.js/.css are picked up live.
 WORKDIR /var/www/html
-COPY package*.json ./
-RUN npm install
+
+# ── PHP dependencies (layer-cached before source copy) ───────────────────────
+COPY composer.json composer.lock* ./
+RUN composer install --no-dev --optimize-autoloader --no-scripts
+
+# ── Frontend dependencies + production build (layer-cached) ─────────────────
+COPY package.json package-lock.json* ./
+RUN npm ci && npm run build
+
+# ── Application source ───────────────────────────────────────────────────────
+COPY . .
+
+# Run post-install scripts now that full source is present
+RUN composer run-script post-autoload-dump 2>/dev/null || true
 
 # ── Storage permissions ───────────────────────────────────────────────────────
 RUN chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache && \
-    chmod -R 775 /var/www/html/storage /var/www/html/bootstrap/cache || true
+    chmod -R 775 /var/www/html/storage /var/www/html/bootstrap/cache
 
 EXPOSE 8080
+
+# Healthcheck — used by Render and container orchestrators
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+  CMD curl -f http://localhost/healthcheck || exit 1
+
+ENTRYPOINT ["./docker/entrypoint.sh"]
+# No CMD — entrypoint.sh defaults to supervisord (nginx + php-fpm).
+# Render overrides via startCommand; queue service overrides via docker-compose `command:`.
